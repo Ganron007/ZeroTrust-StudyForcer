@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Study Planner</title>
+    <style>
+      :root {
+        --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+      }
+      body {
+        font-family: var(--font-sans);
+        margin: 0;
+        padding: 0;
+      }
+      #error-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: #0a0a0a;
+        color: #ff4444;
+        padding: 24px;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.6;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      #error-overlay.visible {
+        display: block;
+      }
+      #error-overlay h3 {
+        color: #fff;
+        margin: 0 0 12px 0;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="error-overlay">
+      <h3>Startup Error</h3>
+      <div id="error-content"></div>
+    </div>
+    <script>
+      (function() {
+        const overlay = document.getElementById('error-overlay');
+        const content = document.getElementById('error-content');
+        function showError(msg) {
+          content.textContent += msg + '\n';
+          overlay.classList.add('visible');
+        }
+        window.onerror = function(msg, url, line, col, err) {
+          showError('ERROR: ' + msg + '\n  at ' + (url || '?') + ':' + line + ':' + col);
+          if (err && err.stack) showError('Stack:\n' + err.stack);
+        };
+        window.onunhandledrejection = function(e) {
+          showError('UNHANDLED REJECTION: ' + (e.reason || e));
+          if (e.reason && e.reason.stack) showError('Stack:\n' + e.reason.stack);
+        };
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

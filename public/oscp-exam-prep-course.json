@@ -1,0 +1,35 @@
+{
+  "id": "oscp-exam-prep",
+  "name": "OSCP+ Exam Prep",
+  "subtitle": "Final Exam Preparation (45 days)",
+  "edition": "2025",
+  "publisher": "OffSec",
+  "totalPages": 100,
+  "studyPages": 100,
+  "examInfo": {
+    "format": "Practical — 3 standalone + 1 AD set",
+    "duration": "23 hours 45 minutes",
+    "passingScore": "70/100",
+    "domainsLabel": "Performance-based",
+    "experienceReq": "No prerequisites"
+  },
+  "studyEstimate": {
+    "minutesPerPage": [60, 180]
+  },
+  "units": [
+    {
+      "id": 1,
+      "title": "Exam Prep Labs",
+      "color": "#DC2626",
+      "chapters": [
+        { "id": 1, "title": "Machines / Practice Labs", "pages": 100 }
+      ]
+    }
+  ],
+  "trackingMode": "machines",
+  "defaultSettings": {
+    "pagesPerDay": 2,
+    "studyDays": [1, 2, 3, 4, 5, 6],
+    "startingChapterId": 1
+  }
+}

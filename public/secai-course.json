@@ -1,0 +1,115 @@
+{
+  "id": "comptia-secai-cy0-001",
+  "name": "CompTIA SecAI+",
+  "subtitle": "Exam CY0-001 — 1st Edition",
+  "edition": "1st Edition",
+  "publisher": "Sybex / Wiley",
+  "totalPages": 304,
+  "studyPages": 228,
+  "examInfo": {
+    "format": "Max 60 questions (MC + PBQ)",
+    "duration": "60 minutes",
+    "passingScore": "600/900",
+    "domainsLabel": "4 exam domains",
+    "experienceReq": "3–4 yrs IT + 2+ yrs cybersecurity"
+  },
+  "studyEstimate": {
+    "minutesPerPage": [
+      3,
+      5
+    ]
+  },
+  "units": [
+    {
+      "id": 1,
+      "title": "Basic AI Concepts Related to Cybersecurity",
+      "color": "#2563EB",
+      "weight": 17,
+      "chapters": [
+        {
+          "id": 1,
+          "title": "AI in Cybersecurity",
+          "pages": 26,
+          "bookPageStart": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Securing AI Systems",
+      "color": "#7C3AED",
+      "weight": 40,
+      "chapters": [
+        {
+          "id": 2,
+          "title": "Security and the AI Life Cycle",
+          "pages": 30,
+          "bookPageStart": 27
+        },
+        {
+          "id": 3,
+          "title": "AI Threats and Attacks",
+          "pages": 30,
+          "bookPageStart": 57
+        },
+        {
+          "id": 4,
+          "title": "AI Security Controls",
+          "pages": 32,
+          "bookPageStart": 87
+        },
+        {
+          "id": 5,
+          "title": "AI Monitoring and Auditing",
+          "pages": 28,
+          "bookPageStart": 119
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "AI-Assisted Security",
+      "color": "#059669",
+      "weight": 24,
+      "chapters": [
+        {
+          "id": 6,
+          "title": "AI-Enhanced Attacks",
+          "pages": 20,
+          "bookPageStart": 147
+        },
+        {
+          "id": 7,
+          "title": "Enabling Security With AI",
+          "pages": 28,
+          "bookPageStart": 167
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "AI Governance, Risk, and Compliance",
+      "color": "#DC2626",
+      "weight": 19,
+      "chapters": [
+        {
+          "id": 8,
+          "title": "AI Governance, Risk, and Compliance",
+          "pages": 34,
+          "bookPageStart": 195
+        }
+      ]
+    }
+  ],
+  "defaultSettings": {
+    "pagesPerDay": 10,
+    "studyDays": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "startingChapterId": 1
+  }
+}

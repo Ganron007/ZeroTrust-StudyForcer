@@ -1,0 +1,59 @@
+{
+  "id": "oscp-official-lab",
+  "name": "OSCP+ Official Lab",
+  "subtitle": "PWK Challenge Labs (30 days)",
+  "edition": "2025",
+  "publisher": "OffSec",
+  "totalPages": 11,
+  "studyPages": 11,
+  "examInfo": {
+    "format": "Practical Lab",
+    "duration": "30 days access",
+    "passingScore": "Complete all challenges",
+    "domainsLabel": "Hands-on",
+    "experienceReq": "No prerequisites"
+  },
+  "studyEstimate": {
+    "minutesPerPage": [120, 300]
+  },
+  "units": [
+    {
+      "id": 1,
+      "title": "Beginner Challenge Labs",
+      "color": "#2563EB",
+      "chapters": [
+        { "id": 1, "title": "C1: Challenge Lab 0 - SECURA", "pages": 1 },
+        { "id": 2, "title": "C2: Challenge Lab 1 - MEDTECH", "pages": 1 },
+        { "id": 3, "title": "C3: Challenge Lab 2", "pages": 1 },
+        { "id": 4, "title": "C4: Challenge Lab 3 - SKYLARK", "pages": 1 }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "AssumeBreach Labs",
+      "color": "#D97706",
+      "chapters": [
+        { "id": 5, "title": "C5: Challenge Lab 4 - AssumeBreach", "pages": 1 },
+        { "id": 6, "title": "C6: Challenge Lab 5 - AssumeBreach", "pages": 1 },
+        { "id": 7, "title": "C7: Challenge Lab 6 - AssumeBreach", "pages": 1 }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Advanced Challenge Labs",
+      "color": "#DC2626",
+      "chapters": [
+        { "id": 8, "title": "C8: Challenge Lab 7 - ZEUS", "pages": 1 },
+        { "id": 9, "title": "C9: Challenge Lab 8 - POSEIDON", "pages": 1 },
+        { "id": 10, "title": "C10: Challenge Lab 9 - FEAST", "pages": 1 },
+        { "id": 11, "title": "C11: Challenge Lab 10 - LASER", "pages": 1 }
+      ]
+    }
+  ],
+  "trackingMode": "labs",
+  "defaultSettings": {
+    "pagesPerDay": 1,
+    "studyDays": [1, 2, 3, 4, 5, 6],
+    "startingChapterId": 1
+  }
+}

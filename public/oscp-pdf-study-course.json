@@ -1,0 +1,104 @@
+{
+  "id": "oscp-pdf-study",
+  "name": "OSCP+ PDF Study",
+  "subtitle": "PEN-200 — PDF Study & Practice (45 days)",
+  "edition": "2025",
+  "publisher": "OffSec",
+  "totalPages": 1045,
+  "studyPages": 1045,
+  "examInfo": {
+    "format": "Practical — 3 standalone + 1 AD set",
+    "duration": "23 hours 45 minutes",
+    "passingScore": "70/100",
+    "domainsLabel": "Performance-based",
+    "experienceReq": "No prerequisites"
+  },
+  "studyEstimate": {
+    "minutesPerPage": [5, 10]
+  },
+  "units": [
+    {
+      "id": 1,
+      "title": "Intro, Methodology & Reporting",
+      "color": "#2563EB",
+      "chapters": [
+        { "id": 1, "title": "Copyright", "pages": 1 },
+        { "id": 2, "title": "General Course Information", "pages": 15 },
+        { "id": 3, "title": "Introduction To Cybersecurity", "pages": 33 },
+        { "id": 4, "title": "Effective Learning Strategies", "pages": 28 },
+        { "id": 5, "title": "Report Writing for Penetration Testers", "pages": 20 }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Information Gathering & Scanning",
+      "color": "#7C3AED",
+      "chapters": [
+        { "id": 6, "title": "Information Gathering", "pages": 54 },
+        { "id": 7, "title": "Vulnerability Scanning", "pages": 33 }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Web Application & Client-Side Attacks",
+      "color": "#059669",
+      "chapters": [
+        { "id": 8, "title": "Introduction to Web Application Attacks", "pages": 44 },
+        { "id": 9, "title": "Common Web Application Attacks", "pages": 35 },
+        { "id": 10, "title": "SQL Injection Attacks", "pages": 25 },
+        { "id": 11, "title": "Phishing Basics", "pages": 38 },
+        { "id": 12, "title": "Client-side Attacks", "pages": 32 }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Exploitation & Evasion",
+      "color": "#D97706",
+      "chapters": [
+        { "id": 13, "title": "Locating Public Exploits", "pages": 18 },
+        { "id": 14, "title": "Fixing Exploits", "pages": 23 },
+        { "id": 15, "title": "Antivirus Evasion", "pages": 26 },
+        { "id": 16, "title": "Password Attacks", "pages": 52 }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Privilege Escalation & Tunneling",
+      "color": "#DC2626",
+      "chapters": [
+        { "id": 17, "title": "Windows Privilege Escalation", "pages": 56 },
+        { "id": 18, "title": "Linux Privilege Escalation", "pages": 33 },
+        { "id": 19, "title": "Port Redirection and SSH Tunneling", "pages": 47 },
+        { "id": 20, "title": "Tunneling Through Deep Packet Inspection", "pages": 23 }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Metasploit & Active Directory",
+      "color": "#0891B2",
+      "chapters": [
+        { "id": 21, "title": "The Metasploit Framework", "pages": 52 },
+        { "id": 22, "title": "Active Directory Introduction and Enumeration", "pages": 53 },
+        { "id": 23, "title": "Attacking Active Directory Authentication", "pages": 28 },
+        { "id": 24, "title": "Lateral Movement in Active Directory", "pages": 27 }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Cloud, Capstone & Practice",
+      "color": "#65A30D",
+      "chapters": [
+        { "id": 25, "title": "Enumerating AWS Cloud Infrastructure", "pages": 68 },
+        { "id": 26, "title": "Attacking AWS Cloud Infrastructure", "pages": 82 },
+        { "id": 27, "title": "Assembling the Pieces", "pages": 54 },
+        { "id": 28, "title": "Practice", "pages": 45 }
+      ]
+    }
+  ],
+  "trackingMode": "pages",
+  "defaultSettings": {
+    "pagesPerDay": 22,
+    "studyDays": [1, 2, 3, 4, 5],
+    "startingChapterId": 1
+  }
+}
