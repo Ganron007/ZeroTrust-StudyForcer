@@ -370,7 +370,7 @@
       if (field === 'id') value = Math.max(1, parseInt(value) || 1);
       if (field === 'bookPageStart') {
         const n = parseInt(value, 10);
-        value = (value === '' || isNaN(n) || n < 1) ? null : n;
+        value = (value === '' || isNaN(n) || n < 1) ? undefined : n;
       }
       state.units[unitIndex].chapters[chapterIndex][field] = value;
       updatePreview();

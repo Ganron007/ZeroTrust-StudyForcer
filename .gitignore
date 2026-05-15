@@ -28,3 +28,6 @@ Thumbs.db
 
 # Logs
 *.log
+.claude/
+OSCAR_OVER_ARR.md
+desktop.ini

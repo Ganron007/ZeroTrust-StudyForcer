@@ -3,7 +3,7 @@
 A short tour of every `.md` file in this repo so you (or future-you, or anyone who stumbles
 in) can jump straight to the right place instead of opening files at random.
 
-**Last updated:** 2026-05-13 — for app version **2.1.1**.
+**Last updated:** 2026-05-15 — for app version **2.2.1**.
 
 ---
 
@@ -40,8 +40,8 @@ These are the human-facing project docs. Read these first.
 |---|---|---|
 | `Docs/README.md` | What the app does, project layout, dev commands. | Updated for v2.1.1 / SQLite storage |
 | `Docs/ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.1.1 |
-| `Docs/BUGS.md` | Every bug found, root cause, and fix. Use it to avoid re-introducing fixed bugs. | Current through Bug #11 (v2.1.1) |
-| `Docs/CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through 2.1.1 — 2026-05-09 |
+| `Docs/BUGS.md` | Every bug found, root cause, and fix. Use it to avoid re-introducing fixed bugs. | Current through Bug #12 (v2.2.1) |
+| `Docs/CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through 2.2.1 — 2026-05-15 |
 | `Docs/ROADMAP.md` | Committed work only — Phase 0 (shipped), Phase 1 (polish/UX), Phase 2 (hardening). | Refreshed 2026-05-13 |
 | `Docs/VISION.md` | Speculative directions (SaaS, sync, mobile, AI, marketplace, LMS). Not a plan — thought exercise. | New 2026-05-13 |
 | `Docs/TESTING-REPORT.md` | Current test inventory (203 tests / 10 files), coverage targets, commands, regression guards. | Refreshed 2026-05-13 |
@@ -90,7 +90,7 @@ For the current testing picture, use `Docs/TESTING-REPORT.md`.
 
 - `node_modules/**/*.md` — third-party package READMEs; ignore.
 - `coverage/` — Vitest output when run with `--coverage`. Git-ignored.
-- `tools/`, `scripts/`, `public/` — code/assets, no docs.
+- `course-builder/`, `scripts/`, `public/` — code/assets, no docs.
 - `src-tauri/Cargo.toml` & `package.json` — the **real** version source of truth; trust
   these over any doc header.
 

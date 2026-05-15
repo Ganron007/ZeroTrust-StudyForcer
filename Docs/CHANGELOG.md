@@ -9,9 +9,22 @@ All notable changes to this project are documented here.
 ### Fixed
 - **Stats bar blank / missing course pill (Bug #12).** Top-of-page stats bar showed only one course pill in the toggle and "—" in every stat cell once a second plan was created across a second course. Three fixes in `src/App.tsx`: (1) active-course stats fall back to `plans[0]` when `primaryActivePlanId` doesn't match an active plan for the current course, (2) `viewedStats` uses a `??` chain so a missing active-course entry falls through to any available stat instead of returning `undefined`, (3) new `useEffect` reconciles `primaryActivePlanId` to point at a valid plan for the current course whenever it goes stale. Calendar, schedule, and Mark Done were unaffected because they read `plans` directly without going through `primaryActivePlanId`.
 
+### Changed — Build pipeline
+- **Original variant only.** `scripts/build-all.cjs` no longer builds the Adaptive `(A)` variant. The script now runs a single Tauri build, copies `study-planner.exe` to `portable/Study Planner (O) v<version>.exe`, and exits. Adaptive-variant source (`src/variants/adaptive.css`, `VITE_VARIANT=adaptive` conditional rendering) is left in place but no longer compiled into a shipped artifact.
+- **No more installers.** `src-tauri/tauri.conf.json` `bundle.active` flipped from `true` → `false`. Tauri skips MSI + NSIS bundling entirely, so builds are faster and `Installers/` is no longer populated. Removed the `msi/`/`nsis/` cleanup loop and the installer-copy blocks from `build-all.cjs`.
+- The standalone exe is still produced at `src-tauri/target/release/study-planner.exe` (Cargo always produces it; bundling was the only thing skipped) and is the sole distribution artifact going forward.
+
+### Changed — Docs
+- **Roadmap split.** `Docs/ROADMAP.md` rewritten to cover only committed work — Phase 0 (shipped), Phase 1 (UX polish, 6 items), Phase 2 (hardening, 6 items: async storage, persisted temp Log/Skip, branded domain IDs, single clock source, schedule derivation in store, inviolable-rule tests). Speculative material (multi-tenant SaaS, cloud sync, mobile, AI, marketplace, LTI) moved into new `Docs/VISION.md` with a 4-question decision rubric.
+- **suggestions.md description corrected.** `How_to_read.md` previously labelled it "Latest code review with H/M/L bugs"; it is actually an architecture-rationale doc explaining the frontend-heavy choice and what a Rust backend port would add. Description rewritten.
+- **`OSCAR_OVER_ARR.md` added at repo root.** Parallel-universe playbook for the "$100M ARR" daydream — positioning canvas, buyer-interview script, 90-day discovery plan. Deliberately decoupled from the technical roadmap; filed alongside `How_to_read.md` and referenced from the top-level files index.
+- `Docs/ARCHITECTURE.md` Reference Documents table updated to point at both `ROADMAP.md` (grounded) and `VISION.md` (speculative).
+- `How_to_read.md` updated: new rows for `Docs/VISION.md` and `OSCAR_OVER_ARR.md`; suggestions.md description fixed.
+
 ### Notes
 - No new dependencies. All 203 existing tests pass; `tsc -b --noEmit` clean.
-- Regression appeared during the 2.2.0 left-side sidebar work (`DailyBriefing`, `SidebarLabsStatus`, `SidebarNewsHighlights`). Exact triggering edit is unclear without git history, but the fix removes the failure mode regardless.
+- `src-tauri/Cargo.toml` still reads `version = "2.2.0"` — cosmetic only (the user-visible version is sourced from `tauri.conf.json`), will be reconciled on next intentional Rust-side change.
+- Regression in Bug #12 appeared during the 2.2.0 left-side sidebar work (`DailyBriefing`, `SidebarLabsStatus`, `SidebarNewsHighlights`). Exact triggering edit is unclear without git history, but the fix removes the failure mode regardless.
 
 ---
 
