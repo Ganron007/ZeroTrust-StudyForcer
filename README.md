@@ -26,6 +26,18 @@ Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 
 > Note: In browser mode, News RSS is unavailable (requires the Tauri backend). Everything else works using localStorage.
 
+## Creating Your Own Course
+
+Use the included **Course Builder** to create custom study material.
+
+1. Open `course-builder/course-builder.html` in any browser
+2. Fill out the form — add units, chapters, and page counts
+3. Click **Download JSON**
+4. In the app, click the **Import** button (Upload icon in the header) and select the file
+5. The course appears in the dropdown — select it and create a plan
+
+The Course Builder is a standalone HTML tool with live JSON preview and built-in validation. No build step, no server — just open in a browser.
+
 ## Build from source
 
 ```sh
