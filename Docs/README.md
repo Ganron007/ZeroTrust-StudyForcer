@@ -1,6 +1,6 @@
-# Study Planner (Desktop)
+# Study Planner
 
-A Tauri + React desktop study planner. Originally built around the CISSP curriculum, but the schedule engine and UI are course-agnostic — load any `course.json` and the planner regenerates dates, chapters, and progress accordingly.
+A Tauri + React study planner (desktop + browser). Originally built around the CISSP curriculum, but the schedule engine and UI are course-agnostic — load any `course.json` and the planner regenerates dates, chapters, and progress accordingly.
 
 ## What it does
 
@@ -26,7 +26,7 @@ src-tauri/            Rust backend (Tauri commands for FS I/O, news RSS, window 
 public/default-course.json  Seeded on first launch if no course exists
 Docs/                 Top-level docs (this folder)
 Arch/                 Deep architecture series (01-07 + index)
-reports/              Historical testing snapshots
+course-builder/       Standalone HTML tool to create custom course configs
 ```
 
 Plans live in SQLite (`plans` and `active_plan_ids` tables, see `src/lib/database.ts`). Labs, timer state, news, and window position are JSON files under `<app>/data/`. Schema/data migrations live inline in `database.ts` (legacy JSON → SQLite, `planMode`→`anchor`, numeric→date dailyLog keys, `activePlanId`→`activePlanIds`, `completedDays` removal).

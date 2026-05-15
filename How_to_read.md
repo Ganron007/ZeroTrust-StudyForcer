@@ -24,7 +24,8 @@ in) can jump straight to the right place instead of opening files at random.
 ## Top-level files
 
 | File | What it is | When to read it |
-|---|---|---|
+|---|---|---|---|
+| `README.md` | **Public face of the repo.** Feature overview, quick start, download links. | First visit / new contributor. |
 | `How_to_read.md` | **You are here.** Doc index + reading order. | First, every time. |
 | `suggestions.md` | Architecture rationale — why the app is frontend-heavy + what a heavier Rust backend *could* add (port schedule engine, native notifications, etc.). Not a TODO list. | When weighing whether to invest in Rust. |
 | `Suggestions.txt` | Free-form brainstorm about constraint-satisfaction algorithms (MILP/CSP/ASP) for a more advanced scheduler. Not a spec. | Only if you're exploring the deep-research direction. Ignore otherwise. |
