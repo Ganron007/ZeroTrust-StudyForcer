@@ -14,6 +14,9 @@ All notable changes to this project are documented here.
 ### Changed — Repo cleanup
 - **`tools/` renamed to `course-builder/`.** Directory and all references (`How_to_read.md`) updated.
 - **`.gitignore` cleaned.** Removed redundant `/OSCAR_OVER_ARR.md` entry. Added `desktop.ini`.
+- **Build script simplified.** Removed `(O)` suffix logic — only one variant exists now. No tauri.conf.json patching needed.
+- **Old portable EXEs removed.** `Study Planner (A) v2.2.1.exe` and `Study Planner (O) v2.2.1.exe` deleted. Replaced with `Study Planner v2.2.1.exe`.
+- **Fresh portable EXE built.** `portable/Study Planner v2.2.1.exe` (16.7 MB). Installers disabled (`bundle.active: false`).
 
 ### Fixed
 - **`course-builder.html`: `bookPageStart: null` → omitted.** When the book page start field is empty, the tool now uses `undefined` instead of `null`, so `JSON.stringify` omits the key entirely. Previously `"bookPageStart": null` did not match the TypeScript type (`bookPageStart?: number`, not nullable).
