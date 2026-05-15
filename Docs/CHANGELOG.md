@@ -6,7 +6,15 @@ All notable changes to this project are documented here.
 
 ## [2.2.1] — 2026-05-15
 
+### Added
+- **MIT LICENSE file at repo root.** Copyright (c) 2026 Ganron. `"license": "MIT"` added to `package.json`. Required for public GitHub repo.
+
+### Changed — Repo cleanup
+- **`tools/` renamed to `course-builder/`.** Directory and all references (`How_to_read.md`) updated.
+- **`.gitignore` cleaned.** Removed redundant `/OSCAR_OVER_ARR.md` entry. Added `desktop.ini`.
+
 ### Fixed
+- **`course-builder.html`: `bookPageStart: null` → omitted.** When the book page start field is empty, the tool now uses `undefined` instead of `null`, so `JSON.stringify` omits the key entirely. Previously `"bookPageStart": null` did not match the TypeScript type (`bookPageStart?: number`, not nullable).
 - **Stats bar blank / missing course pill (Bug #12).** Top-of-page stats bar showed only one course pill in the toggle and "—" in every stat cell once a second plan was created across a second course. Three fixes in `src/App.tsx`: (1) active-course stats fall back to `plans[0]` when `primaryActivePlanId` doesn't match an active plan for the current course, (2) `viewedStats` uses a `??` chain so a missing active-course entry falls through to any available stat instead of returning `undefined`, (3) new `useEffect` reconciles `primaryActivePlanId` to point at a valid plan for the current course whenever it goes stale. Calendar, schedule, and Mark Done were unaffected because they read `plans` directly without going through `primaryActivePlanId`.
 
 ### Changed — Build pipeline
