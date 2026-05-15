@@ -2,6 +2,8 @@
 
 All notable changes to this project are documented here.
 
+> **Versioning**: Follows [SemVer](https://semver.org). See `Docs/ARCHITECTURE.md` → Versioning Policy for bump rules.
+
 ---
 
 ## [2.2.1] — 2026-05-15

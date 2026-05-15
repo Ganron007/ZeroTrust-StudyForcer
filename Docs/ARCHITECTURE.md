@@ -161,3 +161,17 @@ The logging UI was refactored from inline per-plan inputs/buttons into a single 
 - Toggles the "How to read the calendar" legend card on/off
 - Default: **hidden** (never shown)
 - State persisted in `localStorage('showCalendarLegend')` — survives refresh
+
+---
+
+## Versioning Policy
+
+This project follows **Semantic Versioning** (`MAJOR.MINOR.PATCH`):
+
+| Bump | When | Example |
+|------|------|---------|
+| **MAJOR** | Breaking change to storage schema, plan data format, or user workflow | Renaming `dailyLog` fields, changing queue model |
+| **MINOR** | New backward-compatible feature | New sidebar widget, new tab, new tool |
+| **PATCH** | Bug fix, refactor, doc update, build change, repo cleanup | Stats bar fix, .gitignore cleanup, LICENSE added |
+
+**Always update all three version locations:** `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`.
