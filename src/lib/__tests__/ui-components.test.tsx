@@ -90,7 +90,7 @@ describe("PlannerPage UI", () => {
       />
     )
 
-    expect(screen.getByText("Study Planner")).toBeInTheDocument()
+    expect(screen.getByText("CySec CCPTL")).toBeInTheDocument()
     expect(screen.getByText("Back to View")).toBeInTheDocument()
   })
 

@@ -714,7 +714,7 @@ function AppContent() {
             </div>
             <div className="hidden sm:block whitespace-nowrap">
               <h1 className="font-bold text-foreground leading-none whitespace-nowrap text-base">
-                Study Planner
+                CySec CCPTL
                 <span className="ml-2 text-[10px] font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">v{__APP_VERSION__}</span>
               </h1>
             </div>

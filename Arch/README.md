@@ -1,10 +1,10 @@
-# Study Planner — Architecture Documentation
+# CySec CCPTL — Architecture Documentation
 
-**Updated:** 2026-05-13  
-**System:** Study Planner Desktop Application  
+**Updated:** 2026-05-17  
+**System:** CySec CCPTL Desktop Application  
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State:** Zustand 5 + SQLite / localStorage  
-**Version:** 2.1.1 (multi-plan-per-day logging, unit-order freeze after first log)
+**Version:** 2.2.1 (renamed to CySec CCPTL, clean portable builds)
 
 ---
 

@@ -109,7 +109,7 @@ async function fetchViaProxy(proxyUrl: string): Promise<string> {
   const res = await fetch(proxyUrl, {
     signal: controller.signal,
     headers: {
-      "User-Agent": "Study-Planner-App/1.0",
+      "User-Agent": "CySec-CCPTL/1.0",
     },
   })
   clearTimeout(timeout)

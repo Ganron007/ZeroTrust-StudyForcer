@@ -1,13 +1,13 @@
-# Study Planner
+# CySec CCPTL
 
-A Tauri + React study planner (desktop + browser). Originally built around the CISSP curriculum, but the schedule engine and UI are course-agnostic — load any `course.json` and the planner regenerates dates, chapters, and progress accordingly.
+A Tauri + React cybersecurity certification tracker (desktop + browser). Built around the CISSP, SecAI+, and OSCP curricula.
 
 ## What it does
 
 - Generates a daily reading schedule from a start date, target pages/day, and chosen study days of the week.
 - Lets you log actual pages read per day; the remaining schedule recomputes around your real pace.
 - Tracks completion, streak, and progress per unit.
-- Persists plans and active-plan IDs to a local SQLite database (`<appData>/study-planner.db` in Tauri, `localStorage` keys in web/test). Timer state, lab sessions, news cache, course JSONs, and window state are still flat JSON files next to the executable.
+- Persists plans and active-plan IDs to a local SQLite database (`<appData>/studyplanner.app/study-planner.db` in Tauri, `localStorage` keys in web/test). Timer state, lab sessions, news cache, course JSONs, and window state are still flat JSON files next to the executable.
 - Bundles a Pomodoro/stopwatch/countdown timer and a separate lab-tracker view.
 
 ## Project layout
@@ -29,14 +29,14 @@ Arch/                 Deep architecture series (01-07 + index)
 course-builder/       Standalone HTML tool to create custom course configs
 ```
 
-Plans live in SQLite (`plans` and `active_plan_ids` tables, see `src/lib/database.ts`). Labs, timer state, news, and window position are JSON files under `<app>/data/`. Schema/data migrations live inline in `database.ts` (legacy JSON → SQLite, `planMode`→`anchor`, numeric→date dailyLog keys, `activePlanId`→`activePlanIds`, `completedDays` removal).
+Plans live in SQLite (`plans` and `active_plan_ids` tables, see `src/lib/database.ts`). Labs, timer state, news, and window position are JSON files under `<appData>/studyplanner.app/data/`. Schema/data migrations live inline in `database.ts` (legacy JSON → SQLite, `planMode`→`anchor`, numeric→date dailyLog keys, `activePlanId`→`activePlanIds`, `completedDays` removal).
 
 ## Development
 
 ```sh
 npm install
 npm run tauri:dev      # Dev shell (Vite + Tauri)
-npm run tauri:build    # Production bundle
+npm run tauri:build:all  # Production EXE (clean portable build)
 npm run build          # Type-check + Vite build only (no Tauri)
 ```
 

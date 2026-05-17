@@ -12,7 +12,7 @@ in) can jump straight to the right place instead of opening files at random.
 | You are… | Read in this order |
 |---|---|
 | **Brand-new to the project** | `Docs/README.md` → `Arch/01-executive-overview.md` → `Docs/ARCHITECTURE.md` |
-| **Returning reviewer / future-you** | `Docs/CHANGELOG.md` → `suggestions.md` → `Docs/BUGS.md` |
+| **Returning reviewer / future-you** | `Docs/CHANGELOG.md` → `Docs/BUGS.md` |
 | **About to change code** | `Docs/ARCHITECTURE.md` (rules) → the relevant `Arch/0X-*.md` → `Docs/BUGS.md` (don't reintroduce a fixed bug) |
 | **Debugging a data-flow issue** | `Arch/03-data-flow.md` + `Arch/05-state-management.md` |
 | **Touching the anchor / schedule math** | `Arch/06-anchor-system.md` + `Arch/04-control-flow.md` |
@@ -24,12 +24,9 @@ in) can jump straight to the right place instead of opening files at random.
 ## Top-level files
 
 | File | What it is | When to read it |
-|---|---|---|---|
+|---|---|---|
 | `README.md` | **Public face of the repo.** Feature overview, quick start, download links. | First visit / new contributor. |
 | `How_to_read.md` | **You are here.** Doc index + reading order. | First, every time. |
-| `suggestions.md` | Architecture rationale — why the app is frontend-heavy + what a heavier Rust backend *could* add (port schedule engine, native notifications, etc.). Not a TODO list. | When weighing whether to invest in Rust. |
-| `Suggestions.txt` | Free-form brainstorm about constraint-satisfaction algorithms (MILP/CSP/ASP) for a more advanced scheduler. Not a spec. | Only if you're exploring the deep-research direction. Ignore otherwise. |
-| `OSCAR_OVER_ARR.md` | Parallel-universe playbook for "what if I tried to turn this into a $100M ARR SaaS." Positioning canvas + buyer-interview script + 90-day discovery plan. Filed under "things I am not doing because I'm going to Hollywood." | When you need to remember why you chose acting. |
 
 ---
 
@@ -39,8 +36,8 @@ These are the human-facing project docs. Read these first.
 
 | File | Purpose | Last refresh |
 |---|---|---|
-| `Docs/README.md` | What the app does, project layout, dev commands. | Updated for v2.1.1 / SQLite storage |
-| `Docs/ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.1.1 |
+| `Docs/README.md` | What the app does, project layout, dev commands. | Updated for v2.2.1 |
+| `Docs/ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.2.1 |
 | `Docs/BUGS.md` | Every bug found, root cause, and fix. Use it to avoid re-introducing fixed bugs. | Current through Bug #12 (v2.2.1) |
 | `Docs/CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through 2.2.1 — 2026-05-15 |
 | `Docs/ROADMAP.md` | Committed work only — Phase 0 (shipped), Phase 1 (polish/UX), Phase 2 (hardening). | Refreshed 2026-05-13 |
@@ -78,12 +75,11 @@ For the current testing picture, use `Docs/TESTING-REPORT.md`.
 
 ## Quick sanity checks before you trust a doc
 
-1. **Version at the top.** Anything saying < `2.1.1` may be stale.
+1. **Version at the top.** Anything saying < `2.2.1` may be stale.
 2. **Cross-check with `Docs/CHANGELOG.md`** — entries dated after the doc's "Updated" line
    probably superseded what you're reading.
 3. **Verify code claims.** If a doc names a function/file, run a quick `Grep` before
-   relying on it — see `suggestions.md` for an example of doc-claims-that-no-longer-match
-   (the old `migratePlan()` reference, JSON-vs-SQLite, etc.).
+   relying on it.
 
 ---
 

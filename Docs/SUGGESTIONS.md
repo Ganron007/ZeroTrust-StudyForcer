@@ -1,6 +1,6 @@
 # Architecture: Frontend-heavy rationale
 
-Study Planner uses a **frontend-heavy architecture** (React TypeScript handles UI + business logic + persistence, Rust handles only the news-proxy command). This is the standard Tauri pattern and is appropriate for this app's scope.
+CySec CCPTL uses a **frontend-heavy architecture** (React TypeScript handles UI + business logic + persistence, Rust handles only the news-proxy command). This is the standard Tauri pattern and is appropriate for this app's scope.
 
 ## Why this works for a desktop study planner
 
@@ -23,7 +23,7 @@ Study Planner uses a **frontend-heavy architecture** (React TypeScript handles U
 | **Full audit log** (immutable append-only event store for every plan action) | High — new SQLite schema + Rust commands crossing IPC | Low — daily log is already append-only |
 | **Tamper-proof data validation** (business logic enforced in compiled Rust, not JS) | Very high — duplicate all plan logic in Rust | Low — local app, user trusts their own data |
 
-## Recommended next step (only if you invest)
+## If you invest
 
 Port the **schedule engine** to Rust as a Tauri command. Keep the current JS implementation as fallback. This gives:
 - A single source of truth for schedule derivation (unitOrder, pageSequence, dailyLog)

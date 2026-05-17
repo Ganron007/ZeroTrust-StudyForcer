@@ -1,10 +1,10 @@
 # Testing Report
 
-**Updated:** 2026-05-13
-**Version:** 2.1.1
+**Updated:** 2026-05-17
+**Version:** 2.2.1
 **Runner:** Vitest v4.1.5 + jsdom
 **Total tests:** 203 across 10 files
-**Status:** all passing (last verified at v2.1.1 release)
+**Status:** all passing
 
 For deeper test-architecture context (pyramid, mocking strategy, coverage targets), see
 [`../Arch/07-testing-architecture.md`](../Arch/07-testing-architecture.md).
@@ -106,11 +106,7 @@ exercised manually in the running Tauri build, not in the test suite.
 
 ---
 
-## 7. Historical snapshots
+## 7. Coverage output
 
-| File | Date | Tests | Why kept |
-|---|---|---|---|
-| [`../reports/TESTING-REPORT.md`](../reports/TESTING-REPORT.md) | 2026-04-29 | 165 | Pre-2.0.1 model (still mentions `completedDays`/`skippedDays`). Reference only — do **not** treat as current. |
-
-Older raw test logs and coverage HTML may live under `coverage/` (Vitest's default output
+Raw test logs and coverage HTML may live under `coverage/` (Vitest's default output
 directory) when you run with `--coverage`. That folder is git-ignored.

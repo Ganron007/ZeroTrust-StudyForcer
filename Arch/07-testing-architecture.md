@@ -22,7 +22,7 @@ src/lib/__tests__/
 ├── planner-page.test.tsx        # 9  — PlannerPage create/edit/delete
 └── ui-components.test.tsx       # 5  — misc component smoke tests
 ```
-Total: **203 tests / 10 files**, all passing at v2.1.1.
+Total: **203 tests / 10 files**, all passing at v2.2.1.
 
 ---
 
@@ -137,7 +137,8 @@ npx tsc -b --noEmit
 | Bug | Fix |
 |---|---|
 | Past unlogged days advancing pointer | `effectiveSliceSize = 0` |
-| `handleMarkDone` wrong variable destructure | Use `dateToActivePlanId` map |
+| Multi-plan Mark Done dropped second plan | Direct `allPlans.find(courseId + activePlanIds)` |
+| Multi-plan dailyLog overwrite | `Record<date, Record<courseId, ...>>` nesting |
 | completedDays showing stale data | Removed entirely, dailyLog is the indicator |
 
 ---

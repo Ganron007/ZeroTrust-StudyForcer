@@ -8,6 +8,10 @@ All notable changes to this project are documented here.
 
 ## [2.2.1] — 2026-05-15
 
+### Changed — Rename
+- **App renamed from "Study Planner" to "CySec CCPTL".** Acronym stands for "Certification Progress Tracker for Losers." Updated across 19 files: `index.html`, `tauri.conf.json`, `package.json`, `Cargo.toml`, `README.md`, `Docs/README.md`, `Docs/ARCHITECTURE.md`, `Docs/SUGGESTIONS.md`, `Arch/README.md`, `Arch/01-executive-overview.md`, `src/App.tsx`, `src/components/PlannerPage.tsx`, `src/lib/__tests__/ui-components.test.tsx`, `scripts/build-all.cjs`, `src-tauri/src/main.rs` (User-Agent), `src/lib/news-storage.ts` (User-Agent), `course-builder/course-builder.html`. Logo (graduation cap) unchanged.
+- **Clean portable builds.** `scripts/build-all.cjs` now swaps the Tauri identifier to `ccptl-portable` during the build so the portable EXE gets its own AppData directory — no development/test plans leak into the release build. Identifier is restored to `studyplanner.app` after building (no diff, no git changes). Dev builds (`npm run tauri:dev`) continue to use `studyplanner.app` and keep all test data.
+
 ### Added
 - **MIT LICENSE file at repo root.** Copyright (c) 2026 Ganron. `"license": "MIT"` added to `package.json`. Required for public GitHub repo.
 
@@ -38,7 +42,6 @@ All notable changes to this project are documented here.
 
 ### Notes
 - No new dependencies. All 203 existing tests pass; `tsc -b --noEmit` clean.
-- `src-tauri/Cargo.toml` still reads `version = "2.2.0"` — cosmetic only (the user-visible version is sourced from `tauri.conf.json`), will be reconciled on next intentional Rust-side change.
 - Regression in Bug #12 appeared during the 2.2.0 left-side sidebar work (`DailyBriefing`, `SidebarLabsStatus`, `SidebarNewsHighlights`). Exact triggering edit is unclear without git history, but the fix removes the failure mode regardless.
 
 ---

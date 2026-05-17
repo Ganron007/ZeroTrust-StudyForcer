@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Study Planner",
+  "productName": "CySec CCPTL",
   "version": "2.2.1",
   "identifier": "studyplanner.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Study Planner",
+        "title": "CySec CCPTL",
         "width": 1400,
         "height": 900,
         "minWidth": 768,

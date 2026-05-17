@@ -1,6 +1,6 @@
 # Roadmap
 
-**Updated:** 2026-05-13
+**Updated:** 2026-05-17
 **Scope:** Concrete work for the current architecture (local-first Tauri desktop app).
 **Vision items** (SaaS, multi-tenant, sync, mobile, marketplace, AI) live in [`VISION.md`](VISION.md) — they're exploration, not committed work.
 

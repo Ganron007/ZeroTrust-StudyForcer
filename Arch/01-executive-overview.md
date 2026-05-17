@@ -1,9 +1,9 @@
 # Executive Architecture Overview
 
-**System:** Study Planner Desktop Application  
+**System:** CySec CCPTL Desktop Application  
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State Management:** Zustand 5 (single source of truth) + SQLite (Tauri) / localStorage (Web)  
-**Version:** 2.0.1
+**Version:** 2.2.1
 
 ---
 

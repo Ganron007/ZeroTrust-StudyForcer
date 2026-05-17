@@ -190,7 +190,7 @@ async fn fetch_hn_security() -> Vec<NewsItem> {
     let url = "https://hn.algolia.com/api/v1/search_by_date?tags=security&hitsPerPage=30";
     let res = client
         .get(url)
-        .header("User-Agent", "StudyPlanner/1.0")
+        .header("User-Agent", "CySecCCPTL/1.0")
         .timeout(Duration::from_secs(15))
         .send()
         .await;
@@ -233,7 +233,7 @@ async fn fetch_rss_feed(feed: &FeedConfig) -> Vec<NewsItem> {
     let client = reqwest::Client::new();
     let res = client
         .get(feed.url)
-        .header("User-Agent", "StudyPlanner/1.0")
+        .header("User-Agent", "CySecCCPTL/1.0")
         .timeout(Duration::from_secs(15))
         .send()
         .await;

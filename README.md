@@ -1,6 +1,7 @@
-# Study Planner
+# CySec CCPTL
+**Certification Progress Tracker for Losers**
 
-A cross-platform study planner that generates daily reading schedules from any course config. Runs as a desktop app *(recommended)* or locally in your browser.
+A cybersecurity certification study tracker — one plan at a time, no fluff. Runs as a desktop app *(recommended)* or locally in your browser.
 
 Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 
@@ -21,7 +22,7 @@ Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 
 | Platform | How to run |
 |----------|-----------|
-| **Desktop** | Download `Study Planner vX.X.X.exe` from [Releases](https://github.com/Ganron007/Study-Planner-app/releases) and double-click |
+| **Desktop** | Download `CySec CCPTL vX.X.X.exe` from [Releases](https://github.com/Ganron007/Study-Planner-app/releases) and double-click |
 | **Browser** | `npm install && npm run dev` — opens at `http://localhost:5173` |
 
 > Note: In browser mode, News RSS is unavailable (requires the Tauri backend). Everything else works using localStorage.
@@ -42,8 +43,8 @@ The Course Builder is a standalone HTML tool with live JSON preview and built-in
 
 ```sh
 npm install
-npm run tauri:dev    # Dev shell (hot-reload)
-npm run tauri:build  # Production EXE
+npm run tauri:dev        # Dev shell (hot-reload)
+npm run tauri:build:all  # Production EXE (clean portable build)
 ```
 
 ## Documentation

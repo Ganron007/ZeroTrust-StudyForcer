@@ -1,4 +1,4 @@
-# Study Planner Desktop — ARCHITECTURE.md
+# CySec CCPTL — ARCHITECTURE.md
 
 **Purpose**: Canonical reference for design decisions, constraints, and project conventions.
 Read this before making any change to ensure consistency with prior decisions.
@@ -7,7 +7,7 @@ Read this before making any change to ensure consistency with prior decisions.
 
 ## Project Overview
 
-A Tauri + React + TypeScript desktop study planner. Generates daily reading schedules from course
+A Tauri + React + TypeScript cybersecurity certification tracker. Generates daily reading schedules from course
 configs, tracks progress via page-level logging (queue-based), and supports custom unit ordering
 for non-linear curricula (e.g., CISSP domain reordering).
 

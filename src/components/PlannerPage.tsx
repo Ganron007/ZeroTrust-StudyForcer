@@ -284,7 +284,7 @@ export default function PlannerPage({
           </button>
           <div className="flex items-center gap-2 flex-shrink-0">
             <GraduationCap className="w-5 h-5 text-primary" />
-            <h1 className="font-bold text-foreground text-base">Study Planner</h1>
+            <h1 className="font-bold text-foreground text-base">CySec CCPTL</h1>
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
