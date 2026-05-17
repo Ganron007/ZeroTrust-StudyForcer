@@ -6,11 +6,54 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.3.0] — 2026-05-17
+
+### Added — Course Builder (in-app)
+- **Course Builder integrated into the React app.** Replaces the standalone `course-builder/course-builder.html` file. Users can now create custom course configs directly inside the app: open **Planner** → click **Build Course**.
+- Full-page overlay with the same form sections as the standalone tool:
+  - **Course Basics:** ID (URL-safe slug), display name, subtitle, edition, publisher
+  - **Units & Chapters:** Add/remove/reorder units, add/remove/reorder chapters, per-chapter page count, optional `bookPageStart`, per-unit color picker
+  - **Default Settings:** pages per day, study days (day-of-week toggles), starting chapter
+  - **Exam Info** (collapsible optional): format, duration, passing score, domains label, experience requirement
+  - **Study Estimate** (collapsible optional): min/max minutes per page
+- **Live JSON preview** in right column with validation badge — shows errors inline, disables Save until valid.
+- **"Save Course to Library"** button calls `saveCourse()` → course is persisted to `data/courses/{id}.json` and immediately available in the course selector for plan creation.
+- Standalone `course-builder/course-builder.html` deleted — all functionality now lives in `src/components/CourseBuilder.tsx`.
+
+### Changed
+- PlannerPage header now shows **"Build Course"** button (next to Export/Import) that opens the Course Builder overlay.
+- `README.md` updated: Course Builder instructions now say "Planner → Build Course" instead of opening a standalone HTML file.
+- `Docs/README.md`, `How_to_read.md` — references to `course-builder/` directory removed.
+
+### Fixed
+- **DailyBriefing `yesterdayTotal`** no longer shows 0 pages after Mark Done clears temp state. Now reads from both React temp state (pending) and committed `plan.dailyLog` (after Mark Done), so yesterday's page count persists.
+- **Backup restore now includes courses.** Previously, the backup JSON contained courses but the import handler skipped them. Now courses are restored from the backup alongside plans, labs, and timer data.
+- **Mark Done commits to ALL active plans per course, not just the primary.** When a course had multiple active plans sharing the same date, only the primary plan got the log entry. Now every active plan for that `courseId` receives the same commit — no more accidental data loss for non-primary plans.
+
+### Notes
+- 203 existing tests pass; `tsc -b --noEmit` clean.
+- Bundle size increased by ~26 KB (CourseBuilder component).
+- New `INEFFECTIVE_DYNAMIC_IMPORT` warning for `course-storage.ts` — CourseBuilder imports it statically alongside App.tsx's dynamic import. Harmless.
+
+---
+
 ## [2.2.1] — 2026-05-15
 
 ### Changed — Rename
 - **App renamed from "Study Planner" to "CySec CCPTL".** Acronym stands for "Certification Progress Tracker for Losers." Updated across 19 files: `index.html`, `tauri.conf.json`, `package.json`, `Cargo.toml`, `README.md`, `Docs/README.md`, `Docs/ARCHITECTURE.md`, `Docs/SUGGESTIONS.md`, `Arch/README.md`, `Arch/01-executive-overview.md`, `src/App.tsx`, `src/components/PlannerPage.tsx`, `src/lib/__tests__/ui-components.test.tsx`, `scripts/build-all.cjs`, `src-tauri/src/main.rs` (User-Agent), `src/lib/news-storage.ts` (User-Agent), `course-builder/course-builder.html`. Logo (graduation cap) unchanged.
 - **Clean portable builds.** `scripts/build-all.cjs` now swaps the Tauri identifier to `ccptl-portable` during the build so the portable EXE gets its own AppData directory — no development/test plans leak into the release build. Identifier is restored to `studyplanner.app` after building (no diff, no git changes). Dev builds (`npm run tauri:dev`) continue to use `studyplanner.app` and keep all test data.
+- **MD5 + release notes generated per build.** `scripts/build-all.cjs` now computes an MD5 hash (`CySec CCPTL vX.X.X.exe.md5`) and extracts release notes (`RELEASE_NOTES_vX.X.X.md`) from `Docs/CHANGELOG.md` into `portable/` — ready to paste straight into a GitHub Release.
+
+### Changed — Code cleanup
+- **Dead code removed.** Deleted `src/components/DailyLogModal.tsx` (replaced by LogDialog in v2.0.1), `src/variants/adaptive.css` (unused since single-variant build), `public/cissp-custom-order.json` (never referenced by seed logic). Removed empty `src/variants/` directory.
+- **ESLint fixes in production code.** Removed unused imports (`DailyLog`, `getUnitColors`, `LogIn`), unused variables (`startDate`, `pagesPerDay`, `startingChapterId`, `chapterStartOverrides`, `targetEndDate`, `targetDayCount`, `anchor`, `dateToActivePlanId`, `chapters`, `isActive`, `completed`, `log`, `onMarkDone`), unused parameter (`_courseId`), cleaned up dependency arrays. Production code now has 0 ESLint errors and 0 warnings.
+- **Docs reference fixed.** Removed stale `../suggestions.md` row from `Docs/ARCHITECTURE.md` Reference Documents table.
+
+### Fixed — Data integrity
+- **Timer no longer corrupts schedule math.** The timer confirmation dialog previously saved minutes as `pagesRead` in the daily log (e.g., 30 timer minutes = 30 pages consumed), which caused the queue pointer to advance incorrectly and stats to be wrong. Now the timer logs a standalone toast notification and does not touch the daily log at all — pages only come from the Log dialog. Removed related dead code in `confirmTimerLog`.
+- **Multi-plan-per-course Mark Done now uses primaryActivePlanId.** When a course had multiple active plans, `handleMarkDone` found the first plan matching `courseId` via `allPlans.find()`, which could commit to an arbitrary plan. Changed to prefer `primaryActivePlanId` first, then fall back to the first active plan. Non-primary plans are no longer accidentally updated.
+- **LogDialog partial failure handled gracefully.** `handleLogDialogSave` previously called `handleLogPlan` in a loop — if one plan's page value was out of range, it returned early with a break toast while other plans in the same batch still saved to temp state. Refactored `handleLogPlan` into `validateLogEntry` + `applyTempLog` so the dialog stays open on partial failure, and only valid entries are committed.
+- **Mark Done toast type respects skip.** Mark Done with 0 pages (all skips) now shows an "info" toast instead of "complete", accurately reflecting that no pages were logged.
 
 ### Added
 - **MIT LICENSE file at repo root.** Copyright (c) 2026 Ganron. `"license": "MIT"` added to `package.json`. Required for public GitHub repo.

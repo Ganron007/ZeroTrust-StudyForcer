@@ -15,7 +15,7 @@ Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 - **Study timer** — Pomodoro / stopwatch / countdown with auto-log
 - **Online Labs** *(optional)* — Track lab sessions, streaks, at-risk alerts
 - **Security News** *(optional)* — Built-in RSS/Atom feed reader
-- **Course Builder** — Standalone tool to create custom course configs (open `course-builder/course-builder.html` in any browser)
+- **Course Builder** — Built-in tool to create custom course configs (find it in Planner → Build Course)
 - **No install required** — Download the portable EXE from Releases and run
 
 ## Quick Start
@@ -29,15 +29,14 @@ Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 
 ## Creating Your Own Course
 
-Use the included **Course Builder** to create custom study material.
+Use the built-in **Course Builder** to create custom study material.
 
-1. Open `course-builder/course-builder.html` in any browser
+1. Open **Planner** → click **Build Course**
 2. Fill out the form — add units, chapters, and page counts
-3. Click **Download JSON**
-4. In the app, click the **Import** button (Upload icon in the header) and select the file
-5. The course appears in the dropdown — select it and create a plan
+3. Click **Save Course to Library**
+4. The course appears in the course selector immediately — create a plan for it
 
-The Course Builder is a standalone HTML tool with live JSON preview and built-in validation. No build step, no server — just open in a browser.
+The Course Builder has a live JSON preview, drag-to-reorder chapters, and built-in validation. Custom courses are stored alongside the built-in ones in your app data folder.
 
 ## Build from source
 

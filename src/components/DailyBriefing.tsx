@@ -18,6 +18,7 @@ interface DailyBriefingProps {
   activeCourse: CourseConfig | null
   completedDays: Set<string>
   onLogToday: (day: StudyDay, groups: LogGroup[]) => void
+  yesterdayTotal: number
 }
 
 function getGreeting(): string {
@@ -31,26 +32,10 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })
 }
 
-function yesterdayStr(): string {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
-}
-
-export default function DailyBriefing({ schedule, dailyLog, activeCourse, completedDays, onLogToday }: DailyBriefingProps) {
+export default function DailyBriefing({ schedule, dailyLog, activeCourse, completedDays, onLogToday, yesterdayTotal }: DailyBriefingProps) {
   const today = localToday()
-  const yesterday = useMemo(() => yesterdayStr(), [])
 
   const todayDay = useMemo(() => schedule.find(d => d.date === today), [schedule, today])
-
-  const yesterdayLogs = dailyLog[yesterday]
-  const yesterdayTotal = useMemo(
-    () => yesterdayLogs ? Object.values(yesterdayLogs).reduce((s, l) => s + l.pagesRead, 0) : 0,
-    [yesterdayLogs],
-  )
 
   const streak = useMemo(() => {
     let count = 0

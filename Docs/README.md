@@ -26,7 +26,7 @@ src-tauri/            Rust backend (Tauri commands for FS I/O, news RSS, window 
 public/default-course.json  Seeded on first launch if no course exists
 Docs/                 Top-level docs (this folder)
 Arch/                 Deep architecture series (01-07 + index)
-course-builder/       Standalone HTML tool to create custom course configs
+course-builder/       (removed — now built into the app under Planner → Build Course)
 ```
 
 Plans live in SQLite (`plans` and `active_plan_ids` tables, see `src/lib/database.ts`). Labs, timer state, news, and window position are JSON files under `<appData>/studyplanner.app/data/`. Schema/data migrations live inline in `database.ts` (legacy JSON → SQLite, `planMode`→`anchor`, numeric→date dailyLog keys, `activePlanId`→`activePlanIds`, `completedDays` removal).

@@ -133,7 +133,6 @@ npx tsc -b --noEmit     # TypeScript type checking
 | `VISION.md` | Speculative directions (SaaS, sync, mobile, AI, marketplace) — not committed |
 | `TESTING-REPORT.md` | Current test inventory, coverage targets, commands |
 | `../Arch/` | Deep architecture series (01 overview → 07 testing) |
-| `../suggestions.md` | Latest code-review findings (open + un-fixed) |
 | `../How_to_read.md` | Doc index — start here if you're new |
 
 ---

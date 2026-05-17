@@ -9,7 +9,7 @@ import { syncStudyPlan } from "@/lib/plan-engine"
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, Pencil, Trash2, Play, Check, CalendarDays,
   BookOpen, Save, X, GraduationCap, Download, Upload, Target,
-  Layers, TrendingUp, Sparkles,
+  Layers, TrendingUp, Sparkles, Wrench,
 } from "lucide-react"
 import { downloadJson, readJsonFile } from "@/lib/export-utils"
 import { showToast } from "@/components/NotificationToast"
@@ -24,6 +24,7 @@ interface PlannerPageProps {
   onActivatePlan: (plan: StudyPlan) => void
   onPlansChanged?: (savedPlan?: StudyPlan) => void
   onBack: () => void
+  onOpenCourseBuilder?: () => void
 }
 
 function flattenChapters(cfg: CourseConfig): Chapter[] {
@@ -90,6 +91,7 @@ export default function PlannerPage({
   onActivatePlan,
   onPlansChanged,
   onBack,
+  onOpenCourseBuilder,
 }: PlannerPageProps) {
   const [creatingForCourseId, setCreatingForCourseId] = useState<string | null>(null)
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
@@ -178,7 +180,7 @@ export default function PlannerPage({
     setEditUnitOrder(plan.unitOrder)
   }
 
-  async function handleSaveEdit(planId: string, _courseId: string) {
+  async function handleSaveEdit(planId: string) {
     const existing = allPlans.find((p) => p.id === planId)
     if (!existing) return
 
@@ -221,6 +223,7 @@ export default function PlannerPage({
     if (!creatingForCourseId) return
     const cfg = courses.find(c => c.id === creatingForCourseId)
     const defaults = defaultPlan(creatingForCourseId, {}, cfg?.defaultSettings)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditName("")
     setEditStartDate(defaults.startDate)
     setEditPagesPerDay(defaults.pagesPerDay)
@@ -288,6 +291,16 @@ export default function PlannerPage({
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
+            {onOpenCourseBuilder && (
+              <button
+                onClick={() => onOpenCourseBuilder?.()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 text-primary text-xs font-medium hover:bg-primary/10 transition-all"
+                title="Create a new course configuration"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                Build Course
+              </button>
+            )}
             <button
               onClick={() => {
                 const payload = { plans: allPlans, exportedAt: new Date().toISOString() }
@@ -840,7 +853,7 @@ export default function PlannerPage({
                               </div>
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => handleSaveEdit(plan.id, course.id)}
+                                  onClick={() => handleSaveEdit(plan.id)}
                                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
                                 >
                                   <Save className="w-3 h-3" />

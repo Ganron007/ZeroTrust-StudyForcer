@@ -668,7 +668,7 @@ dependencies = [
 
 [[package]]
 name = "cysec-ccptl"
-version = "2.2.1"
+version = "2.3.0"
 dependencies = [
  "atom_syndication",
  "chrono",

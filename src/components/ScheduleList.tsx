@@ -1,19 +1,17 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { type StudyDay } from "@/lib/cissp-data"
-import { CheckCircle2, ChevronDown, ChevronUp, Search, LogIn } from "lucide-react"
+import { CheckCircle2, ChevronDown, ChevronUp, Search } from "lucide-react"
 
 interface ScheduleListProps {
   schedule: StudyDay[]
   dailyLog: Record<string, Record<string, { pagesRead: number }>>
-  onMarkDone: (date: string) => void
 }
 
 export default function ScheduleList({
   schedule,
   dailyLog,
-  onMarkDone,
 }: ScheduleListProps) {
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<"all" | "pending" | "done">("all")
@@ -28,12 +26,13 @@ export default function ScheduleList({
     })
   }
 
-  const dayLogs = (date: string) => dailyLog[date] ?? {}
-  const totalPagesRead = (date: string) => Object.values(dayLogs(date)).reduce((s, l) => s + l.pagesRead, 0)
+  const dayLogs = useCallback((date: string) => dailyLog[date] ?? {}, [dailyLog])
+  const totalPagesRead = useCallback((date: string) => Object.values(dayLogs(date)).reduce((s, l) => s + l.pagesRead, 0), [dayLogs])
 
   const filtered = useMemo(() => {
     return schedule.filter((day) => {
-      const isDone = Object.keys(dayLogs(day.date)).length > 0 && Object.values(dayLogs(day.date)).some(l => l.pagesRead > 0)
+      const logs = dayLogs(day.date)
+      const isDone = Object.keys(logs).length > 0 && Object.values(logs).some(l => l.pagesRead > 0)
       if (filter === "done" && !isDone) return false
       if (filter === "pending" && isDone) return false
       if (search) {
@@ -50,7 +49,7 @@ export default function ScheduleList({
       }
       return true
     })
-  }, [schedule, dailyLog, filter, search])
+  }, [schedule, dayLogs, filter, search])
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {

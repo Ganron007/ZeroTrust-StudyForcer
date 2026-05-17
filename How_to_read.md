@@ -87,7 +87,7 @@ For the current testing picture, use `Docs/TESTING-REPORT.md`.
 
 - `node_modules/**/*.md` — third-party package READMEs; ignore.
 - `coverage/` — Vitest output when run with `--coverage`. Git-ignored.
-- `course-builder/`, `scripts/`, `public/` — code/assets, no docs.
+- `scripts/`, `public/` — code/assets, no docs.
 - `src-tauri/Cargo.toml` & `package.json` — the **real** version source of truth; trust
   these over any doc header.
 

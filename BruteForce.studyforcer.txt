@@ -1,0 +1,160 @@
+App name:  BruteForce.StudyForcer
+
+The raw, unoptimized CLI-style progress tracker for information security masochists.
+
+Description:
+studyforcer is a cybersecurity certification tracker built for the realistic, painful path to passing elite exams. It abandons corporate "productivity tracking" fluff for a brutal, data-driven reality check. By mapping your study habits to real-world attack metrics, it tracks your Uptime (consistency), flags your Honeypots (distractions), and logs your desperate Brute-Force Attempts (study sessions) against massive certification targets. It doesn’t trust your memory, it doesn’t care about your feelings, and it treats your entire exam prep exactly like what it is: a high-stress, low-stealth operational failure until you finally break through.
+===============================================================================================================
+
+To make this naming scheme work, we need to lean heavily into the **humor, self-deprecation, and psychological pain** of studying for brutal certifications (like OSCP, CISSP, or CCIE) where failing multiple times is practically a rite of passage.
+
+Here are a few ways to level up the name, categorized by the specific "vibe" you want your app to project:
+
+## 1. The "Brutally Honest & Cynical" Vibe
+
+*Perfect if you want the app to feel like a drill sergeant or a sarcastic friend shaking their head at your lack of progress.*
+
+* **FailStatus:** Direct, clean, and plays on common network/API status codes.
+* **CertSisyphus:** Based on Sisyphus, the mythological king doomed to roll a boulder up a hill for eternity, only for it to roll back down. The ultimate metaphor for failing a 24-hour practical exam.
+* **ScriptKiddieToCertified:** A hilarious dig at the user’s current skill level.
+* **TryHarder.app:** A direct, agonizing tribute to OffSec’s infamous, meme-tier catchphrase given to students who are failing.
+* **ZeroProgress:** Simple, tech-focused, and highly self-deprecating.
+
+## 2. The "Gamified Defeat" Vibe
+
+*If the app tracks your study streaks, but mocks you the second you miss a day.*
+
+* **LoserBoards:** Instead of leaderboards, you track how far behind everyone else you are.
+* **DoomTracker:** Captures that specific feeling of opening a 1,000-page official study guide.
+* **CertsAndCrying:** Relatable, descriptive, and rolls off the tongue.
+* **BufferOverflow:** For when your brain completely stops absorbing subnetting math or cryptography concepts.
+
+## 3. Clevers Puns & IT Slang
+
+*Inside jokes for the cybersecurity community that highlight failure.*
+
+| Name | The Inside Joke / Meaning |
+| --- | --- |
+| **PacketLoss** | You’re putting data (study material) in, but nothing is reaching the destination (your brain). |
+| **BlueScreened** | Named after the Windows BSOD; for when you completely crash during a practice test. |
+| **Ctrl+Z** | The universal shortcut for "I wish I could undo the last 6 hours of failing this lab." |
+| **Out of Scope** | An assessment term used to describe things you aren't supposed to touch—like your actual study schedule. |
+
+---
+
+## 💡 Our Top Recommendation: **TryHarder** or **PacketLoss**
+
+If you want immediate brand recognition among cybersecurity students, **TryHarder** is the absolute winner because of the deep emotional trauma associated with that phrase in the industry. If you want something a bit more general-tech, **PacketLoss** perfectly describes a "study tracker for losers" whose brains aren't retaining info.
+
+===============================================================================================
+
+If you are looking for a **structured naming scheme** for the actual components, database tables, code variables, or API endpoints of this app, you want to maintain that same hilarious, self-deprecating cybersecurity theme throughout the entire technical architecture.
+
+Instead of generic names like `User`, `Streak`, or `Task`, you can use industry-specific terms twisted to mean failure or struggle. Here is a better, cohesive naming scheme blueprint for your project:
+
+---
+
+## 1. The Database & Core Entities
+
+Instead of standard CRUD tables, map your data models to cybersecurity concepts that fit the "studying for losers" vibe:
+
+| Standard Name | Cyber-Loser Naming Scheme | Why It Works |
+| --- | --- | --- |
+| `Users` | **`Targets` / `Identities**` | You aren't a user; you are a target being attacked by the exam. |
+| `Certifications` | **`Bosses` / `Exploits**` | The ultimate certification you are trying to overcome. |
+| `Study_Sessions` | **`BruteForce_Attempts`** | Because you aren't studying elegantly; you're just smashing your head against the wall. |
+| `Flashcards` / `Tasks` | **`Payloads`** | Small pieces of data you are trying to inject into your brain. |
+| `Failed_Mock_Tests` | **`BlueScreens` / `PacketLoss**` | Tracking the exact moments your brain crashed. |
+
+---
+
+## 2. The Gamification / Metric Metrics
+
+Track user progress using real infosec metrics, re-contextualized for a struggling student:
+
+* **`brain_latency` (Study Streak / Retention):** Instead of a standard "Streak", measure how long it takes you to recall information. A high latency means you're forgetting things.
+* **`uptime_percentage` (Daily Consistency):** Measures the percentage of days you actually opened the app and studied versus the days you slacked off ("Downtime").
+* **`compromised_nodes` (Topics Mastered):** The number of domains or chapters you have successfully "hacked" (passed the quiz for).
+* **`honeypots_hit` (Distractions):** A metric tracking how many times you opened Reddit, YouTube, or video games instead of studying during a scheduled block.
+
+---
+
+## 3. API Endpoints (The Routing Scheme)
+
+If you are building a REST API, make the endpoints tell a story of your desperate attempt to pass:
+
+* `POST /api/v1/auth/surrender` (Instead of `/logout`)
+* `GET /api/v1/panic-button` (Fetches randomized, high-stress flashcards when the exam is tomorrow)
+* `POST /api/v1/attempts/bruteforce` (Log a new study session)
+* `GET /api/v1/targets/shame-board` (The leaderboard showing who has failed the most mock exams this week)
+
+---
+
+## 4. UI / Component Architecture Naming (Frontend)
+
+If you are writing React, Vue, or Flutter components, keep the theme alive in your codebase:
+
+* `<DenialOfService/>` -> The error state/loading spinner component shown when the user gets overwhelmed.
+* `<WhiteFlagButton/>` -> The button to skip a difficult question or end a study session early.
+* `<IncidentReport/>` -> The modal that pops up when a user breaks a study streak, forcing them to document *why* they failed.
+* `<Sandbox/>` -> The scratchpad or notes area where they can write messy thoughts.
+
+---
+
+## 5. CSS / Tailwind Theme Naming
+
+Instead of standard colors (`bg-red-500`, `bg-green-500`), map your UI color theme variables to classic security statuses:
+
+* `var(--color-critical)` (Deep Red): Used when you haven't studied in 3 days.
+* `var(--color-low-threat)` (Bright Green): Used when you actually did 30 minutes of flashcards.
+* `var(--color-terminal)` (Matrix Green on Black): The default background theme for the app to make the user feel like a hacker, even if they are failing.
+
+===========================================================================================================
+To convey *exactly* what the app does while leaning into the cybersecurity-loser theme, the name needs to do two things at once: use **real infosec terminology** and pair it with **obvious failure or misery**.
+
+Here are the best concepts for the app name, ranked from "Genius-Better" to "Hilariously-Worse," depending on how raw you want the humor to be:
+
+## 1. The "Genius-Better" Names
+
+*These sound like legitimate, high-end cybersecurity tools at first glance, but the joke hits the second you think about the acronym or the definition.*
+
+* **`ZeroTrust.study`:** In cybersecurity, "Zero Trust" means *never trust, always verify*. For this app, it means **Zero Trust in your ability to pass the exam**. It tells the user exactly what it is: a strict, unforgiving study tracker.
+* **`CertBreach`:** Sounds like a data breach notification tool, but it actually tracks your desperate attempts to break through the certification wall.
+* **`Persistent Threat` (or `APT.study`):** Advanced Persistent Threats (APTs) are elite hacking groups that never give up. For a loser studying for a cert, you aren't advanced—you are just a **Persistent Threat to your own sanity**.
+* **`RootMe.not`:** A play on the famous "RootMe" boxes on TryHackMe/HackTheBox, highlighting the sad reality that you aren't getting root access anytime soon.
+
+---
+
+## 2. The "Literal & Brutal" Names
+
+*These convey exactly what the app is without any corporate fluff. They are technically "worse" for marketing, but "better" for your specific target audience.*
+
+* **`CertFailure`:** Pure, unadulterated truth. It tracks your path through failure until you accidentally pass.
+* **`CramSploit`:** Combines "Cramming" (studying at the last second) with "Exploit." It conveys exactly what it is: an app to exploit your limited remaining study time.
+* **`ScriptKiddie.tracker`:** A "Script Kiddie" is someone who uses other people's hacking tools because they don't know what they are doing. This app tracks the user's progress from a total noob to someone who might actually pass.
+* **`BrainDump.app`:** In IT, a "braindump" is a forbidden cheat sheet of exam questions. This app is a *legal* braindump—a place to dump your thoughts because your brain is overflowing and failing.
+
+---
+
+## 3. The "Pure Misery" Names (The Worse, The Better)
+
+*These use real terminal/networking errors that represent a student's brain completely crashing.*
+
+* **`MemoryLeak`:** A memory leak happens when a program holds onto data it doesn't need until it crashes. This perfectly describes a student studying 12 hours straight: **info goes in, leaks out, brain crashes.**
+* **`BufferOverflow.study`:** You are stuffing too much data into your brain's buffer, and it's spilling over into panic.
+* **`ConnectionTimeout`:** Captures the exact moment you open a 30-page chapter on cryptography and your brain just completely disconnects.
+
+---
+
+## 🏆 The Ultimate Selection Matrix
+
+| The Goal | The Name | The Tagline (How it sells itself) |
+| --- | --- | --- |
+| **The Smartest Choice** | **`ZeroTrust`** | *"The only cysec study tracker that doesn't believe in you."* |
+| **The Funniest Choice** | **`MemoryLeak`** | *"Track all the cybersecurity knowledge you’re going to forget tomorrow."* |
+| **The Most Direct Choice** | **`CertFailure`** | *"Because you're going to fail OSCP at least once anyway."* |
+| **The Community Inside-Joke** | **`TryHarder`** | *"The progression tracker for infosec masochists."* |
+
+**Recommendation:** Go with **`MemoryLeak`** or **`ZeroTrust`**. They sound incredibly tech-native, convey the exact domain (cybersecurity study), and immediately let the user know they are in for a self-deprecating, funny experience.
+============================================================================================================
+

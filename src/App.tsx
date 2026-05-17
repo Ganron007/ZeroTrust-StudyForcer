@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { getTotalPages, mergeSchedules, DEFAULT_STUDY_DAYS, type StudyDay, generateSchedule, getOrderedChapters } from "./lib/cissp-data"
-import { planStorage, type StudyPlan, type DailyLog } from "./lib/plan-storage"
+import { planStorage, type StudyPlan } from "./lib/plan-storage"
 import { usePlanStore } from "./lib/plan-store"
 import { syncStudyPlan } from "./lib/plan-engine"
 import { CourseProvider, useCourse } from "./components/CourseProvider"
@@ -12,6 +12,7 @@ import SecurityNewsFeed from "./components/SecurityNewsFeed"
 import LabDashboard from "./components/LabDashboard"
 import CourseSelector from "./components/CourseSelector"
 import PlannerPage from "./components/PlannerPage"
+import CourseBuilder from "./components/CourseBuilder"
 import DailyBriefing from "./components/DailyBriefing"
 import SidebarLabsStatus from "./components/SidebarLabsStatus"
 import SidebarNewsHighlights from "./components/SidebarNewsHighlights"
@@ -20,7 +21,7 @@ import StudyTimer from "./components/StudyTimer"
 import WallClock from "./components/WallClock"
 import NotificationToast, { showToast } from "./components/NotificationToast"
 import type { CourseConfig, Chapter } from "./types/course"
-import { getUnitColors, computeTotalPages, getTrackingLabels } from "./types/course"
+import { computeTotalPages, getTrackingLabels } from "./types/course"
 import {
   LayoutGrid, List, BarChart3, Settings,
   Sun, Moon, CalendarCheck,
@@ -35,7 +36,6 @@ import LogDialog from "./components/LogDialog"
 import type { LogGroup } from "./components/LogDialog"
 import TipPopup from "./components/TipPopup"
 import { createTipPicker } from "./lib/tips"
-import "./variants/adaptive.css"
 
 const THEME_OPTIONS: { id: Theme; label: string; swatch: string }[] = [
   { id: "light", label: "Light", swatch: "#fafafa" },
@@ -61,9 +61,9 @@ function AppContent() {
     activeCourse,
     activeCourseId,
     courses,
-    chapters,
     logoSvg,
     switchCourse,
+    refreshCourses,
     isLoading: courseLoading,
   } = useCourse()
 
@@ -86,20 +86,37 @@ function AppContent() {
     () => allPlans.find(p => p.id === primaryActivePlanId) ?? null,
     [allPlans, primaryActivePlanId],
   )
-  const startDate = primaryPlan?.startDate ?? localToday()
-  const pagesPerDay = primaryPlan?.pagesPerDay ?? 20
   const studyDays = primaryPlan?.studyDays ?? DEFAULT_STUDY_DAYS
-  const startingChapterId = primaryPlan?.startingChapterId ?? 1
-  const chapterStartOverrides = primaryPlan?.chapterStartOverrides ?? {}
-  const targetEndDate = primaryPlan?.targetEndDate
-  const targetDayCount = primaryPlan?.targetDayCount
-  const anchor = primaryPlan?.anchor ?? "pagesPerDay"
   const completedDays = useMemo(
     () => new Set(Object.keys(primaryPlan?.dailyLog ?? {})),
     [primaryPlan],
   )
 
   const [dailyLog, setDailyLog] = useState<Record<string, Record<string, { pagesRead: number }>>>({})
+
+  // Yesterday's total pages — checks temp state first (before Mark Done),
+  // falls back to committed plan.dailyLog (after Mark Done clears temp).
+  const yesterdayTotal = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    const yStr = `${y}-${m}-${day}`
+    // Temp state first (pending Mark Done)
+    const tempLogs = dailyLog[yStr]
+    if (tempLogs && Object.keys(tempLogs).length > 0) {
+      return Object.values(tempLogs).reduce((s, l) => s + l.pagesRead, 0)
+    }
+    // Fall back to committed storage
+    let total = 0
+    for (const plan of allPlans) {
+      if (plan.dailyLog[yStr]) {
+        total += plan.dailyLog[yStr].pagesRead
+      }
+    }
+    return total
+  }, [dailyLog, allPlans])
 
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -110,6 +127,9 @@ function AppContent() {
   // Planner page mode
   const [isPlannerOpen, setIsPlannerOpen] = useState(false)
   const [plannerInitialCourseId, setPlannerInitialCourseId] = useState<string | null>(null)
+
+  // Course Builder overlay
+  const [isCourseBuilderOpen, setIsCourseBuilderOpen] = useState(false)
 
   // Online Labs full-page mode
   const [isOnlineLabsOpen, setIsOnlineLabsOpen] = useState(false)
@@ -189,6 +209,7 @@ function AppContent() {
   // ── Notification reminders ─────────────────────────────────────────────────
   const remindedRef = useRef<Set<string>>(new Set())
   const dailyLogRef = useRef(dailyLog)
+  // eslint-disable-next-line react-hooks/refs
   dailyLogRef.current = dailyLog
   useEffect(() => {
     if (isLoading || courseLoading) return
@@ -223,13 +244,12 @@ function AppContent() {
   // ── Schedule generation ─────────────────────────────────────────────────────
   // Merge all active plans for the current course into one schedule.
   // Uses anchor-aware generator that derives pages/day at generation time.
-  const { baseSchedule, dateToActivePlanId } = useMemo(() => {
-    if (!activeCourse) return { baseSchedule: [] as StudyDay[], dateToActivePlanId: new Map<string, string>() }
+  const baseSchedule = useMemo(() => {
+    if (!activeCourse) return [] as StudyDay[]
     const activePlansForCourse = plans.filter(
       (p) => p.courseId === activeCourseId && activePlanIds.includes(p.id),
     )
     const schedule: StudyDay[] = []
-    const map = new Map<string, string>()
     const today = localToday()
 
     for (const plan of activePlansForCourse) {
@@ -238,12 +258,11 @@ function AppContent() {
       const result = generateSchedule(plan, planChapters, today, params.pagesPerDay, params.endDate)
       for (const day of result.schedule) {
         schedule.push(day)
-        map.set(day.date, plan.id)
       }
     }
     schedule.sort((a, b) => a.date.localeCompare(b.date))
-    return { baseSchedule: schedule, dateToActivePlanId: map }
-  }, [plans, activeCourseId, activePlanIds, activeCourse, selectedCourseIds])
+    return schedule
+  }, [plans, activeCourseId, activePlanIds, activeCourse])
 
   // Short label for a course id (shortens the two seed courses; falls back to name).
   const courseLabel = useCallback((id: string) => {
@@ -319,13 +338,8 @@ function AppContent() {
 
   const selectedCoursesStats: Record<string, CourseStat> = useMemo(() => {
     const map: Record<string, CourseStat> = {}
-    const today = localToday()
-    const add = (courseId: string, plan: StudyPlan, cfg: CourseConfig, schedule: StudyDay[], chs: Chapter[], isActive: boolean) => {
-      // completedDays = set of dates in dailyLog
-      const completed = isActive ? completedDays : new Set(Object.keys(plan.dailyLog))
-      const log = isActive ? dailyLog : plan.dailyLog
+    const add = (courseId: string, plan: StudyPlan, cfg: CourseConfig, schedule: StudyDay[], chs: Chapter[]) => {
       const totalPages = getTotalPages(plan.chapterStartOverrides, plan.startingChapterId, chs)
-      // Stats come from the math engine (logs only = reality-based)
       const today = localToday()
       const params = syncStudyPlan(plan, chs, today)
       const totalPagesRead = params.consumed
@@ -375,7 +389,7 @@ function AppContent() {
     if (activeCourseId && activeCourse) {
       const plan = plans.find((p) => p.id === primaryActivePlanId) ?? plans[0]
       if (plan) {
-        add(activeCourseId, plan, activeCourse, baseSchedule, getOrderedChapters(activeCourse, plan.unitOrder), true)
+        add(activeCourseId, plan, activeCourse, baseSchedule, getOrderedChapters(activeCourse, plan.unitOrder))
       }
     }
 
@@ -387,12 +401,12 @@ function AppContent() {
       )
       const plan = activePlansForCourse[0]
       if (cfg && plan) {
-        add(info.courseId, plan, cfg, info.schedule, info.chapters, false)
+        add(info.courseId, plan, cfg, info.schedule, info.chapters)
       }
     }
 
     return map
-  }, [activeCourseId, activeCourse, primaryActivePlanId, plans, baseSchedule, completedDays, dailyLog, otherCoursesInfo, courses, allPlans, activePlanIds])
+  }, [activeCourseId, activeCourse, primaryActivePlanId, plans, baseSchedule, otherCoursesInfo, courses, allPlans, activePlanIds])
 
   // Refresh effect — reload plans from storage into store
   useEffect(() => {
@@ -419,37 +433,49 @@ function AppContent() {
   ]
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-  // 1. Plan-level logging (before Mark Done)
-  const handleLogPlan = (date: string, courseId: string, pageValue: number) => {
-    // Get the schedule for this course on this day
+  // Validate a page log entry (shared by LogDialog and direct log)
+  const validateLogEntry = (date: string, courseId: string, pageValue: number): boolean => {
     const daySchedule = schedule.find(d => d.date === date)
-    if (!daySchedule) return
-    
+    if (!daySchedule) return false
     const planChapters = daySchedule.chapters.filter(ch => ch.courseId === courseId)
-    if (planChapters.length === 0) return
-    
-    // Get the book page range for this plan on this day
+    if (planChapters.length === 0) return false
+    const firstCh = planChapters[0]
+    const scheduleStart = firstCh.bookPageStart ?? firstCh.pagesStart
+    if (pageValue < scheduleStart) {
+      showToast(`Page ${pageValue} is before scheduled range (p.${scheduleStart}). Not saved.`, "break")
+      return false
+    }
+    return true
+  }
+
+  // Apply a validated temp log entry
+  const applyTempLog = (date: string, courseId: string, pageValue: number) => {
+    const daySchedule = schedule.find(d => d.date === date)!
+    const planChapters = daySchedule.chapters.filter(ch => ch.courseId === courseId)
     const firstCh = planChapters[0]
     const lastCh = planChapters[planChapters.length - 1]
     const scheduleStart = firstCh.bookPageStart ?? firstCh.pagesStart
     const scheduleEnd = lastCh.bookPageEnd ?? lastCh.pagesEnd
-    
-    let pagesRead = 0
-    if (pageValue < scheduleStart) {
-      showToast(`Page ${pageValue} is before scheduled range (p.${scheduleStart}). Not saved.`, "break")
-      return
-    } else if (pageValue > scheduleEnd) {
-      pagesRead = pageValue - scheduleStart
-      showToast(`Ahead of schedule! Consumed ${pagesRead} pages. Schedule will be adjusted.`, "info")
-    } else {
-      pagesRead = pageValue - scheduleStart
-    }
-    
+    const pagesRead = pageValue > scheduleEnd
+      ? pageValue - scheduleStart
+      : pageValue - scheduleStart
+
     setDailyLog((prev) => ({
       ...prev,
       [date]: { ...prev[date], [courseId]: { pagesRead } },
     }))
-    showToast(`Saved: p.${scheduleStart}–p.${scheduleEnd} → p.${pageValue} (${pagesRead} pages)`, "complete")
+
+    if (pageValue > scheduleEnd) {
+      showToast(`Ahead of schedule! Consumed ${pagesRead} pages. Schedule will be adjusted.`, "info")
+    } else {
+      showToast(`Saved: p.${scheduleStart}–p.${scheduleEnd} → p.${pageValue} (${pagesRead} pages)`, "complete")
+    }
+  }
+
+  // 1. Plan-level logging (before Mark Done)
+  const handleLogPlan = (date: string, courseId: string, pageValue: number) => {
+    if (!validateLogEntry(date, courseId, pageValue)) return
+    applyTempLog(date, courseId, pageValue)
   }
 
   // 2. Plan-level skip (before Mark Done)
@@ -490,24 +516,29 @@ function AppContent() {
     let totalPages = 0
     for (const [courseId, log] of Object.entries(pendingLogs)) {
       totalPages += log.pagesRead
-      const plan = allPlans.find(p => p.courseId === courseId && activePlanIds.includes(p.id))
-      if (!plan) continue
+      // Commit to ALL active plans for this courseId (not just primary).
+      // Multiple plans for the same course share the same schedule on a given
+      // date, so each one must record the log independently.
+      const plansForCourse = allPlans.filter(p => p.courseId === courseId && activePlanIds.includes(p.id))
+      if (plansForCourse.length === 0) continue
       
-      const updated: StudyPlan = {
-        ...plan,
-        dailyLog: {
-          ...plan.dailyLog,
-          [date]: { pagesRead: log.pagesRead },
-        },
-        updatedAt: new Date().toISOString(),
-      }
-      
-      try {
-        await storeUpdatePlan(updated)
-      } catch (e) {
-        console.error(`Failed to persist Mark Done for plan ${plan.id}:`, e)
-        showToast(`${courseLabel(courseId)} — failed to save. Please try again.`, "break")
-        return
+      for (const plan of plansForCourse) {
+        const updated: StudyPlan = {
+          ...plan,
+          dailyLog: {
+            ...plan.dailyLog,
+            [date]: { pagesRead: log.pagesRead },
+          },
+          updatedAt: new Date().toISOString(),
+        }
+        
+        try {
+          await storeUpdatePlan(updated)
+        } catch (e) {
+          console.error(`Failed to persist Mark Done for plan ${plan.id}:`, e)
+          showToast(`${courseLabel(courseId)} — failed to save. Please try again.`, "break")
+          return
+        }
       }
     }
     
@@ -519,7 +550,7 @@ function AppContent() {
     })
     
     setRefreshTick(prev => prev + 1)
-    showToast(`Mark Done: ${totalPages} pages logged for ${date}.`, "complete")
+    showToast(`Mark Done: ${totalPages} pages logged for ${date}.`, totalPages > 0 ? "complete" : "info")
   }
 
   // 5. Log dialog handlers
@@ -529,11 +560,19 @@ function AppContent() {
   }
 
   const handleLogDialogSave = (date: string, logs: Array<{ courseId: string; pagesRead: number }>) => {
+    let allValid = true
     for (const { courseId, pagesRead } of logs) {
-      handleLogPlan(date, courseId, pagesRead)
+      const valid = validateLogEntry(date, courseId, pagesRead)
+      if (valid) {
+        applyTempLog(date, courseId, pagesRead)
+      } else {
+        allValid = false
+      }
     }
-    setLogDialogDay(null)
-    setLogDialogGroups([])
+    if (allValid) {
+      setLogDialogDay(null)
+      setLogDialogGroups([])
+    }
   }
 
   const handleLogDialogSkip = (date: string, courseId: string) => {
@@ -548,22 +587,10 @@ function AppContent() {
   }
 
   const confirmTimerLog = () => {
-    const todayStr = localToday()
-    const todayDay = schedule.find((d) => d.date === todayStr)
-    if (todayDay && timerMinutes > 0) {
-      const courseId = primaryActivePlanId
-        ? allPlans.find(p => p.id === primaryActivePlanId)?.courseId
-        : undefined
-      if (courseId) {
-        setDailyLog((prev) => ({
-          ...prev,
-          [todayStr]: {
-            ...prev[todayStr],
-            [courseId]: { pagesRead: timerMinutes },
-          },
-        }))
-      }
-    }
+    const h = Math.floor(timerMinutes / 60)
+    const m = timerMinutes % 60
+    const label = h > 0 ? `${h}h ${m}m` : `${m}m`
+    showToast(`Study session logged: ${label}`, "info")
     setShowTimerLog(false)
     setTimerMinutes(0)
   }
@@ -656,6 +683,20 @@ function AppContent() {
     )
   }
 
+  // Course Builder overlay (takes priority over Planner)
+  if (isCourseBuilderOpen) {
+    return (
+      <CourseBuilder
+        onBack={() => setIsCourseBuilderOpen(false)}
+        onCourseSaved={async () => {
+          setIsCourseBuilderOpen(false)
+          await refreshCourses()
+          await loadPlans()
+        }}
+      />
+    )
+  }
+
   // Planner page overlay
   if (isPlannerOpen) {
     return (
@@ -688,6 +729,7 @@ function AppContent() {
           setIsPlannerOpen(false)
           setPlannerInitialCourseId(null)
         }}
+        onOpenCourseBuilder={() => setIsCourseBuilderOpen(true)}
       />
     )
   }
@@ -870,6 +912,14 @@ function AppContent() {
                       const { writeTimerState } = await import("@/lib/timer-storage")
                       await writeTimerState(data.timer as import("@/lib/timer-storage").TimerData)
                     }
+                    if (data.courses && Array.isArray(data.courses)) {
+                      const { saveCourse } = await import("@/lib/course-storage")
+                      for (const course of data.courses) {
+                        if (typeof course === "object" && course && "id" in course && "name" in course) {
+                          await saveCourse(course as import("@/types/course").CourseConfig)
+                        }
+                      }
+                    }
                     setRefreshTick((t) => t + 1)
                     showToast("Backup restored successfully", "info")
                   } catch {
@@ -976,6 +1026,7 @@ function AppContent() {
               activeCourse={activeCourse}
               completedDays={completedDays}
               onLogToday={handleOpenLogDialog}
+              yesterdayTotal={yesterdayTotal}
             />
             <SidebarLabsStatus onOpenLabs={() => setIsOnlineLabsOpen(true)} />
             <SidebarNewsHighlights onOpenNews={() => setIsNewsOpen(true)} />
@@ -990,6 +1041,7 @@ function AppContent() {
                 activeCourse={activeCourse}
                 completedDays={completedDays}
                 onLogToday={handleOpenLogDialog}
+                yesterdayTotal={yesterdayTotal}
               />
               <SidebarLabsStatus onOpenLabs={() => setIsOnlineLabsOpen(true)} />
               <SidebarNewsHighlights onOpenNews={() => setIsNewsOpen(true)} />
@@ -1094,7 +1146,6 @@ function AppContent() {
               <ScheduleList
                 schedule={schedule}
                 dailyLog={dailyLog}
-                onMarkDone={handleMarkDone}
               />
             )}
             {activeTab === "progress" && (
