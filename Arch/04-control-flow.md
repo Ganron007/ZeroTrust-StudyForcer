@@ -75,7 +75,7 @@ Trigger: plans[] or activePlanIds changes (after Mark Done or plan edit)
   │      │   → pageIdx += effectiveSliceSize
   │      └─ Stop when pageSequence exhausted or deadline reached
   │
-  └─ Merge all schedules, sort by date, build dateToActivePlanId map
+  └─ Merge all schedules, sort by date
 ```
 
 ## 4. Plan Creation Decision Tree

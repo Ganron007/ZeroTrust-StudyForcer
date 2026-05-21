@@ -72,7 +72,7 @@ const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
 ```typescript
 // Schedule (computed, never stored)
-const { baseSchedule, dateToActivePlanId } = useMemo(() => {
+const schedule = useMemo(() => {
   for (const plan of activePlans) {
     const chapters = getOrderedChapters(course, plan.unitOrder)
     const params = syncStudyPlan(plan, chapters, today)

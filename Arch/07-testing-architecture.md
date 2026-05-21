@@ -126,7 +126,7 @@ npx tsc -b --noEmit
 - Log → temp state only (no disk write)
 - Skip → 0 pages, temp state only
 - Mark Done → commits to storage, clears temp
-- `handleMarkDone` correctly looks up plan via `dateToActivePlanId`
+- `handleMarkDone` correctly looks up plan via `allPlans.find(courseId + activePlanIds)` (Bug #7 fix — replaced `dateToActivePlanId` map)
 
 ### Anchor System Tests
 - Velocity anchor: pace locked, end date shifts

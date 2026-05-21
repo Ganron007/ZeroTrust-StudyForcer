@@ -97,8 +97,6 @@ For each active plan:
   ↓
 Merge all plan schedules, sort by date
   ↓
-Build dateToActivePlanId map
-  ↓
 React re-render → ScheduleView / ScheduleList / ProgressDashboard update
 ```
 
