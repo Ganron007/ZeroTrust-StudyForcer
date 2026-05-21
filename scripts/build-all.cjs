@@ -67,7 +67,8 @@ try {
 
   // ── Git release description (compact, for GitHub Releases) ──────────────
   const gitNotesFile = path.join(versionDir, `GIT_RELEASE_v${version}.md`)
-  const gitNotes = generateGitReleaseNotes(version, releaseNotes)
+  const sizeMB = (exeBuffer.length / (1024 * 1024)).toFixed(1)
+  const gitNotes = generateGitReleaseNotes(version, releaseNotes, md5, sizeMB)
   fs.writeFileSync(gitNotesFile, gitNotes)
   console.log(`  -> Git notes: ${gitNotesFile}`)
 } catch (e) {
@@ -90,60 +91,57 @@ console.log(`Git:    portable/${version}/GIT_RELEASE_v${version}.md`)
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Generate a compact GitHub Release description from the full changelog notes.
- * Returns the raw markdown string to write into a GIT_RELEASE file.
+ * Generate a professional GitHub Release description.
+ * Short headline for users + MD5 verification instructions + verification footer.
  */
-function generateGitReleaseNotes(ver, fullNotes) {
-  // Parse sections from the full notes
+function generateGitReleaseNotes(ver, fullNotes, md5Hash, sizeMB) {
+  // Parse "What's New" from the first "### Added" or "### Changed" section
   const lines = fullNotes.split('\n')
-  const sections = []
-  let currentSection = null
-  let currentLines = []
-
+  let headline = []
+  let inAdded = false
   for (const line of lines) {
-    const headerMatch = line.match(/^###\s+(.+)/)
-    if (headerMatch) {
-      if (currentSection) {
-        sections.push({ heading: currentSection, body: currentLines.join('\n').trim() })
+    if (line.match(/^### (Added|Changed)/)) {
+      inAdded = true
+      continue
+    }
+    if (inAdded) {
+      if (line.match(/^### /)) break
+      if (line.trim().startsWith('-')) {
+        headline.push(line.trim().replace(/^- /, ''))
       }
-      currentSection = headerMatch[1].trim()
-      currentLines = []
-    } else if (currentSection) {
-      currentLines.push(line)
     }
   }
-  if (currentSection) {
-    sections.push({ heading: currentSection, body: currentLines.join('\n').trim() })
-  }
+  // Build a one-paragraph headline from the first 2-3 bullets
+  const whatsNew = headline.slice(0, 3).join(' ').replace(/\*\*/g, '')
 
-  // Build compact output
   let out = `## ZeroTrust.StudyForcer v${ver}\n\n`
-  out += `**Assets:**\n`
-  out += `- ZTSFv${ver}.exe\n`
-  out += `- ZTSFv${ver}.exe.md5\n\n`
+  out += `> *Zero Trust in your ability to pass. Prove us wrong.*\n\n`
+  out += `### What's New\n`
+  out += `${whatsNew || 'See full changelog in RELEASE_NOTES.'}\n\n`
 
-  for (const sec of sections) {
-    const lines = sec.body.split('\n').filter(l => l.trim())
-    if (lines.length === 0) continue
+  out += `### Download\n`
+  out += `| File | Size | MD5 |\n`
+  out += `|------|------|-----|\n`
+  out += `| \`ZTSFv${ver}.exe\` | ${sizeMB} MB | \`${md5Hash}\` |\n\n`
 
-    // Try to extract 1-2 key bullet points per section
-    const bullets = lines
-      .filter(l => l.trim().startsWith('-'))
-      .map(l => l.trim().replace(/^-\s*\*{0,2}(.+?)\*{0,2}\s*/, '- **$1**').replace(/\*\*/g, '').trim())
-      .slice(0, 4)
+  out += `### Verify Integrity\n\n`
+  out += `**Windows (PowerShell):**\n`
+  out += `\`\`\`powershell\n`
+  out += `Get-FileHash -Algorithm MD5 ZTSFv${ver}.exe\n`
+  out += `\`\`\`\n`
+  out += `Compare the \`Hash\` value to \`${md5Hash}\`.\n\n`
 
-    if (bullets.length > 0) {
-      out += `### ${sec.heading}\n`
-      // Show key highlights as concise sentences
-      const highlights = bullets.map(b => b.replace(/^- /, ''))
-      for (const h of highlights) {
-        out += `- ${h}\n`
-      }
-      out += '\n'
-    }
-  }
+  out += `**Windows (CMD):**\n`
+  out += `\`\`\`cmd\n`
+  out += `certutil -hashfile ZTSFv${ver}.exe MD5\n`
+  out += `\`\`\`\n\n`
 
-  out += `### ✅ Verification\n`
+  out += `**macOS / Linux:**\n`
+  out += `\`\`\`bash\n`
+  out += `md5sum ZTSFv${ver}.exe\n`
+  out += `\`\`\`\n\n`
+
+  out += `### Verification\n`
   out += `- TypeScript: \`npx tsc -b --noEmit\` clean\n`
   out += `- Tests: 203 pass (10 files)\n`
   out += `- No new dependencies\n`
