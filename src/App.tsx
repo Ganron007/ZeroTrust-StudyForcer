@@ -20,6 +20,7 @@ import { ThemeProvider, useTheme } from "./components/ThemeProvider"
 import StudyTimer from "./components/StudyTimer"
 import WallClock from "./components/WallClock"
 import NotificationToast, { showToast } from "./components/NotificationToast"
+import { PersonalityProvider } from "./components/PersonalityProvider"
 import type { CourseConfig, Chapter } from "./types/course"
 import { computeTotalPages, getTrackingLabels } from "./types/course"
 import {
@@ -31,11 +32,12 @@ import {
 } from "lucide-react"
 import { downloadJson, readJsonFile } from "@/lib/export-utils"
 import type { Theme } from "./components/ThemeProvider"
-import DayDetailDrawer from "./components/DayDetailDrawer"
 import LogDialog from "./components/LogDialog"
 import type { LogGroup } from "./components/LogDialog"
 import TipPopup from "./components/TipPopup"
 import { createTipPicker } from "./lib/tips"
+import { usePersonality } from "./components/PersonalityProvider"
+import { formatStr, MODE_OPTIONS, type PersonalityMode } from "./lib/personality"
 
 const THEME_OPTIONS: { id: Theme; label: string; swatch: string }[] = [
   { id: "light", label: "Light", swatch: "#fafafa" },
@@ -56,7 +58,9 @@ type Tab = "calendar" | "list" | "progress"
 
 function AppContent() {
   const { theme, setTheme } = useTheme()
+  const { label, toast: tToast, empty, greeting, loading, mode, setMode } = usePersonality()
   const [showThemePicker, setShowThemePicker] = useState(false)
+  const [showModePicker, setShowModePicker] = useState(false)
   const {
     activeCourse,
     activeCourseId,
@@ -108,9 +112,14 @@ function AppContent() {
     if (tempLogs && Object.keys(tempLogs).length > 0) {
       return Object.values(tempLogs).reduce((s, l) => s + l.pagesRead, 0)
     }
-    // Fall back to committed storage
+    // Fall back to committed storage — dedupe by courseId so plans
+    // sharing the same course don't double-count (v2.3.0 writes the same
+    // pagesRead to every active plan for a course).
+    const seenCourses = new Set<string>()
     let total = 0
     for (const plan of allPlans) {
+      if (seenCourses.has(plan.courseId)) continue
+      seenCourses.add(plan.courseId)
       if (plan.dailyLog[yStr]) {
         total += plan.dailyLog[yStr].pagesRead
       }
@@ -144,13 +153,6 @@ function AppContent() {
   const [refreshTick, setRefreshTick] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
 
-  // Build variant (original, adaptive)
-  const variant = typeof __BUILD_VARIANT__ !== "undefined" ? __BUILD_VARIANT__ : "original"
-  const isAdaptive = variant === "adaptive"
-
-  // Adaptive mode: day detail drawer state
-  const [drawerDay, setDrawerDay] = useState<StudyDay | null>(null)
-
   // Log dialog state
   const [logDialogDay, setLogDialogDay] = useState<StudyDay | null>(null)
   const [logDialogGroups, setLogDialogGroups] = useState<LogGroup[]>([])
@@ -160,7 +162,7 @@ function AppContent() {
 
   // Tip popup state
   const [showTip, setShowTip] = useState(false)
-  const [tipPicker] = useState(() => createTipPicker())
+  const [tipPicker] = useState(() => createTipPicker(mode))
   const [currentTip, setCurrentTip] = useState(() => tipPicker.next())
 
   // Multi-course selector. The set always includes activeCourseId (the editable
@@ -220,7 +222,7 @@ function AppContent() {
     if (studyDays.includes(todayDow)) {
       const hasProgress = completedDays.has(todayStr) || Object.keys(dailyLogRef.current[todayStr] ?? {}).length > 0
       if (!hasProgress && !remindedRef.current.has("study-today")) {
-        showToast("Today is a study day — don't forget to log your progress!", "info")
+        showToast(tToast("studyReminder"), "info")
         remindedRef.current.add("study-today")
       }
     }
@@ -231,7 +233,7 @@ function AppContent() {
         m.readLabsStorage().then((labs) => {
           const atRisk = m.getAtRiskCount(labs.sessions)
           if (atRisk > 0) {
-            showToast(`${atRisk} lab${atRisk > 1 ? "s" : ""} haven't been used in 14+ days. Check Online Labs.`, "info")
+            showToast(formatStr(tToast("labsReminder"), { count: atRisk, plural: atRisk > 1 ? "s" : "" }), "info")
           }
         })
       })
@@ -422,14 +424,16 @@ function AppContent() {
     (activeCourseId ? selectedCoursesStats[activeCourseId] : undefined) ??
     Object.values(selectedCoursesStats)[0]
 
-  // Tracking labels for the viewed course
-  const viewedCourse = courses.find((c) => c.id === (statsViewCourseId ?? activeCourseId))
+  // Tracking labels for the viewed course — derive from viewedStats so
+  // labels always match the stats being shown, even when the third-tier
+  // fallback for viewedStats fires (different course than active).
+  const viewedCourse = courses.find((c) => c.id === viewedStats?.courseId)
   const labels = getTrackingLabels(viewedCourse?.trackingMode)
 
   const tabs: { id: Tab; label: string; Icon: typeof LayoutGrid }[] = [
-    { id: "calendar", label: "Calendar", Icon: LayoutGrid },
-    { id: "list", label: "Schedule", Icon: List },
-    { id: "progress", label: "Progress", Icon: BarChart3 },
+    { id: "calendar", label: label("calendar"), Icon: LayoutGrid },
+    { id: "list", label: label("schedule"), Icon: List },
+    { id: "progress", label: label("progress"), Icon: BarChart3 },
   ]
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -442,7 +446,7 @@ function AppContent() {
     const firstCh = planChapters[0]
     const scheduleStart = firstCh.bookPageStart ?? firstCh.pagesStart
     if (pageValue < scheduleStart) {
-      showToast(`Page ${pageValue} is before scheduled range (p.${scheduleStart}). Not saved.`, "break")
+      showToast(formatStr(tToast("pageBeforeRange"), { value: pageValue, start: scheduleStart }), "break")
       return false
     }
     return true
@@ -456,9 +460,7 @@ function AppContent() {
     const lastCh = planChapters[planChapters.length - 1]
     const scheduleStart = firstCh.bookPageStart ?? firstCh.pagesStart
     const scheduleEnd = lastCh.bookPageEnd ?? lastCh.pagesEnd
-    const pagesRead = pageValue > scheduleEnd
-      ? pageValue - scheduleStart
-      : pageValue - scheduleStart
+    const pagesRead = pageValue - scheduleStart
 
     setDailyLog((prev) => ({
       ...prev,
@@ -466,9 +468,9 @@ function AppContent() {
     }))
 
     if (pageValue > scheduleEnd) {
-      showToast(`Ahead of schedule! Consumed ${pagesRead} pages. Schedule will be adjusted.`, "info")
+      showToast(formatStr(tToast("aheadOfSchedule"), { pages: pagesRead }), "info")
     } else {
-      showToast(`Saved: p.${scheduleStart}–p.${scheduleEnd} → p.${pageValue} (${pagesRead} pages)`, "complete")
+      showToast(formatStr(tToast("savedLog"), { start: scheduleStart, end: scheduleEnd, value: pageValue, pages: pagesRead }), "complete")
     }
   }
 
@@ -484,14 +486,19 @@ function AppContent() {
       ...prev,
       [date]: { ...prev[date], [courseId]: { pagesRead: 0 } },
     }))
-    showToast(`${courseLabel(courseId)} — skipped (0 pages logged).`, "info")
+    showToast(formatStr(tToast("skipped"), { label: courseLabel(courseId) }), "info")
   }
 
   // 3. Check if all plans for a date have been logged
   const plansLoggedForDate = useCallback((date: string): boolean => {
     const daySchedule = schedule.find(d => d.date === date)
     if (!daySchedule || daySchedule.chapters.length === 0) return true
-    const planIds = new Set(daySchedule.chapters.map(ch => ch.courseId).filter((id): id is string => !!id))
+    // Every merged-schedule chapter must have a courseId. If any is missing,
+    // assert it so we surface the bug upstream instead of silently dropping it.
+    const planIds = new Set(daySchedule.chapters.map(ch => {
+      if (!ch.courseId) throw new Error(`Chapter ${ch.chapterId} has no courseId`)
+      return ch.courseId
+    }))
     const dateLogs = dailyLog[date]
     if (!dateLogs) return false
     for (const planId of planIds) {
@@ -503,17 +510,19 @@ function AppContent() {
   // 4. Mark Done — commits the pending log for a date to plan storage
   const handleMarkDone = async (date: string) => {
     if (!plansLoggedForDate(date)) {
-      showToast("Log or Skip all active plans before Marking Done.", "info")
+      showToast(tToast("logOrSkipFirst"), "info")
       return
     }
     
     const pendingLogs = dailyLog[date]
     if (!pendingLogs || Object.keys(pendingLogs).length === 0) {
-      showToast("No pending log for this date.", "info")
+      showToast(tToast("noPendingLog"), "info")
       return
     }
     
     let totalPages = 0
+    const completedWrites: Array<{ planId: string; original: StudyPlan }> = []
+    
     for (const [courseId, log] of Object.entries(pendingLogs)) {
       totalPages += log.pagesRead
       // Commit to ALL active plans for this courseId (not just primary).
@@ -523,6 +532,7 @@ function AppContent() {
       if (plansForCourse.length === 0) continue
       
       for (const plan of plansForCourse) {
+        const original = { ...plan, dailyLog: { ...plan.dailyLog } }
         const updated: StudyPlan = {
           ...plan,
           dailyLog: {
@@ -534,9 +544,14 @@ function AppContent() {
         
         try {
           await storeUpdatePlan(updated)
+          completedWrites.push({ planId: plan.id, original })
         } catch (e) {
           console.error(`Failed to persist Mark Done for plan ${plan.id}:`, e)
-          showToast(`${courseLabel(courseId)} — failed to save. Please try again.`, "break")
+          // Roll back successful writes so storage doesn't get partially committed.
+          for (const done of completedWrites) {
+            try { await storeUpdatePlan(done.original) } catch { /* best-effort rollback */ }
+          }
+          showToast(formatStr(tToast("failedToSave"), { label: courseLabel(courseId) }), "break")
           return
         }
       }
@@ -550,7 +565,7 @@ function AppContent() {
     })
     
     setRefreshTick(prev => prev + 1)
-    showToast(`Mark Done: ${totalPages} pages logged for ${date}.`, totalPages > 0 ? "complete" : "info")
+    showToast(formatStr(tToast("markDoneConfirm"), { pages: totalPages, date }), totalPages > 0 ? "complete" : "info")
   }
 
   // 5. Log dialog handlers
@@ -587,10 +602,16 @@ function AppContent() {
   }
 
   const confirmTimerLog = () => {
+    // A12: If timerMinutes is 0, just close without logging
+    if (timerMinutes <= 0) {
+      setShowTimerLog(false)
+      setTimerMinutes(0)
+      return
+    }
     const h = Math.floor(timerMinutes / 60)
     const m = timerMinutes % 60
     const label = h > 0 ? `${h}h ${m}m` : `${m}m`
-    showToast(`Study session logged: ${label}`, "info")
+    showToast(formatStr(tToast("sessionLogged"), { label }), "info")
     setShowTimerLog(false)
     setTimerMinutes(0)
   }
@@ -613,6 +634,8 @@ function AppContent() {
   // ── Keyboard shortcuts ───────────────────────────────────────────────────────
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // Don't fire keyboard shortcuts when any modal/popover is open.
+      if (logDialogDay || showTimerLog || showModePicker || showThemePicker) return
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
       if (tag === "input" || tag === "textarea" || tag === "select") return
       if (e.metaKey || e.ctrlKey || e.altKey) return
@@ -634,6 +657,7 @@ function AppContent() {
           else if (isOnlineLabsOpen) setIsOnlineLabsOpen(false)
           else if (isPlannerOpen) { setIsPlannerOpen(false); setPlannerInitialCourseId(null); }
           else if (showTimerLog) setShowTimerLog(false)
+          else if (showModePicker) setShowModePicker(false)
           else if (showThemePicker) setShowThemePicker(false)
           break
         case "f": case "F":
@@ -646,13 +670,13 @@ function AppContent() {
           setShowThemePicker((v) => !v)
           break
         case "?":
-          showToast("Shortcuts: 1/2/3=tabs, P=planner, L=labs, N=news, F=fullscreen, R=refresh, T=theme, ?=help, Esc=close", "info")
+          showToast(tToast("shortcutHelp"), "info")
           break
       }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [activeCourseId, isPlannerOpen, isOnlineLabsOpen, isNewsOpen, showTimerLog, showThemePicker, toggleFullscreen, setIsNewsOpen])
+  }, [activeCourseId, isPlannerOpen, isOnlineLabsOpen, isNewsOpen, showTimerLog, showThemePicker, showModePicker, logDialogDay, toggleFullscreen, setIsNewsOpen])
 
   if (isLoading || courseLoading) {
     return (
@@ -663,7 +687,7 @@ function AppContent() {
           ) : (
             <GraduationCap className="w-16 h-16 text-primary animate-pulse" />
           )}
-          <p className="text-muted-foreground text-sm">Loading your study plans...</p>
+          <p className="text-muted-foreground text-sm">{loading("loading")}</p>
         </div>
       </div>
     )
@@ -693,6 +717,7 @@ function AppContent() {
           await refreshCourses()
           await loadPlans()
         }}
+        existingCourses={courses.map((c) => ({ id: c.id, name: c.name }))}
       />
     )
   }
@@ -723,7 +748,7 @@ function AppContent() {
         }}
         onPlansChanged={async () => {
           await loadPlans()
-          showToast("Plan saved and applied.", "info")
+          showToast(tToast("planSaved"), "info")
         }}
         onBack={() => {
           setIsPlannerOpen(false)
@@ -736,8 +761,7 @@ function AppContent() {
 
   const appContent = (
     <div
-      className={`min-h-screen bg-background flex flex-col ${variant !== "original" ? "" : ""}`}
-      data-variant={variant}
+      className="min-h-screen bg-background flex flex-col"
     >
       <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-sm shadow-sm">
         <div className="w-full px-4 py-3 flex items-center gap-4">
@@ -756,7 +780,7 @@ function AppContent() {
             </div>
             <div className="hidden sm:block whitespace-nowrap">
               <h1 className="font-bold text-foreground leading-none whitespace-nowrap text-base">
-                CySec CCPTL
+                ZeroTrust.StudyForcer
                 <span className="ml-2 text-[10px] font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">v{__APP_VERSION__}</span>
               </h1>
             </div>
@@ -789,7 +813,7 @@ function AppContent() {
               className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-background text-foreground text-sm font-medium hover:bg-muted transition-all"
             >
               <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Planner</span>
+              <span className="hidden sm:inline">{label("planner")}</span>
             </button>
 
             <button
@@ -797,7 +821,7 @@ function AppContent() {
               className="h-9 hidden lg:inline-flex items-center gap-1.5 px-3 rounded-lg border border-border bg-background text-foreground text-sm font-medium hover:bg-muted transition-all"
             >
               <FlaskConical className="w-4 h-4" />
-              <span className="hidden sm:inline">Online Labs</span>
+              <span className="hidden sm:inline">{label("onlineLabs")}</span>
             </button>
 
             <button
@@ -808,7 +832,7 @@ function AppContent() {
                 }`}
             >
               <Newspaper className="w-4 h-4" />
-              <span className="hidden sm:inline">News</span>
+              <span className="hidden sm:inline">{label("news")}</span>
             </button>
           </div>
 
@@ -828,7 +852,7 @@ function AppContent() {
             <WallClock />
             <button
               onClick={() => setShowTip((v) => !v)}
-              aria-label="Tips"
+              aria-label={label("tips")}
               className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
             >
               <span className="text-sm font-bold">?</span>
@@ -837,10 +861,10 @@ function AppContent() {
               onClick={async () => {
                 setRefreshing(true)
                 setRefreshTick((t) => t + 1)
-                showToast("Plans refreshed.", "info")
+                showToast(tToast("plansRefreshed"), "info")
                 setTimeout(() => setRefreshing(false), 400)
               }}
-              aria-label="Refresh"
+              aria-label={label("refresh")}
               className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
@@ -861,28 +885,28 @@ function AppContent() {
                 })
               }}
               className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
-              title="Backup all data"
+               title={label("backupAll")}
             >
               <Download className="w-4 h-4" />
             </button>
             <button
               onClick={async () => {
-                if (!window.confirm("Reset all data? This clears plans, logs, and course selections. Course configs are preserved.")) return
+                if (!window.confirm(label("confirmResetAll"))) return
                 await planStorage.clearAll()
                 localStorage.removeItem("activeCourseId")
                 localStorage.removeItem("selectedCourseIds")
                 switchCourse(null)
                 setSelectedCourseIds(new Set())
                 setRefreshTick((t) => t + 1)
-                showToast("All data cleared.", "info")
+                showToast(tToast("allDataCleared"), "info")
               }}
               className="w-9 h-9 flex items-center justify-center rounded-lg border border-destructive/30 bg-background hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-              title="Reset all data"
+              title={label("resetAll")}
             >
               <Trash2 className="w-4 h-4" />
             </button>
             <label className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all cursor-pointer"
-              title="Restore from backup"
+              title={label("restoreBackup")}
             >
               <Upload className="w-4 h-4" />
               <input
@@ -894,36 +918,59 @@ function AppContent() {
                   if (!file) return
                   try {
                     const data = await readJsonFile(file) as Record<string, unknown>
+
+                    // A35: Validate version before proceeding
+                    if (typeof data.version === "number" && data.version > 1) {
+                      showToast(formatStr(tToast("backupVersionMismatch"), { version: String(data.version) }), "break")
+                      return
+                    }
+
+                    // Validate each section and report specific errors
+                    const errors: string[] = []
+
                     if (data.plans && Array.isArray(data.plans)) {
-                      for (const plan of data.plans) {
-                        if (typeof plan === "object" && plan && "id" in plan && "courseId" in plan) {
-                          await planStorage.save(plan as import("@/lib/plan-storage").StudyPlan)
+                      try {
+                        for (const plan of data.plans) {
+                          if (typeof plan === "object" && plan && "id" in plan && "courseId" in plan) {
+                            await planStorage.save(plan as import("@/lib/plan-storage").StudyPlan)
+                          }
                         }
-                      }
+                      } catch { errors.push("plans") }
                     }
                     if (data.activePlanIds && Array.isArray(data.activePlanIds)) {
-                      await planStorage.setActiveIds(data.activePlanIds.filter((id): id is string => typeof id === "string"))
+                      try {
+                        await planStorage.setActiveIds(data.activePlanIds.filter((id): id is string => typeof id === "string"))
+                      } catch { errors.push("active plans") }
                     }
                     if (data.labs && typeof data.labs === "object") {
-                      const { writeLabsStorage } = await import("@/lib/lab-session-storage")
-                      await writeLabsStorage(data.labs as import("@/lib/lab-sessions").LabsStorage)
+                      try {
+                        const { writeLabsStorage } = await import("@/lib/lab-session-storage")
+                        await writeLabsStorage(data.labs as import("@/lib/lab-sessions").LabsStorage)
+                      } catch { errors.push("labs") }
                     }
                     if (data.timer && typeof data.timer === "object") {
-                      const { writeTimerState } = await import("@/lib/timer-storage")
-                      await writeTimerState(data.timer as import("@/lib/timer-storage").TimerData)
+                      try {
+                        const { writeTimerState } = await import("@/lib/timer-storage")
+                        await writeTimerState(data.timer as import("@/lib/timer-storage").TimerData)
+                      } catch { errors.push("timer") }
                     }
                     if (data.courses && Array.isArray(data.courses)) {
-                      const { saveCourse } = await import("@/lib/course-storage")
-                      for (const course of data.courses) {
-                        if (typeof course === "object" && course && "id" in course && "name" in course) {
-                          await saveCourse(course as import("@/types/course").CourseConfig)
+                      try {
+                        const { saveCourse } = await import("@/lib/course-storage")
+                        for (const course of data.courses) {
+                          if (typeof course === "object" && course && "id" in course && "name" in course) {
+                            await saveCourse(course as import("@/types/course").CourseConfig)
+                          }
                         }
-                      }
+                      } catch { errors.push("courses") }
+                    }
+                    if (errors.length > 0) {
+                      showToast(formatStr(tToast("backupPartial"), { sections: errors.join(", ") }), "info")
                     }
                     setRefreshTick((t) => t + 1)
-                    showToast("Backup restored successfully", "info")
+                    showToast(tToast("backupRestored"), "info")
                   } catch {
-                    showToast("Failed to restore backup", "info")
+                    showToast(tToast("backupFailed"), "info")
                   }
                   e.target.value = ""
                 }}
@@ -932,7 +979,7 @@ function AppContent() {
             <div className="relative">
               <button
                 onClick={() => setShowThemePicker((v) => !v)}
-                aria-label="Choose theme"
+                aria-label={label("chooseTheme")}
                 aria-haspopup="menu"
                 aria-expanded={showThemePicker}
                 className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
@@ -955,7 +1002,7 @@ function AppContent() {
                   >
                     <div className="px-2 py-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                       <Palette className="w-3.5 h-3.5" />
-                      Theme
+                      {label("theme")}
                     </div>
                     {THEME_OPTIONS.map((opt) => {
                       const active = theme === opt.id
@@ -987,9 +1034,50 @@ function AppContent() {
               )}
             </div>
 
+            {/* Personality mode switch */}
+            <div className="relative">
+              <button
+                onClick={() => setShowModePicker((v) => !v)}
+                aria-label="Personality Mode"
+                aria-haspopup="menu"
+                aria-expanded={showModePicker}
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                title={MODE_OPTIONS.find(m => m.id === mode)?.label ?? mode}
+              >
+                <span className="text-sm">{MODE_OPTIONS.find(m => m.id === mode)?.icon ?? "📋"}</span>
+              </button>
+              {showModePicker && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowModePicker(false)} />
+                  <div role="menu" className="absolute right-0 top-full mt-2 z-50 w-56 bg-card border border-border rounded-lg shadow-lg p-1">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{label("modeLabel")}</div>
+                    {MODE_OPTIONS.map((opt) => {
+                      const active = mode === opt.id
+                      return (
+                        <button
+                          key={opt.id}
+                          role="menuitemradio"
+                          aria-checked={active}
+                          onClick={() => { setMode(opt.id); setShowModePicker(false); tipPicker.setMode(opt.id); setCurrentTip(tipPicker.next()) }}
+                          className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors ${active ? "bg-muted font-medium text-foreground" : "text-foreground hover:bg-muted/60"}`}
+                        >
+                          <span className="text-base">{opt.icon}</span>
+                          <div className="flex-1 text-left">
+                            <div className="text-sm">{opt.label}</div>
+                            <div className="text-[10px] text-muted-foreground">{opt.tagline}</div>
+                          </div>
+                          {active && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
             <button
               onClick={toggleFullscreen}
-              aria-label="Toggle fullscreen"
+              aria-label={label("toggleFullscreen")}
               className="w-9 h-9 hidden sm:flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
             >
               {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
@@ -1003,7 +1091,7 @@ function AppContent() {
         <div className="flex items-center gap-2 border-b border-border pb-2">
           {showMerged ? (
             <>
-              <span className="text-sm font-semibold text-foreground">Courses</span>
+              <span className="text-sm font-semibold text-foreground">{label("coursesLabel")}</span>
               <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                 {selectedCourseIds.size}
               </span>
@@ -1011,7 +1099,7 @@ function AppContent() {
           ) : activeCourse ? (
             <span className="text-sm font-semibold text-foreground">{activeCourse.name}</span>
           ) : (
-            <span className="text-sm font-semibold text-muted-foreground">No course selected</span>
+            <span className="text-sm font-semibold text-muted-foreground">{label("noCourseSelected")}</span>
           )}
         </div>
       </div>
@@ -1076,7 +1164,7 @@ function AppContent() {
                   </div>
                 )}
                 <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-                  <span className="text-sm font-medium text-foreground">Finishes:</span>
+                  <span className="text-sm font-medium text-foreground">{label("finishes")}</span>
                   <span className="text-sm font-bold text-primary">{viewedStats?.endDateLabel ?? "\u2014"}</span>
                   <span className="hidden sm:inline-block text-xs text-muted-foreground border border-border rounded-full px-2 py-0.5 bg-background">
                     {viewedStats?.weeksAway ?? "\u2014"}
@@ -1087,7 +1175,7 @@ function AppContent() {
               <div className="stats-bar grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 divide-x divide-primary/10">
                 <div className="px-3 py-3 text-center">
                   <p className="text-base font-bold text-foreground leading-tight">{viewedStats?.scheduleLength ?? "\u2014"}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Study Days</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{label("studyDays")}</p>
                 </div>
                 <div className="px-3 py-3 text-center">
                   <p className="text-base font-bold text-foreground leading-tight">{viewedStats ? viewedStats.totalBookPages.toLocaleString() : "\u2014"}</p>
@@ -1105,11 +1193,11 @@ function AppContent() {
                 </div>
                 <div className="px-3 py-3 text-center">
                   <p className="text-base font-bold text-foreground leading-tight">{viewedStats ? `${viewedStats.studyDaysCount}d/wk` : "\u2014"}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Frequency</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{label("frequency")}</p>
                 </div>
                 <div className="col-span-2 sm:col-span-1 px-3 py-3 text-center" title={viewedStats ? `${viewedStats.totalPagesRead} of ${viewedStats.totalPages} pages` : ""}>
                   <p className="text-base font-bold text-primary leading-tight">{viewedStats ? `${viewedStats.pctDone}%` : "\u2014"}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Progress</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{label("finishLabel")}</p>
                 </div>
               </div>
             </div>
@@ -1139,7 +1227,6 @@ function AppContent() {
                 plansLoggedForDate={plansLoggedForDate}
                 selectedDate={calendarSelectedDate}
                 onSelectedDateChange={setCalendarSelectedDate}
-                onSelectDay={isAdaptive ? (day) => setDrawerDay(day) : undefined}
               />
             )}
             {activeTab === "list" && (
@@ -1184,36 +1271,26 @@ function AppContent() {
       {showTimerLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-lg font-bold mb-2">Log Study Session</h3>
+            <h3 className="text-lg font-bold mb-2">{label("logStudySession")}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              You studied for <span className="font-semibold text-foreground">{Math.floor(timerMinutes / 60)}h {timerMinutes % 60}m</span>. Log this to today&apos;s daily entry?
+              {label("youStudiedFor")} <span className="font-semibold text-foreground">{Math.floor(timerMinutes / 60)}h {timerMinutes % 60}m</span>. {label("logThisToEntry")}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowTimerLog(false)}
                 className="flex-1 px-4 py-2 rounded-lg border border-border bg-background text-foreground text-sm font-medium hover:bg-muted transition-all"
               >
-                Skip
+                {label("skip")}
               </button>
               <button
                 onClick={confirmTimerLog}
                 className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all"
               >
-                Log Session
+                {label("logSessionAction")}
               </button>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Adaptive mode: Day detail drawer */}
-      {isAdaptive && drawerDay && (
-        <DayDetailDrawer
-          day={drawerDay}
-          dailyLog={dailyLog}
-          onClose={() => setDrawerDay(null)}
-          onMarkDone={handleMarkDone}
-        />
       )}
 
       <NotificationToast />
@@ -1229,9 +1306,10 @@ function AppContent() {
         />
       )}
 
-      {/* Log dialog */}
+      {/* Log dialog — key on date ensures fresh state on every open */}
       {logDialogDay && (
         <LogDialog
+          key={logDialogDay.date}
           day={logDialogDay}
           groups={logDialogGroups}
           onSave={handleLogDialogSave}
@@ -1251,9 +1329,11 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <CourseProvider>
-        <AppContent />
-      </CourseProvider>
+      <PersonalityProvider>
+        <CourseProvider>
+          <AppContent />
+        </CourseProvider>
+      </PersonalityProvider>
     </ThemeProvider>
   )
 }

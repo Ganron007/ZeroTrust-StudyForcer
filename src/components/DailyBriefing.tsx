@@ -3,6 +3,8 @@ import { BookOpen } from "lucide-react"
 import { type StudyDay } from "@/lib/cissp-data"
 import type { CourseConfig } from "@/types/course"
 import type { LogGroup } from "./LogDialog"
+import { usePersonality } from "./PersonalityProvider"
+import { formatStr } from "@/lib/personality"
 
 function localToday(): string {
   const d = new Date()
@@ -33,6 +35,7 @@ function formatDate(date: Date): string {
 }
 
 export default function DailyBriefing({ schedule, dailyLog, activeCourse, completedDays, onLogToday, yesterdayTotal }: DailyBriefingProps) {
+  const { label, empty, greeting } = usePersonality()
   const today = localToday()
 
   const todayDay = useMemo(() => schedule.find(d => d.date === today), [schedule, today])
@@ -66,26 +69,26 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
     <div className="mb-5 p-4 rounded-xl bg-card border border-border">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-lg font-bold text-foreground">{getGreeting()}!</p>
+          <p className="text-lg font-bold text-foreground">{greeting(new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening")}!</p>
           <p className="text-sm text-muted-foreground">{formatDate(new Date())}</p>
         </div>
         {streak > 0 && (
           <div className="text-right">
-            <p className="text-xl font-bold text-primary">{streak}<span className="text-sm font-normal text-muted-foreground"> day streak</span></p>
+            <p className="text-xl font-bold text-primary">{streak}<span className="text-sm font-normal text-muted-foreground"> {label("dayStreak")}</span></p>
           </div>
         )}
       </div>
 
       {!activeCourse ? (
         <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border">
-          <p className="text-sm text-muted-foreground">Select a course from the dropdown above to get started.</p>
+          <p className="text-sm text-muted-foreground">{empty("noCourse")}</p>
         </div>
       ) : !todayDay ? (
         <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border">
           <p className="text-sm text-muted-foreground">
             {firstStudyDate
-              ? `No reading scheduled for today. Your plan starts ${firstStudyDate}.`
-              : "No study plan yet. Create one to get started!"}
+              ? formatStr(empty("noReadingToday"), { date: firstStudyDate })
+              : empty("noPlan")}
           </p>
         </div>
       ) : !isTodayDone ? (
@@ -114,18 +117,18 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all"
           >
             <BookOpen className="w-4 h-4" />
-            Log Today
+            {label("logToday")}
           </button>
         </div>
       ) : (
         <div className="mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-          <p className="text-sm text-green-600 dark:text-green-400 font-medium">Today's reading logged ✓</p>
+          <p className="text-sm text-green-600 dark:text-green-400 font-medium">{label("todayDone")}</p>
         </div>
       )}
 
       {yesterdayTotal > 0 && (
         <p className="text-xs text-muted-foreground mt-3">
-          Yesterday: {yesterdayTotal} page{yesterdayTotal !== 1 ? "s" : ""} read
+          {label("yesterday")} {yesterdayTotal} {yesterdayTotal !== 1 ? label("pages") : label("page")} {label("read")}
         </p>
       )}
     </div>

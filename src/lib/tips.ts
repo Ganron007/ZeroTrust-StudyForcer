@@ -1,18 +1,8 @@
-const TIPS = [
-  "Click any study day on the calendar to expand it. Enter the book page number you stopped at, then click Log. Use Skip to defer. Once logged, tap Mark Done to commit. The schedule adjusts automatically.",
-  "You can reorder units in plan settings to follow a custom study sequence (e.g., CISSP domain reordering).",
-  "Mark Done is the only action that saves to disk. Log and Skip are temporary — they reset on refresh.",
-  "Reading ahead? Enter a page number past the day's range — the schedule adjusts automatically.",
-  "Skipping a day keeps those pages in the queue for future days. Nothing is lost.",
-  "Unlogged past days won't advance your schedule — your place in the queue stays put.",
-  "Use the Schedule tab to browse all study days in a compact list view.",
-  "Adjust your pages-per-day in plan settings to accelerate or slow down your pace.",
-  "The Progress tab shows your overall completion stats and pace trends.",
-  "You can create multiple plans for different courses — each has its own queue and pace.",
-]
+import { getTips, type PersonalityMode } from "./personality"
 
-export function createTipPicker() {
-  let remaining = [...TIPS]
+export function createTipPicker(initialMode: PersonalityMode = "standard") {
+  let mode = initialMode
+  let tips = [...getTips(mode)]
   let current = 0
 
   function shuffle(arr: string[]) {
@@ -23,12 +13,16 @@ export function createTipPicker() {
     return arr
   }
 
+  // Re-shuffle on first use
+  tips = shuffle(tips)
+
   return {
     next(): string {
-      if (remaining.length === 0) {
-        remaining = shuffle([...TIPS])
+      if (tips.length === 0) {
+        tips = shuffle([...getTips(mode)])
+        current = 0
       }
-      const tip = remaining.pop()!
+      const tip = tips.pop()!
       current++
       return tip
     },
@@ -36,7 +30,13 @@ export function createTipPicker() {
       return current
     },
     get total(): number {
-      return TIPS.length
+      return getTips(mode).length
+    },
+    /** Update mode and re-seed the tip pool */
+    setMode(newMode: PersonalityMode) {
+      mode = newMode
+      tips = shuffle([...getTips(mode)])
+      current = 0
     },
   }
 }

@@ -4,15 +4,20 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { Play, Pause, Square, Timer, Settings2 } from "lucide-react"
 import { type TimerMode, type TimerState, type TimerData, readTimerState, writeTimerState, formatShortDuration } from "@/lib/timer-storage"
 import { showToast } from "./NotificationToast"
+import { usePersonality } from "./PersonalityProvider"
+import { formatStr } from "@/lib/personality"
 
 interface StudyTimerProps {
   onLogTime?: (minutes: number) => void
 }
 
 export default function StudyTimer({ onLogTime }: StudyTimerProps) {
+  const { label, toast: tToast } = usePersonality()
   const [timer, setTimer] = useState<TimerData | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastWriteRef = useRef<number>(0)
+  const timerRef = useRef<TimerData | null>(null)
 
   // Close settings on Escape
   useEffect(() => {
@@ -27,6 +32,18 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
   // Load timer on mount
   useEffect(() => {
     readTimerState().then(setTimer)
+  }, [])
+
+  // Keep ref in sync for unmount write
+  useEffect(() => { timerRef.current = timer }, [timer])
+
+  // Write final state on unmount (crash recovery)
+  useEffect(() => {
+    return () => {
+      if (timerRef.current && timerRef.current.state === "running") {
+        writeTimerState(timerRef.current)
+      }
+    }
   }, [])
 
   // Tick every second
@@ -60,22 +77,25 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
           if (prev.currentPhase === "study" && nextPhaseElapsed >= studyMs) {
             nextPhase = "break"
             nextPhaseElapsed = 0
-            showToast(`Break time! Relax for ${prev.breakDurationMin} minutes.`, "break")
+            showToast(formatStr(tToast("breakTime"), { minutes: prev.breakDurationMin }), "break")
             if (prev.autoLog && onLogTime) {
               onLogTime(prev.studyDurationMin)
             }
           } else if (prev.currentPhase === "break" && nextPhaseElapsed >= breakMs) {
             nextPhase = "study"
             nextPhaseElapsed = 0
-            showToast("Break over! Back to studying.", "info")
+            showToast(tToast("breakOver"), "info")
           }
         }
 
-        // Countdown completion
+        // Countdown completion — also logs time
         if (prev.mode === "countdown" && nextElapsed >= prev.targetMs) {
           nextElapsed = prev.targetMs
           nextState = "idle"
-          showToast("Daily study goal complete! Great job!", "complete")
+          showToast(tToast("goalComplete"), "complete")
+          if (onLogTime) {
+            onLogTime(Math.floor(nextElapsed / 60000))
+          }
           if (intervalRef.current) {
             clearInterval(intervalRef.current)
             intervalRef.current = null
@@ -91,7 +111,11 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
           lastUpdated: new Date().toISOString(),
         }
 
-        writeTimerState(updated)
+        // Debounce writes to at most once per 10 seconds while running
+        if (now - lastWriteRef.current >= 10000) {
+          writeTimerState(updated)
+          lastWriteRef.current = now
+        }
         return updated
       })
     }, 1000)
@@ -195,7 +219,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {mode === "stopwatch" ? "Stopwatch" : mode === "pomodoro" ? "Pomodoro" : "Countdown"}
+              {mode === "stopwatch" ? label("stopwatch") : mode === "pomodoro" ? label("pomodoro") : label("countdown")}
             </button>
           ))}
         </div>
@@ -211,7 +235,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
             </span>
             {timer.mode === "pomodoro" && (
               <span className="text-[10px] text-muted-foreground leading-none mt-0.5">
-                {timer.currentPhase === "study" ? "Study" : "Break"}
+                {timer.currentPhase === "study" ? label("studyPhase") : label("breakPhase")}
               </span>
             )}
           </div>
@@ -231,7 +255,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
             <button
               onClick={handlePause}
               className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-muted text-foreground transition-colors"
-              title="Pause"
+              title={label("pause")}
             >
               <Pause className="w-3.5 h-3.5" />
             </button>
@@ -239,7 +263,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
             <button
               onClick={handleStart}
               className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-muted text-emerald-500 transition-colors"
-              title="Start"
+              title={label("start")}
             >
               <Play className="w-3.5 h-3.5 fill-current" />
             </button>
@@ -247,7 +271,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
           <button
             onClick={handleStop}
             className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-muted text-destructive transition-colors"
-            title="Stop & Log"
+            title={label("stopAndLog")}
           >
             <Square className="w-3.5 h-3.5 fill-current" />
           </button>
@@ -259,7 +283,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
                 ? "bg-primary/15 text-primary ring-1 ring-primary/40"
                 : "hover:bg-muted text-muted-foreground"
             }`}
-            title={showSettings ? "Close timer settings" : "Timer Settings"}
+            title={showSettings ? label("timerSettings") : label("timerSettings")}
           >
             <Settings2 className="w-3.5 h-3.5" />
           </button>
@@ -275,11 +299,11 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
             onClick={() => setShowSettings(false)}
           />
           <div className="absolute top-full right-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-lg p-4 z-50">
-          <h4 className="text-sm font-semibold mb-3">Timer Settings</h4>
+          <h4 className="text-sm font-semibold mb-3">{label("timerSettings")}</h4>
           {timer.mode === "pomodoro" && (
             <>
               <div className="mb-3">
-                <label className="text-xs text-muted-foreground block mb-1">Study Duration (min)</label>
+                <label className="text-xs text-muted-foreground block mb-1">{label("studyDuration")}</label>
                 <input
                   type="number"
                   value={timer.studyDurationMin}
@@ -290,7 +314,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
                 />
               </div>
               <div className="mb-3">
-                <label className="text-xs text-muted-foreground block mb-1">Break Duration (min)</label>
+                <label className="text-xs text-muted-foreground block mb-1">{label("breakDuration")}</label>
                 <input
                   type="number"
                   value={timer.breakDurationMin}
@@ -304,7 +328,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
           )}
           {timer.mode === "countdown" && (
             <div className="mb-3">
-              <label className="text-xs text-muted-foreground block mb-1">Target Hours</label>
+              <label className="text-xs text-muted-foreground block mb-1">{label("targetHours")}</label>
               <input
                 type="number"
                 value={timer.targetMs / (60 * 60 * 1000)}
@@ -323,7 +347,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
               onChange={(e) => updateSettings("autoLog", e.target.checked)}
               className="rounded border-border"
             />
-            <span className="text-xs text-muted-foreground">Auto-log completed pomodoro sessions</span>
+            <span className="text-xs text-muted-foreground">{label("autoLogPomodoro")}</span>
           </label>
           <button
             onClick={() => {
@@ -332,7 +356,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
             }}
             className="w-full py-1.5 rounded-lg bg-muted text-xs font-medium hover:bg-muted/80 transition-colors"
           >
-            Reset Timer
+            {label("resetTimer")}
           </button>
         </div>
         </>

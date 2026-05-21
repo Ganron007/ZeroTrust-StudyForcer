@@ -78,6 +78,9 @@ export const planStorage = {
       updatedAt: now,
       dailyLog: plan.dailyLog ?? {},
       skippedDays: plan.skippedDays ?? [],
+      // `"unitOrder" in plan` correctly handles both cases:
+      // - `{ ...plan, unitOrder: undefined }` → key present, value undefined → clears it
+      // - `{ ...plan }` (key omitted) → key present from spread, existing value preserved
       unitOrder: "unitOrder" in (plan as Record<string, unknown>) ? plan.unitOrder : existing?.unitOrder,
     }
     data.plans[id] = saved
@@ -88,7 +91,7 @@ export const planStorage = {
   async delete(id: string): Promise<void> {
     const data = await readStorage()
     delete data.plans[id]
-    data.activePlanIds = data.activePlanIds.filter((pid) => pid !== id)
+    data.activePlanIds = (data.activePlanIds ?? []).filter((pid) => pid !== id)
     await writeStorage(data)
   },
 
@@ -103,12 +106,13 @@ export const planStorage = {
 
   async getActiveIds(): Promise<string[]> {
     const data = await readStorage()
-    return data.activePlanIds
+    return data.activePlanIds ?? []
   },
 
   async setActiveIds(ids: string[]): Promise<void> {
     const data = await readStorage()
     data.activePlanIds = ids.filter((id) => data.plans[id])
+    data.activePlanIds = data.activePlanIds ?? []
     await writeStorage(data)
   },
 

@@ -32,14 +32,16 @@ export interface ComputedPlanParams {
  * Progress is entirely driven by what the user logs.
  * No assumed consumption.
  */
-function pagesConsumedBeforeToday(plan: StudyPlan, today: string): number {
+function pagesConsumedBeforeToday(plan: StudyPlan, today: string, totalPages?: number): number {
   let consumed = 0
   for (const [dateStr, log] of Object.entries(plan.dailyLog)) {
     if (dateStr < today) {
-      consumed += Math.max(0, log.pagesRead)
+      const pages = typeof log.pagesRead === "number" && !isNaN(log.pagesRead) ? log.pagesRead : 0
+      consumed += Math.max(0, pages)
     }
   }
-  return consumed
+  // Safety clamp — a corrupted log with 9999 pages should not claim more than the course
+  return totalPages !== undefined ? Math.min(consumed, totalPages) : consumed
 }
 
 /**
@@ -69,7 +71,7 @@ export function syncStudyPlan(
 ): ComputedPlanParams {
   const warnings: string[] = []
   const totalPages = getTotalPages(plan.chapterStartOverrides, plan.startingChapterId, chapters)
-  const consumed = pagesConsumedBeforeToday(plan, today)
+  const consumed = pagesConsumedBeforeToday(plan, today, totalPages)
   const remaining = Math.max(0, totalPages - consumed)
 
   const studyDaysArr = plan.studyDays.length > 0 ? plan.studyDays : [1, 2, 3, 4, 5]

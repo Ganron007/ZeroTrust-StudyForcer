@@ -16,7 +16,16 @@ export async function readLabsStorage(): Promise<LabsStorage> {
       return { labs: DEFAULT_EXTERNAL_LABS, sessions: [], categories: {} }
     }
     const labs = Array.isArray(parsed.labs) ? parsed.labs : DEFAULT_EXTERNAL_LABS
-    const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : []
+    // S4/S5/S6: Validate each session — reject arrays, NaN minutes, unparseable dates
+    const rawSessions = Array.isArray(parsed.sessions) ? parsed.sessions : []
+    const sessions = rawSessions.filter((s: unknown): s is LabSession => {
+      if (!s || typeof s !== "object" || Array.isArray(s)) return false
+      const session = s as Record<string, unknown>
+      if (typeof session.labId !== "string") return false
+      if (typeof session.date !== "string" || isNaN(new Date(session.date + "T00:00:00").getTime())) return false
+      if (typeof session.minutes !== "number" || isNaN(session.minutes) || session.minutes <= 0) return false
+      return true
+    })
     const categories = parsed.categories && typeof parsed.categories === "object" ? parsed.categories : {}
     return { labs, sessions, categories }
   } catch {
@@ -202,10 +211,12 @@ export function computeSmartScore(
   const labDef = DEFAULT_EXTERNAL_LABS.find((l) => l.id === labId)
   const focus = labDef?.focus ?? ""
   const last14 = getLast14Days()
+  // S8: Only apply category gap bonus if this focus has any labs
+  const focusLabsExists = DEFAULT_EXTERNAL_LABS.some((l) => l.focus === focus)
   const focusSessions14 = sessions.filter(
     (s) => last14.includes(s.date) && DEFAULT_EXTERNAL_LABS.find((l) => l.id === s.labId)?.focus === focus,
   )
-  const categoryGapBonus = focusSessions14.length === 0 ? 10 : 0
+  const categoryGapBonus = focusLabsExists && focusSessions14.length === 0 ? 10 : 0
 
   // 5. Recent use penalty (−10 if used in last 7 days)
   const today = new Date()

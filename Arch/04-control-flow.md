@@ -33,11 +33,12 @@ User clicks [Mark Done]
   │  ├─ NO → Toast: "No pending log", abort
   │  └─ YES → Continue
   │
-  ├─ Find owning plan: dateToActivePlanId.get(date) ?? primaryActivePlanId
-  │  ├─ No plan found → Toast: "No active plan", abort
-  │  └─ Plan found → Continue
+  ├─ Find owning plans: for each courseId in dailyLog[date], find
+  │    allPlans.find(p => p.courseId === courseId && activePlanIds.includes(p.id))
+  │  ├─ No plan found for a courseId → skip it
+  │  └─ All plans found → Continue
   │
-  └─ Commit:
+  └─ Commit (for each plan):
       updatedPlan = { ...plan, dailyLog: { ...plan.dailyLog, [date]: { pagesRead } } }
       storeUpdatePlan(updatedPlan)  // Zustand + SQLite
       clear dailyLog[date]

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { type StudyDay } from "@/lib/cissp-data"
 import { X, BookOpen, SkipForward } from "lucide-react"
+import { usePersonality } from "./PersonalityProvider"
 
 export interface LogGroup {
   label: string
@@ -19,6 +20,7 @@ interface LogDialogProps {
 }
 
 export default function LogDialog({ day, groups, onSave, onSkip, onClose }: LogDialogProps) {
+  const { label } = usePersonality()
   const [inputs, setInputs] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {}
     for (const g of groups) {
@@ -37,7 +39,9 @@ export default function LogDialog({ day, groups, onSave, onSkip, onClose }: LogD
     for (const g of groups) {
       const val = inputs[g.courseId]
       if (val !== undefined && val.trim() !== "") {
-        logs.push({ courseId: g.courseId, pagesRead: Number(val) })
+        const pagesRead = Number(val)
+        if (isNaN(pagesRead)) continue
+        logs.push({ courseId: g.courseId, pagesRead })
       }
     }
     onSave(day.date, logs)
@@ -50,7 +54,7 @@ export default function LogDialog({ day, groups, onSave, onSkip, onClose }: LogD
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
             <h2 className="font-bold text-foreground text-sm">
-              Log Day {day.dayNumber}
+              {label("log")} {label("day")} {day.dayNumber}
             </h2>
             <p className="text-xs text-muted-foreground">
               {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
@@ -63,7 +67,7 @@ export default function LogDialog({ day, groups, onSave, onSkip, onClose }: LogD
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Close"
+            aria-label={label("close")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -73,7 +77,7 @@ export default function LogDialog({ day, groups, onSave, onSkip, onClose }: LogD
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {groups.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No active plans for this day.
+              {label("noPlansForDay")}
             </p>
           )}
           {groups.map((g) => (
@@ -98,21 +102,21 @@ export default function LogDialog({ day, groups, onSave, onSkip, onClose }: LogD
                   }))
                 }
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === "Enter" && hasAnyInput) {
                     handleSave()
                   }
                 }}
                 className="w-20 px-2 py-1.5 rounded-md border border-border bg-background text-sm text-foreground text-center font-mono"
               />
               <span className="text-xs text-muted-foreground whitespace-nowrap">
-                pages
+                {label("pages")}
               </span>
               <button
                 onClick={() => onSkip(day.date, g.courseId)}
                 className="ml-auto px-2 py-1 rounded-lg text-xs font-medium border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground transition-all flex items-center gap-1"
               >
                 <SkipForward className="w-3 h-3" />
-                Skip
+                {label("skip")}
               </button>
             </div>
           ))}
@@ -124,7 +128,7 @@ export default function LogDialog({ day, groups, onSave, onSkip, onClose }: LogD
             onClick={onClose}
             className="flex-1 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
           >
-            Cancel
+            {label("cancel")}
           </button>
           <button
             onClick={handleSave}
@@ -136,7 +140,7 @@ export default function LogDialog({ day, groups, onSave, onSkip, onClose }: LogD
               }`}
           >
             <BookOpen className="w-4 h-4" />
-            Save Log
+            {label("saveLog")}
           </button>
         </div>
       </div>

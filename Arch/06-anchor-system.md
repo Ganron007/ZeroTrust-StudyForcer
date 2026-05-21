@@ -137,8 +137,7 @@ Each queue position maps to a book page:
 bookPageStart = ch.bookPageStart + pageNum - 1
 ```
 
-**Known issue:** Some course JSONs (e.g. CISSP) lack `bookPageStart` on chapters.
-The fallback `?? 1` causes the log window to show "Pages 1–1" instead of actual ranges.
+**Fallback:** When `bookPageStart` is missing from chapter data, the display falls back to `pagesStart`/`pagesEnd` (always-present internal page range fields) so the log window shows accurate ranges like "p.1–p.45" instead of "p.1–p.1".
 
 ---
 

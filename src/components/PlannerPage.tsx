@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import type { CourseConfig, Chapter } from "@/types/course"
 import { getTrackingLabels, computeTotalPages } from "@/types/course"
 import { planStorage, defaultPlan, type StudyPlan } from "@/lib/plan-storage"
+import { usePlanStore } from "@/lib/plan-store"
 import { generateSchedule, getTotalPages, getOrderedChapters, DEFAULT_STUDY_DAYS } from "@/lib/cissp-data"
 import { syncStudyPlan } from "@/lib/plan-engine"
 import {
@@ -14,6 +15,8 @@ import {
 import { downloadJson, readJsonFile } from "@/lib/export-utils"
 import { showToast } from "@/components/NotificationToast"
 import DatePicker from "./DatePicker"
+import { usePersonality } from "./PersonalityProvider"
+import { formatStr } from "@/lib/personality"
 
 interface PlannerPageProps {
   courses: CourseConfig[]
@@ -93,6 +96,7 @@ export default function PlannerPage({
   onBack,
   onOpenCourseBuilder,
 }: PlannerPageProps) {
+  const { label, toast: tToast, empty } = usePersonality()
   const [creatingForCourseId, setCreatingForCourseId] = useState<string | null>(null)
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
 
@@ -146,7 +150,7 @@ export default function PlannerPage({
         : Math.round(
             allPlans.reduce((sum, plan) => {
               const cfg = courses.find((c) => c.id === plan.courseId)
-              const chapters = cfg ? flattenChapters(cfg) : []
+              const chapters = cfg ? getOrderedChapters(cfg, plan.unitOrder) : []
               const totalPages = getTotalPages(plan.chapterStartOverrides, plan.startingChapterId, chapters)
               const donePages = Object.values(plan.dailyLog).reduce((s, l) => s + Math.max(0, l.pagesRead), 0)
               return sum + (totalPages > 0 ? (donePages / totalPages) * 100 : 0)
@@ -156,12 +160,11 @@ export default function PlannerPage({
   }, [allPlans, activePlanIds, courses])
 
   async function handleDeletePlan(id: string) {
-    if (!confirm("Delete this plan? This cannot be undone.")) return
-    const plan = allPlans.find((p) => p.id === id)
-    if (plan && activePlanIds.includes(plan.id)) {
-      onActivatePlan(plan) // deactivate first
-    }
-    await planStorage.delete(id)
+    if (!confirm(label("confirmDeletePlan"))) return
+    // Use Zustand store deletion which atomically handles store update,
+    // active-plan-id cleanup, and persistent storage — instead of directly
+    // calling planStorage.delete (which leaves the store out of sync).
+    await usePlanStore.getState().deletePlan(id)
     onPlansChanged?.()
     if (editingPlanId === id) {
       setEditingPlanId(null)
@@ -210,6 +213,14 @@ export default function PlannerPage({
       // drift every time the plan is reloaded.
       if (!updated.targetEndDate && updated.targetDayCount) {
         updated.targetEndDate = params.endDate ?? undefined
+      }
+      // A78: If targetDayCount was set, recompute it from the new end date
+      // so subsequent edits don't see a stale day count.
+      if (updated.targetDayCount && params.endDate) {
+        const start = new Date(updated.startDate + "T00:00:00")
+        const end = new Date(params.endDate + "T00:00:00")
+        const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1
+        if (diffDays > 0) updated.targetDayCount = diffDays
       }
     }
 
@@ -283,11 +294,11 @@ export default function PlannerPage({
             className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            Back to View
+            {label("backToView")}
           </button>
           <div className="flex items-center gap-2 flex-shrink-0">
             <GraduationCap className="w-5 h-5 text-primary" />
-            <h1 className="font-bold text-foreground text-base">CySec CCPTL</h1>
+            <h1 className="font-bold text-foreground text-base">{label("appTitle")}</h1>
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
@@ -295,10 +306,10 @@ export default function PlannerPage({
               <button
                 onClick={() => onOpenCourseBuilder?.()}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 text-primary text-xs font-medium hover:bg-primary/10 transition-all"
-                title="Create a new course configuration"
+                title={label("buildCourse")}
               >
                 <Wrench className="w-3.5 h-3.5" />
-                Build Course
+                {label("buildCourse")}
               </button>
             )}
             <button
@@ -307,14 +318,14 @@ export default function PlannerPage({
                 downloadJson(`study-plans-${localToday()}.json`, payload)
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium hover:bg-muted transition-all"
-              title="Export all plans to JSON"
+                title={label("export")}
             >
               <Download className="w-3.5 h-3.5" />
-              Export
+              {label("export")}
             </button>
             <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium hover:bg-muted transition-all cursor-pointer">
               <Upload className="w-3.5 h-3.5" />
-              Import
+              {label("import")}
               <input
                 type="file"
                 accept="application/json"
@@ -323,18 +334,28 @@ export default function PlannerPage({
                   const file = e.target.files?.[0]
                   if (!file) return
                   try {
-                    const data = await readJsonFile(file) as { plans?: StudyPlan[] }
-                    if (!data.plans || !Array.isArray(data.plans)) {
-                      showToast("Invalid plan file", "info")
+                    const raw = await readJsonFile(file) as Record<string, unknown>
+                    // A79: Validate shape before persisting — reject malformed plans
+                    if (!raw.plans || !Array.isArray(raw.plans)) {
+                      showToast(tToast("invalidPlanFile"), "info")
                       return
                     }
-                    for (const plan of data.plans) {
+                    const validPlans: StudyPlan[] = []
+                    for (const plan of raw.plans) {
+                      if (!plan || typeof plan !== "object") continue
+                      const p = plan as Record<string, unknown>
+                      if (typeof p.id !== "string" || typeof p.courseId !== "string") continue
+                      if (typeof p.startDate !== "string" || typeof p.pagesPerDay !== "number") continue
+                      if (!Array.isArray(p.studyDays) || typeof p.dailyLog !== "object") continue
+                      validPlans.push(plan as StudyPlan)
+                    }
+                    for (const plan of validPlans) {
                       await planStorage.save(plan)
                     }
                     onPlansChanged?.()
-                    showToast(`Imported ${data.plans.length} plans`, "info")
+                    showToast(formatStr(tToast("plansImported"), { count: validPlans.length }), "info")
                   } catch {
-                    showToast("Failed to import plans", "info")
+                    showToast(tToast("importFailed"), "info")
                   }
                   e.target.value = ""
                 }}
@@ -354,7 +375,7 @@ export default function PlannerPage({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground leading-none">{dashboardStats.totalPlans}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Total Plans</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{label("totalPlans")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl bg-card border border-border p-3">
@@ -363,7 +384,7 @@ export default function PlannerPage({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground leading-none">{dashboardStats.activeCount}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Active</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{label("active")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl bg-card border border-border p-3">
@@ -372,7 +393,7 @@ export default function PlannerPage({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground leading-none">{dashboardStats.courseCount}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Courses</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{label("coursesLabel")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl bg-card border border-border p-3">
@@ -381,7 +402,7 @@ export default function PlannerPage({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground leading-none">{dashboardStats.avgPct}%</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Avg Completion</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{label("avgCompletion")}</p>
               </div>
             </div>
           </div>
@@ -429,7 +450,7 @@ export default function PlannerPage({
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {hasActivePlan && (
                         <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
-                          Has active plan
+                          {label("hasActivePlan")}
                         </span>
                       )}
                       {isExpanded ? (
@@ -449,16 +470,16 @@ export default function PlannerPage({
                         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
                           <Sparkles className="w-5 h-5 text-muted-foreground" />
                         </div>
-                        <p className="text-sm font-semibold text-muted-foreground">No plans yet</p>
+                        <p className="text-sm font-semibold text-muted-foreground">{empty("noPlansYet")}</p>
                         <p className="text-xs text-muted-foreground mt-1 mb-4">
-                          Create a plan to start tracking your {course.name} progress.
+                          {formatStr(empty("noPlansForCourse"), { course: course.name })}
                         </p>
                         <button
                           onClick={() => setCreatingForCourseId(course.id)}
                           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          Create first plan
+                          {label("createFirstPlan")}
                         </button>
                       </div>
                     )}
@@ -549,7 +570,7 @@ export default function PlannerPage({
                                 ) : (
                                   <>
                                     <Play className="w-3 h-3" />
-                                    Activate
+                                    {label("activate")}
                                   </>
                                 )}
                               </button>
@@ -567,14 +588,14 @@ export default function PlannerPage({
                                     ? "bg-primary/15 text-primary ring-1 ring-primary/40"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                                 }`}
-                                title={isEditing ? "Cancel edit" : "Edit"}
+                                title={isEditing ? label("cancelEdit") : label("edit")}
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDeletePlan(plan.id)}
                                 className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                                title="Delete"
+                                title={label("delete")}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -586,17 +607,17 @@ export default function PlannerPage({
                             <div className="px-5 py-4 bg-muted/20 border-t border-border">
                               <div className="flex items-center gap-2 mb-4">
                                 <Pencil className="w-3.5 h-3.5 text-primary" />
-                                <span className="text-xs font-semibold text-primary uppercase tracking-wider">Editing Plan</span>
+                                <span className="text-xs font-semibold text-primary uppercase tracking-wider">{label("editingPlan")}</span>
                               </div>
 
                               {/* Anchor selector */}
                               <div className="mb-3">
-                                <label className="text-xs text-muted-foreground block mb-1.5">Plan mode — what drives the schedule?</label>
+                                <label className="text-xs text-muted-foreground block mb-1.5">{label("planMode")}</label>
                                 <div className="flex gap-1.5">
                                   {([
-                                    { key: "fixedPace", label: "Fixed Pace", anchor: "pagesPerDay" as const },
-                                    { key: "fixedDeadline", label: "Fixed Deadline", anchor: "endDate" as const },
-                                    { key: "fixedDuration", label: "Fixed Duration", anchor: "endDate" as const },
+                                    { key: "fixedPace", label: label("fixedPace"), anchor: "pagesPerDay" as const },
+                                    { key: "fixedDeadline", label: label("fixedDeadline"), anchor: "endDate" as const },
+                                    { key: "fixedDuration", label: label("fixedDuration"), anchor: "endDate" as const },
                                   ]).map((preset) => {
                                     const isActive =
                                       (preset.key === "fixedPace" && editAnchor === "pagesPerDay") ||
@@ -631,15 +652,15 @@ export default function PlannerPage({
                                   })}
                                 </div>
                                 <p className="text-[11px] text-muted-foreground mt-1">
-                                  {editAnchor === "pagesPerDay" && "You set the daily pace. End date is calculated automatically."}
-                                  {editAnchor === "endDate" && !editTargetDayCount && "You set the finish date. Daily pace is calculated automatically."}
-                                  {editAnchor === "endDate" && !!editTargetDayCount && "You set the number of study days. Pace and end date are calculated automatically."}
+                                  {editAnchor === "pagesPerDay" && label("planModeDescPace")}
+                                  {editAnchor === "endDate" && !editTargetDayCount && label("planModeDescDeadline")}
+                                  {editAnchor === "endDate" && !!editTargetDayCount && label("planModeDescDuration")}
                                 </p>
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
                                 <div>
-                                  <label className="text-xs text-muted-foreground block mb-1">Plan name</label>
+                                    <label className="text-xs text-muted-foreground block mb-1">{label("planName")}</label>
                                   <input
                                     type="text"
                                     value={editName}
@@ -648,7 +669,7 @@ export default function PlannerPage({
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-muted-foreground block mb-1">Start date</label>
+                                    <label className="text-xs text-muted-foreground block mb-1">{label("startDate")}</label>
                                   <DatePicker
                                     value={editStartDate}
                                     onChange={(v) => setEditStartDate(v || localToday())}
@@ -705,7 +726,7 @@ export default function PlannerPage({
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-muted-foreground block mb-1">Starting chapter</label>
+                                    <label className="text-xs text-muted-foreground block mb-1">{label("startingChapter")}</label>
                                   <select
                                     value={editStartingChapterId}
                                     onChange={(e) => setEditStartingChapterId(Number(e.target.value))}
@@ -730,20 +751,20 @@ export default function PlannerPage({
                                   </div>
                                 )}
                                 <div className="flex items-center justify-between mb-2">
-                                  <label className="text-xs text-muted-foreground font-medium">Study Order</label>
+                                    <label className="text-xs text-muted-foreground font-medium">{label("studyOrder")}</label>
                                   {editUnitOrder && editUnitOrder.length > 0 ? (
                                     <button
                                       onClick={() => setEditUnitOrder(undefined)}
                                       className="text-[10px] text-muted-foreground hover:text-foreground underline"
                                     >
-                                      Reset to Default
+                                      {label("resetToDefault")}
                                     </button>
                                   ) : (
                                     <button
                                       onClick={() => setEditUnitOrder(course.units.map((u) => u.id))}
                                       className="text-[10px] text-primary hover:underline"
                                     >
-                                      Customize Order
+                                      {label("customizeOrder")}
                                     </button>
                                   )}
                                 </div>
@@ -813,9 +834,9 @@ export default function PlannerPage({
                                 return (
                                   <div className="mb-3 p-2.5 rounded-lg bg-background border border-border">
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                                      <span className="text-muted-foreground">Derived pace:</span>
+                                      <span className="text-muted-foreground">{label("derivedPace")}</span>
                                       <span className="font-semibold text-foreground">{params.pagesPerDay} {labels.perDay.toLowerCase()}</span>
-                                      <span className="text-muted-foreground">End date:</span>
+                                      <span className="text-muted-foreground">{label("endDate")}</span>
                                       <span className="font-semibold text-foreground">{params.endDate ?? "—"}</span>
                                       {params.warnings.length > 0 && (
                                         <span className="text-rose-600 dark:text-rose-400 font-semibold">{params.warnings[0]}</span>
@@ -825,7 +846,7 @@ export default function PlannerPage({
                                 )
                               })()}
                               <div className="mb-3">
-                                <label className="text-xs text-muted-foreground block mb-1">Study days</label>
+                                  <label className="text-xs text-muted-foreground block mb-1">{label("studyDaysLabel")}</label>
                                 <div className="flex gap-1 max-w-sm">
                                   {DAY_LABELS.map(({ dow, short }) => {
                                     const active = editStudyDays.includes(dow)
@@ -857,14 +878,14 @@ export default function PlannerPage({
                                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
                                 >
                                   <Save className="w-3 h-3" />
-                                  Save Changes
+                                  {label("saveChanges")}
                                 </button>
                                 <button
                                   onClick={() => setEditingPlanId(null)}
                                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium hover:bg-muted transition-colors"
                                 >
                                   <X className="w-3 h-3" />
-                                  Cancel
+                                  {label("cancel")}
                                 </button>
                               </div>
                             </div>
@@ -881,7 +902,7 @@ export default function PlannerPage({
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          Add another plan
+                          {label("addAnotherPlan")}
                         </button>
                       </div>
                     )}
@@ -891,12 +912,12 @@ export default function PlannerPage({
                       <div className="px-5 py-4 bg-primary/[0.03] border-t border-border">
                         <div className="flex items-center gap-2 mb-4">
                           <Plus className="w-3.5 h-3.5 text-primary" />
-                          <span className="text-xs font-semibold text-primary uppercase tracking-wider">New Plan Settings</span>
+                          <span className="text-xs font-semibold text-primary uppercase tracking-wider">{label("newPlanSettings")}</span>
                         </div>
 
                         {/* Anchor selector */}
                         <div className="mb-3">
-                          <label className="text-xs text-muted-foreground block mb-1.5">Plan mode — what drives the schedule?</label>
+                            <label className="text-xs text-muted-foreground block mb-1.5">{label("planMode")}</label>
                           <div className="flex gap-1.5">
                             {([
                               { key: "fixedPace", label: "Fixed Pace", anchor: "pagesPerDay" as const },
@@ -1167,14 +1188,14 @@ export default function PlannerPage({
                             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
                           >
                             <Save className="w-3.5 h-3.5" />
-                            Create Plan
+                            {label("createPlan")}
                           </button>
                           <button
                             onClick={() => setCreatingForCourseId(null)}
                             className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-foreground text-sm font-medium hover:bg-muted transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />
-                            Cancel
+                            {label("cancel")}
                           </button>
                         </div>
                       </div>

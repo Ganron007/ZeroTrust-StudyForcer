@@ -1,6 +1,6 @@
 # Architecture: Frontend-heavy rationale
 
-CySec CCPTL uses a **frontend-heavy architecture** (React TypeScript handles UI + business logic + persistence, Rust handles only the news-proxy command). This is the standard Tauri pattern and is appropriate for this app's scope.
+ZeroTrust.StudyForcer uses a **frontend-heavy architecture** (React TypeScript handles UI + business logic + persistence, Rust handles only the news-proxy command). This is the standard Tauri pattern and is appropriate for this app's scope.
 
 ## Why this works for a desktop study planner
 

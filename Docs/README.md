@@ -1,4 +1,4 @@
-# CySec CCPTL
+# ZeroTrust.StudyForcer
 
 A Tauri + React cybersecurity certification tracker (desktop + browser). Built around the CISSP, SecAI+, and OSCP curricula.
 
@@ -9,14 +9,15 @@ A Tauri + React cybersecurity certification tracker (desktop + browser). Built a
 - Tracks completion, streak, and progress per unit.
 - Persists plans and active-plan IDs to a local SQLite database (`<appData>/studyplanner.app/study-planner.db` in Tauri, `localStorage` keys in web/test). Timer state, lab sessions, news cache, course JSONs, and window state are still flat JSON files next to the executable.
 - Bundles a Pomodoro/stopwatch/countdown timer and a separate lab-tracker view.
+- **Personality layer** — All user-facing text is themeable via 13 personality modes (Standard, Drill Sergeant, Cyberpunk, Script Kiddie, Zero Trust Audit, Influencer, Politician, LinkedIn Lunatic, True Crime, Weather Anchor, Passive-Aggressive Mom, Conspiracy Theorist, Elderly Reluctant). Switch modes from the app header; text changes instantly across all components.
 
 ## Project layout
 
 ```
 src/                  React + TypeScript frontend
   App.tsx             Top-level state, persistence, layout
-  components/         UI (calendar, schedule list, progress, planner config, ...)
-  lib/                Schedule engine, plan/lab/timer/course storage, SVG sanitizer
+  components/         UI (calendar, schedule list, progress, planner config, PersonalityProvider, ...)
+  lib/                Schedule engine, plan/lab/timer/course storage, SVG sanitizer, personality.ts
     plan-store.ts     Zustand store — single source of truth
     plan-engine.ts    syncStudyPlan(), pagesConsumedBeforeToday()
     cissp-data.ts     generateSchedule, buildPageSequence, getOrderedChapters

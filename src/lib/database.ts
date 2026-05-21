@@ -40,12 +40,15 @@ function readWeb(): StorageData {
 }
 
 function writeWeb(data: StorageData): void {
+  const previous = webCache
   webCache = data
   try {
     localStorage.setItem(WEB_PLANS_KEY, JSON.stringify(data.plans))
     localStorage.setItem(WEB_ACTIVE_KEY, JSON.stringify(data.activePlanIds))
-  } catch {
-    /* quota exceeded — silently degrade */
+  } catch (e) {
+    webCache = previous
+    console.error("[database] localStorage write failed:", e)
+    throw new Error("Failed to save data: storage quota exceeded")
   }
 }
 
@@ -95,8 +98,9 @@ async function initSqlite(): Promise<DbHandle | null> {
 
     _db = db
     return db
-  } catch (err) {
-    console.warn("[database] SQLite unavailable, falling back to localStorage:", err)
+  } catch (e) {
+    console.warn("[database] SQLite unavailable:", e)
+    _dbPromise = null
     return null
   }
 }
@@ -122,11 +126,12 @@ export async function readStorage(): Promise<StorageData> {
             /* skip corrupted record */
           }
         }
-        const activePlanIds = activeRows
+        const activePlanIds = (activeRows ?? [])
           .map((r: { plan_id: string }) => r.plan_id)
           .filter((id: string) => !!plans[id])
         return { plans, activePlanIds }
-      } catch {
+      } catch (e) {
+        console.warn("[database] SQLite read failed, falling back to localStorage:", e)
         return readWeb()
       }
     }

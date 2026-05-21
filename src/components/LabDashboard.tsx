@@ -16,6 +16,8 @@ import {
 } from "lucide-react"
 import { downloadJson, downloadCsv, readJsonFile } from "@/lib/export-utils"
 import { showToast } from "@/components/NotificationToast"
+import { usePersonality } from "./PersonalityProvider"
+import { formatStr } from "@/lib/personality"
 
 type FilterMode = "all" | "queue" | "today" | "attention"
 
@@ -24,7 +26,8 @@ interface LabDashboardProps {
 }
 
 export default function LabDashboard({ onBack }: LabDashboardProps) {
-  const [data, setData] = useState<LabsStorage>({ labs: DEFAULT_EXTERNAL_LABS, sessions: [], categories: {}, customFocus: {}, weeklyGoalHours: 5 })
+  const { label } = usePersonality()
+  const [data, setData] = useState<LabsStorage>({ labs: DEFAULT_EXTERNAL_LABS, sessions: [], categories: {} })
   const [filter, setFilter] = useState<FilterMode>("all")
   const [showLogDialog, setShowLogDialog] = useState(false)
   const [logLabId, setLogLabId] = useState("")
@@ -211,13 +214,13 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
               className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors mb-3"
             >
               <ChevronLeft className="w-4 h-4" />
-              Back to View
+              {label("backToView")}
             </button>
           )}
-          <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2">Subscription recovery dashboard</p>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Online Labs</h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2">{label("subscriptionRecovery")}</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">{label("onlineLabsTitle")}</h2>
           <p className="text-sm text-muted-foreground max-w-lg mb-4">
-            Track your external lab subscriptions. Log sessions to maintain coverage and avoid wasting paid access.
+            {label("trackLabs")}
           </p>
           <div className="flex gap-2 flex-wrap">
             <button
@@ -225,14 +228,14 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
               className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
             >
               <Plus className="w-4 h-4" />
-              Log today's session
+              {label("logTodaysSession")}
             </button>
           </div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-sm shadow-sm p-5 flex flex-col justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Monthly goal</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{label("monthlyGoal")}</p>
             <div className="flex items-baseline gap-2">
               <p className="text-lg font-bold text-foreground">{Math.round(stats.monthMinutes / 60 * 10) / 10}h</p>
               <span className="text-xs text-muted-foreground">/ {Math.round(stats.monthlyGoalMinutes / 60)}h</span>
@@ -246,15 +249,15 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
           </div>
           <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border mt-3">
             <div>
-              <p className="text-[10px] text-muted-foreground">Date</p>
+              <p className="text-[10px] text-muted-foreground">{label("dateLabel")}</p>
               <p className="text-sm font-bold text-foreground">{today}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground">Daily</p>
+              <p className="text-[10px] text-muted-foreground">{label("daily")}</p>
               <p className="text-sm font-bold text-foreground">6h</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground">Streak</p>
+              <p className="text-[10px] text-muted-foreground">{label("streak")}</p>
               <p className="text-sm font-bold text-foreground">{stats.streak} days</p>
             </div>
           </div>
@@ -390,9 +393,13 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
                         showToast("Invalid lab data file", "info")
                         return
                       }
-                      await save(imported)
+                      // C13: save writes to disk first, then updates state
+                      // C14: log the error so it's not silently swallowed
+                      await writeLabsStorage(imported)
+                      setData(imported)
                       showToast(`Imported ${imported.sessions.length} sessions`, "info")
-                    } catch {
+                    } catch (e) {
+                      console.error("[LabDashboard] Import failed:", e)
                       showToast("Failed to import lab data", "info")
                     }
                     e.target.value = ""

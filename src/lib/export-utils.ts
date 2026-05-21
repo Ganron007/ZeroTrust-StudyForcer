@@ -1,7 +1,15 @@
 // Client-side file download helpers (works in Tauri + browser dev mode)
 
 export function downloadJson(filename: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+  // S22: catch JSON.stringify errors (circular refs, BigInt, etc.)
+  let json: string
+  try {
+    json = JSON.stringify(data, null, 2)
+  } catch (e) {
+    console.error("[export-utils] JSON.stringify failed:", e)
+    return
+  }
+  const blob = new Blob([json], { type: "application/json" })
   downloadBlob(filename, blob)
 }
 
@@ -16,10 +24,22 @@ function downloadBlob(filename: string, blob: Blob) {
   const a = document.createElement("a")
   a.href = url
   a.download = filename
+  // S21: guard against missing document.body
+  if (!document.body) {
+    console.warn("[export-utils] No document.body available")
+    URL.revokeObjectURL(url)
+    return
+  }
   document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  try {
+    a.click()
+  } catch (e) {
+    console.error("[export-utils] a.click() failed:", e)
+  } finally {
+    // S19: ensure cleanup even if click throws
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 }
 
 function escapeCsv(val: string | number): string {
@@ -40,7 +60,8 @@ export async function readJsonFile(file: File): Promise<unknown> {
         reject(e)
       }
     }
-    reader.onerror = reject
+    // S20: wrap raw ProgressEvent in meaningful Error
+    reader.onerror = () => reject(new Error(`FileReader error reading ${file.name}`))
     reader.readAsText(file)
   })
 }

@@ -47,7 +47,7 @@ interface PlanStore {
 ### In App.tsx
 ```typescript
 // Temp logging state (NOT persisted until Mark Done)
-const [dailyLog, setDailyLog] = useState<Record<string, { pagesRead: number; courseId?: string }>>({})
+const [dailyLog, setDailyLog] = useState<Record<string, Record<string, { pagesRead: number }>>>({})
 
 // Log dialog
 const [logDialogDay, setLogDialogDay] = useState<StudyDay | null>(null)
@@ -124,9 +124,9 @@ CREATE TABLE meta (
 ```
 
 ### localStorage Schema (Web/Test mode)
-- Key per plan: `study_plans_plan_{id}`
-- Active IDs: `study_plans_active_ids`
-- Meta: `study_plans_meta`
+- Plans: `web:plans` (JSON blob of `Record<string, StudyPlan>`)
+- Active IDs: `web:activePlanIds` (JSON array)
+- In-memory write-through cache avoids JSON parse on every read
 
 ---
 
@@ -147,10 +147,10 @@ interface StudyPlan {
   targetEndDate?: string
   targetDayCount?: number
   anchor: "pagesPerDay" | "endDate"
-  unitOrder: number[]         // Custom unit sequence
+  unitOrder?: number[]         // Custom unit sequence (optional)
   dailyLog: Record<string, DailyLog>
+  skippedDays: string[]        // YYYY-MM-DD dates explicitly skipped
   // NO completedDays field — dailyLog presence is the indicator
-  // NO skippedDays field
   // NO chapterChecks or chapterProgress fields
 }
 
@@ -185,3 +185,30 @@ Auto-migrations run at load time in `database.ts`:
 | numeric keys → date keys | `dailyLog[1]` → `dailyLog["2026-04-01"]` |
 | `activePlanId` → `activePlanIds` | Single ID → array |
 | `completedDays` removal | Now detected by dailyLog presence |
+
+---
+
+## 9. Personality Layer State
+
+The personality mode is managed outside Zustand — it's pure React context + localStorage.
+
+| Category | Storage | Mechanism |
+|---|---|---|
+| Current mode | React state (PersonalityProvider) | `useState<PersonalityMode>` |
+| Persisted mode | localStorage | `ztsf:personality-mode` key |
+| String maps | Static module data (`personality.ts`) | 13 modes × 6 dictionaries (labels ~256, toasts ~33, empties ~13, greetings 3, loading 4, tips 10) |
+
+**Access pattern:**
+```tsx
+const { label, toast, empty, greeting, loading, tips, mode, setMode } = usePersonality()
+label("planner")        // → "Planner" (or themed variant)
+toast("planCreated")    // → toast template string
+empty("noData")         // → empty state message
+```
+
+**Rules:**
+- `label(key)` falls back to raw `key` if not found in current mode — never blank/undefined
+- `formatStr(template, params)` interpolates `{var}` placeholders in toast/empty templates
+- Mode switch re-seeds tip picker via `tipPicker.setMode(newMode)`
+- Personality layer has zero impact on engine logic — pure string overlay
+- New modes add string maps only — no logic, storage, or component changes required

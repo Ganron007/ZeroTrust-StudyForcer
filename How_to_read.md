@@ -3,7 +3,7 @@
 A short tour of every `.md` file in this repo so you (or future-you, or anyone who stumbles
 in) can jump straight to the right place instead of opening files at random.
 
-**Last updated:** 2026-05-15 — for app version **2.2.1**.
+**Last updated:** 2026-05-17 — for app version **2.3.1**.
 
 ---
 
@@ -18,6 +18,7 @@ in) can jump straight to the right place instead of opening files at random.
 | **Touching the anchor / schedule math** | `Arch/06-anchor-system.md` + `Arch/04-control-flow.md` |
 | **Adding or fixing tests** | `Docs/TESTING-REPORT.md` (current state) → `Arch/07-testing-architecture.md` (philosophy) |
 | **Planning the next phase / roadmap** | `Docs/ROADMAP.md` |
+| **Understanding personality / mode switching** | `Docs/ZTSF_PERSONALITY_LAYER.md` |
 
 ---
 
@@ -36,13 +37,14 @@ These are the human-facing project docs. Read these first.
 
 | File | Purpose | Last refresh |
 |---|---|---|
-| `Docs/README.md` | What the app does, project layout, dev commands. | Updated for v2.2.1 |
-| `Docs/ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.2.1 |
-| `Docs/BUGS.md` | Every bug found, root cause, and fix. Use it to avoid re-introducing fixed bugs. | Current through Bug #12 (v2.2.1) |
-| `Docs/CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through 2.2.1 — 2026-05-15 |
-| `Docs/ROADMAP.md` | Committed work only — Phase 0 (shipped), Phase 1 (polish/UX), Phase 2 (hardening). | Refreshed 2026-05-13 |
-| `Docs/VISION.md` | Speculative directions (SaaS, sync, mobile, AI, marketplace, LMS). Not a plan — thought exercise. | New 2026-05-13 |
-| `Docs/TESTING-REPORT.md` | Current test inventory (203 tests / 10 files), coverage targets, commands, regression guards. | Refreshed 2026-05-13 |
+| `Docs/README.md` | What the app does, project layout, dev commands. | Updated for v2.3.1 |
+| `Docs/ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.3.1 |
+| `Docs/BUGS.md` | Every bug found, root cause, and fix. Use it to avoid re-introducing fixed bugs. | Current through v2.3.1 — 14 fixed bugs + 10 audit fixes |
+| `Docs/CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through 2.3.1 — 2026-05-17 |
+| `Docs/ROADMAP.md` | Committed work only — Phase 0 (shipped), Phase 1 (polish/UX), Phase 2 (hardening). | Refreshed 2026-05-17 |
+| `Docs/VISION.md` | Speculative directions (SaaS, sync, mobile, AI, marketplace, LMS). Not a plan — thought exercise. | Refreshed 2026-05-17 |
+| `Docs/TESTING-REPORT.md` | Current test inventory (203 tests / 10 files), coverage targets, commands, regression guards. | Refreshed 2026-05-17 |
+| `Docs/ZTSF_PERSONALITY_LAYER.md` | Personality layer — architecture, modes, component wiring, audit results. | Shipped v2.3.1 — 2026-05-17 |
 
 ---
 
@@ -75,7 +77,7 @@ For the current testing picture, use `Docs/TESTING-REPORT.md`.
 
 ## Quick sanity checks before you trust a doc
 
-1. **Version at the top.** Anything saying < `2.2.1` may be stale.
+1. **Version at the top.** Anything saying < `2.3.1` may be stale.
 2. **Cross-check with `Docs/CHANGELOG.md`** — entries dated after the doc's "Updated" line
    probably superseded what you're reading.
 3. **Verify code claims.** If a doc names a function/file, run a quick `Grep` before

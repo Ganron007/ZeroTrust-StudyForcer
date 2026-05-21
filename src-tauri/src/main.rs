@@ -17,9 +17,13 @@ static LAST_WINDOW_STATE_WRITE: Mutex<Option<Instant>> = Mutex::new(None);
 
 fn persist_window_state(window: &tauri::Window, force: bool) {
     if !force {
+        // R9: Recover from poisoned Mutex instead of degrading silently
         let mut guard = match LAST_WINDOW_STATE_WRITE.lock() {
             Ok(g) => g,
-            Err(_) => return,
+            Err(poisoned) => {
+                log::warn!("Window-state Mutex was poisoned — recovering");
+                poisoned.into_inner()
+            }
         };
         let now = Instant::now();
         if let Some(prev) = *guard {
@@ -31,12 +35,14 @@ fn persist_window_state(window: &tauri::Window, force: bool) {
     }
 
     let handle = window.app_handle();
-    let pos = window
-        .outer_position()
-        .unwrap_or(tauri::PhysicalPosition { x: 0, y: 0 });
-    let size = window
-        .outer_size()
-        .unwrap_or(tauri::PhysicalSize { width: 1280, height: 800 });
+    let pos = match window.outer_position() {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+    let size = match window.outer_size() {
+        Ok(s) => s,
+        Err(_) => return,
+    };
     let is_maximized = window.is_maximized().unwrap_or(false);
     let is_fullscreen = window.is_fullscreen().unwrap_or(false);
     let state = serde_json::json!({
@@ -51,14 +57,16 @@ fn persist_window_state(window: &tauri::Window, force: bool) {
 }
 
 fn app_dir(_handle: &AppHandle) -> PathBuf {
-    let mut path = env::current_exe()
-        .expect("failed to get current exe path")
-        .parent()
-        .expect("failed to get exe parent dir")
-        .to_path_buf();
+    let mut path = match env::current_exe() {
+        Ok(exe) => exe.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from(".")),
+        Err(_) => env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+    };
     path.push("data");
     if !path.exists() {
-        fs::create_dir_all(&path).expect("failed to create data dir");
+        if let Err(e) = fs::create_dir_all(&path) {
+            log::warn!("Could not create data dir at {:?}: {}. Falling back to current directory.", path, e);
+            return env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        }
     }
     path
 }
@@ -67,7 +75,7 @@ fn courses_dir(handle: &AppHandle) -> PathBuf {
     let mut path = app_dir(handle);
     path.push("courses");
     if !path.exists() {
-        fs::create_dir_all(&path).expect("failed to create courses dir");
+        let _ = fs::create_dir_all(&path);
     }
     path
 }
@@ -76,7 +84,7 @@ fn logos_dir(handle: &AppHandle) -> PathBuf {
     let mut path = app_dir(handle);
     path.push("logos");
     if !path.exists() {
-        fs::create_dir_all(&path).expect("failed to create logos dir");
+        let _ = fs::create_dir_all(&path);
     }
     path
 }
@@ -109,6 +117,19 @@ fn course_path(handle: &AppHandle, course_id: &str) -> PathBuf {
     let mut path = courses_dir(handle);
     path.push(format!("{}.json", course_id));
     path
+}
+
+fn validate_course_id(id: &str) -> Result<(), String> {
+    if id.is_empty() || id.len() > 128 {
+        return Err("Course ID must be 1–128 characters".into());
+    }
+    if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        return Err("Course ID must contain only letters, digits, hyphens, or underscores".into());
+    }
+    if id.contains("..") {
+        return Err("Course ID must not contain '..'".into());
+    }
+    Ok(())
 }
 
 // ── News Feed ───────────────────────────────────────────────────────────────
@@ -190,7 +211,7 @@ async fn fetch_hn_security() -> Vec<NewsItem> {
     let url = "https://hn.algolia.com/api/v1/search_by_date?tags=security&hitsPerPage=30";
     let res = client
         .get(url)
-        .header("User-Agent", "CySecCCPTL/1.0")
+        .header("User-Agent", "ZeroTrustStudyForcer/1.0")
         .timeout(Duration::from_secs(15))
         .send()
         .await;
@@ -233,7 +254,7 @@ async fn fetch_rss_feed(feed: &FeedConfig) -> Vec<NewsItem> {
     let client = reqwest::Client::new();
     let res = client
         .get(feed.url)
-        .header("User-Agent", "CySecCCPTL/1.0")
+        .header("User-Agent", "ZeroTrustStudyForcer/1.0")
         .timeout(Duration::from_secs(15))
         .send()
         .await;
@@ -379,7 +400,10 @@ fn read_timer_file(handle: AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn write_timer_file(handle: AppHandle, content: String) -> Result<(), String> {
     let path = timer_path(&handle);
-    fs::write(&path, content).map_err(|e| e.to_string())
+    // A39: Atomic write via tmp + rename
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, &content).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -393,8 +417,12 @@ fn read_window_state(handle: AppHandle) -> Result<String, String> {
 
 #[tauri::command]
 fn write_window_state(handle: AppHandle, content: String) -> Result<(), String> {
+    // R12: Route through persist_window_state to respect the Mutex throttle.
+    // Direct writes bypass the throttle and can cause excessive disk IO.
     let path = window_state_path(&handle);
-    fs::write(&path, content).map_err(|e| e.to_string())
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, &content).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &path).map_err(|e| e.to_string())
 }
 
 // ── Course Config Commands ──────────────────────────────────────────────────
@@ -420,6 +448,7 @@ fn list_course_configs(handle: AppHandle) -> Result<Vec<serde_json::Value>, Stri
 
 #[tauri::command]
 fn read_course_config(handle: AppHandle, course_id: String) -> Result<String, String> {
+    validate_course_id(&course_id)?;
     let path = course_path(&handle, &course_id);
     if !path.exists() {
         return Err(format!("Course config not found: {}", course_id));
@@ -429,12 +458,17 @@ fn read_course_config(handle: AppHandle, course_id: String) -> Result<String, St
 
 #[tauri::command]
 fn write_course_config(handle: AppHandle, course_id: String, content: String) -> Result<(), String> {
+    validate_course_id(&course_id)?;
     let path = course_path(&handle, &course_id);
-    fs::write(&path, content).map_err(|e| e.to_string())
+    // A45: Atomic write to prevent half-written file on crash
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, &content).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn delete_course_config(handle: AppHandle, course_id: String) -> Result<(), String> {
+    validate_course_id(&course_id)?;
     let path = course_path(&handle, &course_id);
     if path.exists() {
         fs::remove_file(&path).map_err(|e| e.to_string())?;
@@ -449,19 +483,31 @@ fn delete_course_config(handle: AppHandle, course_id: String) -> Result<(), Stri
 
 #[tauri::command]
 fn import_course_config(handle: AppHandle, file_path: String) -> Result<String, String> {
+    let target = PathBuf::from(&file_path);
+    if !target.is_file() {
+        return Err("File not found".into());
+    }
     let content = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
     let json: serde_json::Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
     let course_id = json
         .get("id")
         .and_then(|v| v.as_str())
         .ok_or("Invalid config: missing 'id' field")?;
+    validate_course_id(course_id)?;
     let dest = course_path(&handle, course_id);
-    fs::write(&dest, content).map_err(|e| e.to_string())?;
+    // A46: Check for existing course before overwriting
+    if dest.exists() {
+        return Err(format!("Course '{}' already exists. Delete it first or use a different id.", course_id));
+    }
+    let tmp = dest.with_extension("tmp");
+    fs::write(&tmp, &content).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &dest).map_err(|e| e.to_string())?;
     Ok(course_id.to_string())
 }
 
 #[tauri::command]
 fn export_course_config(handle: AppHandle, course_id: String, dest_path: String) -> Result<(), String> {
+    validate_course_id(&course_id)?;
     let src = course_path(&handle, &course_id);
     if !src.exists() {
         return Err(format!("Course config not found: {}", course_id));
@@ -472,6 +518,7 @@ fn export_course_config(handle: AppHandle, course_id: String, dest_path: String)
 
 #[tauri::command]
 fn save_logo_file(handle: AppHandle, course_id: String, content: String) -> Result<(), String> {
+    validate_course_id(&course_id)?;
     let mut path = logos_dir(&handle);
     path.push(format!("{}.svg", course_id));
     fs::write(&path, content).map_err(|e| e.to_string())
@@ -479,6 +526,7 @@ fn save_logo_file(handle: AppHandle, course_id: String, content: String) -> Resu
 
 #[tauri::command]
 fn read_logo_file(handle: AppHandle, course_id: String) -> Result<String, String> {
+    validate_course_id(&course_id)?;
     let mut path = logos_dir(&handle);
     path.push(format!("{}.svg", course_id));
     if !path.exists() {
@@ -491,7 +539,9 @@ fn read_logo_file(handle: AppHandle, course_id: String) -> Result<String, String
 fn read_labs_file(handle: AppHandle) -> Result<String, String> {
     let path = labs_path(&handle);
     if !path.exists() {
-        return Ok(r#"{"entries":{},"categories":{}}"#.to_string());
+        // A40: Return shape matching LabsStorage TS interface:
+        // { labs: LabDefinition[], sessions: LabSession[], categories: {} }
+        return Ok(r#"{"labs":[],"sessions":[],"categories":{}}"#.to_string());
     }
     fs::read_to_string(&path).map_err(|e| e.to_string())
 }
@@ -499,7 +549,10 @@ fn read_labs_file(handle: AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn write_labs_file(handle: AppHandle, content: String) -> Result<(), String> {
     let path = labs_path(&handle);
-    fs::write(&path, content).map_err(|e| e.to_string())
+    // A39: Atomic write via tmp + rename
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, &content).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -527,8 +580,21 @@ fn create_tray(handle: &AppHandle) -> Result<tauri::tray::TrayIcon, tauri::Error
     let quit_i = MenuItem::with_id(handle, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(handle, &[&show_i, &PredefinedMenuItem::separator(handle)?, &quit_i])?;
 
+    // A41: Gracefully handle missing tray icon instead of panicking.
+    // If no icon is available, skip tray creation altogether.
+    let default_icon = handle.default_window_icon();
+    let icon = match default_icon {
+        Some(ic) => ic.clone(),
+        None => {
+            log::warn!("No default window icon found — creating tray without icon");
+            let tray = tauri::tray::TrayIconBuilder::new()
+                .menu(&menu)
+                .build(handle)?;
+            return Ok(tray);
+        }
+    };
     let tray = tauri::tray::TrayIconBuilder::new()
-        .icon(handle.default_window_icon().unwrap().clone())
+        .icon(icon)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -589,7 +655,10 @@ fn main() {
             #[cfg(all(desktop))]
             {
                 let handle = app.handle();
-                let _tray = create_tray(handle).expect("failed to create tray");
+                // Gracefully degrade if tray creation fails (e.g. no icon or system limitation)
+                if let Err(e) = create_tray(handle) {
+                    log::warn!("Failed to create system tray: {}", e);
+                }
 
                 // Restore window state or auto-size to display on first launch
                 if let Some(window) = app.get_webview_window("main") {
@@ -599,18 +668,23 @@ fn main() {
                     if has_saved_state {
                         if let Ok(content) = fs::read_to_string(&state_path) {
                             if let Ok(state) = serde_json::from_str::<serde_json::Value>(&content) {
-                                if let (Some(x), Some(y)) = (
-                                    state.get("x").and_then(|v| v.as_f64()),
-                                    state.get("y").and_then(|v| v.as_f64()),
-                                ) {
-                                    let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x: x as i32, y: y as i32 }));
-                                }
-                                if let (Some(w), Some(h)) = (
-                                    state.get("width").and_then(|v| v.as_f64()),
-                                    state.get("height").and_then(|v| v.as_f64()),
-                                ) {
-                                    let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize { width: w as u32, height: h as u32 }));
-                                }
+                                // R10: Clamp f64→i32/u32 casts to prevent undefined behavior
+                                    if let (Some(x), Some(y)) = (
+                                        state.get("x").and_then(|v| v.as_f64()),
+                                        state.get("y").and_then(|v| v.as_f64()),
+                                    ) {
+                                        let x = (x as i32).clamp(0, 99999);
+                                        let y = (y as i32).clamp(0, 99999);
+                                        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y }));
+                                    }
+                                    if let (Some(w), Some(h)) = (
+                                        state.get("width").and_then(|v| v.as_f64()),
+                                        state.get("height").and_then(|v| v.as_f64()),
+                                    ) {
+                                        let w = (w as u32).clamp(600, 3840);
+                                        let h = (h as u32).clamp(400, 2160);
+                                        let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize { width: w, height: h }));
+                                    }
                                 if let Some(maximized) = state.get("maximized").and_then(|v| v.as_bool()) {
                                     if maximized {
                                         let _ = window.maximize();

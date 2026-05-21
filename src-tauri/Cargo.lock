@@ -667,26 +667,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cysec-ccptl"
-version = "2.3.0"
-dependencies = [
- "atom_syndication",
- "chrono",
- "log",
- "md5",
- "reqwest 0.12.28",
- "rss",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-log",
- "tauri-plugin-shell",
- "tauri-plugin-sql",
- "tokio",
-]
-
-[[package]]
 name = "darling"
 version = "0.20.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6565,6 +6545,26 @@ dependencies = [
  "quote",
  "syn 2.0.117",
  "synstructure",
+]
+
+[[package]]
+name = "zero-trust-studyforcer"
+version = "2.3.1"
+dependencies = [
+ "atom_syndication",
+ "chrono",
+ "log",
+ "md5",
+ "reqwest 0.12.28",
+ "rss",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-log",
+ "tauri-plugin-shell",
+ "tauri-plugin-sql",
+ "tokio",
 ]
 
 [[package]]

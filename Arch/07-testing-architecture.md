@@ -22,7 +22,7 @@ src/lib/__tests__/
 ├── planner-page.test.tsx        # 9  — PlannerPage create/edit/delete
 └── ui-components.test.tsx       # 5  — misc component smoke tests
 ```
-Total: **203 tests / 10 files**, all passing at v2.2.1.
+Total: **203 tests / 10 files**, all passing at v2.3.1. Personality layer has manual QA coverage; automated `label()`/`toast()`/`empty()` fallback chain tests are in the backlog.
 
 ---
 
@@ -50,19 +50,24 @@ Total: **203 tests / 10 files**, all passing at v2.2.1.
 
 ## 3. Mocking Strategy
 
-**Tauri API:**
+**Tauri API — Web/Test mode:**
 ```typescript
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn()
-}))
+vi.mock("../is-tauri", () => ({ IS_TAURI: false }))
 ```
+This forces `database.ts` to use localStorage instead of SQLite, making tests zero-config.
 
-**Storage:**
+**Storage persistence:**
 ```typescript
-vi.mock("@/lib/plan-storage", async () => {
-  const actual = await vi.importActual("@/lib/plan-storage")
-  return { ...actual, planStorage: { /* mock implementations */ } }
-})
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => { store[key] = value },
+    removeItem: (key: string) => { delete store[key] },
+    clear: () => { store = {} },
+  }
+})()
+Object.defineProperty(window, "localStorage", { value: localStorageMock })
 ```
 
 **Timers:**
@@ -134,12 +139,22 @@ npx tsc -b --noEmit
 - Mid-stream order changes (visual only, consumption math stays correct)
 
 ### Known Bug Regressions
-| Bug | Fix |
-|---|---|
-| Past unlogged days advancing pointer | `effectiveSliceSize = 0` |
-| Multi-plan Mark Done dropped second plan | Direct `allPlans.find(courseId + activePlanIds)` |
-| Multi-plan dailyLog overwrite | `Record<date, Record<courseId, ...>>` nesting |
-| completedDays showing stale data | Removed entirely, dailyLog is the indicator |
+| Bug | Fix | Test Guard |
+|-----|-----|------------|
+| #1 wrong destructure in handleMarkDone | Use direct `allPlans.find` | Error-handling in e2e flows |
+| #2 unlogged-past pointer advance | `effectiveSliceSize = 0` | `effectiveSliceSize = 0` assertion in schedule tests |
+| #3 multi-plan dailyLog overwrite | `Record<date, Record<courseId, ...>>` nesting | Nested dispatch in logging tests |
+| #4 book page display fallback | Use `pagesStart`/`pagesEnd` instead of `?? 1` | Fallback assertion |
+| #5 unit order mutable after logs | Freeze guard in PlannerPage | Guard prevents edit after first log |
+| #6 calendar selected day lost on nav | Lifted to App.tsx state | Persists across tab switch |
+| #7 second plan log dropped on Mark Done | `allPlans.find(courseId + activePlanIds)` | Multi-plan e2e test |
+| #8 dashboard avg-% formula | Sum `pagesRead` not `keys.length × pagesPerDay` | Stats calculation test |
+| #9 contradictory toasts on out-of-range log | `return` after error toast | Single toast assertion |
+| #10 stale unitOrder in deadline pace | Use `updated.unitOrder` not `editUnitOrder` | Pace calculation test |
+| #11 empty-object truthiness check | Explicit `Object.keys().length > 0` | Condition coverage |
+| #12 stats blank after course switch | 3-part fix + reconciliation effect | Multi-course e2e test |
+| #13 `empty("noReadingToday")` interpolation | Use `formatStr()` | Formatting assertion |
+| #14 `tToast("courseValidation")` interpolation | Use `formatStr()` | Formatting assertion |
 
 ---
 

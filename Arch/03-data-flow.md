@@ -16,21 +16,21 @@ LogDialog calls onSave(date, logs[])
 App.handleLogDialogSave: 
   for each log → handleLogPlan(date, courseId, pagesRead)
     ↓
-  setDailyLog({ ...prev, [date]: { pagesRead, courseId } })  // TEMP state, no disk write
-  showToast("Saved: ...")
+   setDailyLog({ ...prev, [date]: { [courseId]: { pagesRead } } })  // nested per-plan TEMP state, no disk write
+   showToast(tToast("logSaved", ...))  // All toasts routed through PersonalityProvider
   ↓
 LogDialog closes, [Mark Done] becomes enabled
   ↓
 User clicks [Mark Done]
   ↓
 handleMarkDone(date):
-  1. Read pending log from dailyLog[date]
-  2. Look up owning plan via dateToActivePlanId
-  3. Merge log into plan.dailyLog in Zustand store
-  4. storeUpdatePlan(updatedPlan) → Zustand + SQLite
-  5. Clear temp dailyLog[date]
-  6. Trigger refreshTick
-  7. Schedule recalculates via useMemo
+   1. Read pending logs from dailyLog[date] (per-courseId)
+   2. For each courseId, find the owning plan via allPlans.find(p => p.courseId === courseId && activePlanIds.includes(p.id))
+   3. Merge each log into plan.dailyLog in Zustand store
+   4. storeUpdatePlan(updatedPlan) → Zustand + SQLite (one per plan)
+   5. Clear temp dailyLog[date]
+   6. Trigger refreshTick
+   7. Schedule recalculates via useMemo
 ```
 
 ---
@@ -42,7 +42,7 @@ handleMarkDone(date):
 User clicks [Skip] in LogDialog
   ↓
 handleSkipPlan(date, courseId):
-  setDailyLog({ ...prev, [date]: { pagesRead: 0, courseId } })
+  setDailyLog({ ...prev, [date]: { ...prev[date], [courseId]: { pagesRead: 0 } } })
   ↓
 Dialog closes, [Mark Done] enabled (same as logging)
 ```
@@ -111,16 +111,8 @@ React re-render → ScheduleView / ScheduleList / ProgressDashboard update
 The Log dialog shows all plan groups for the day.
 Each group gets its own input row.
 Save iterates all plans and calls handleLogPlan for each.
-dailyLog stores one entry per date (last plan logged wins).
-```
-
-### Variant: Adaptive Mode (DayDetailDrawer)
-```
-ScheduleView.onSelectDay → setDrawerDay(day)
-  ↓
-DayDetailDrawer renders with day data + onMarkDone
-  ↓
-Log button still opens LogDialog (same flow)
+dailyLog stores per-courseId entries: { [courseId1]: { pagesRead }, [courseId2]: { pagesRead } }
+Mark Done iterates each courseId and finds the owning plan for each.
 ```
 
 ---

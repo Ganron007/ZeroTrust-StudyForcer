@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import type { CourseConfig } from "@/types/course"
 import { Check, ChevronDown, ExternalLink } from "lucide-react"
+import { usePersonality } from "./PersonalityProvider"
 
 interface CourseSelectorProps {
   courses: CourseConfig[]
@@ -20,23 +21,18 @@ export default function CourseSelector({
   onSelectedChange,
   onOpenPlanner,
 }: CourseSelectorProps) {
+  const { label } = usePersonality()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Ref to track whether the current interaction started inside the dropdown.
-  // This prevents the dropdown from closing when internal clicks trigger parent re-renders.
-  const insideClickRef = useRef(false)
-
-  // Close on outside click. Stop on Escape.
+  // A61: Use composedPath() for reliable outside-click detection instead of
+  // the fragile insideClickRef pattern which can race in test environments.
   useEffect(() => {
     if (!open) return
     function onDocPointerDown(e: PointerEvent) {
-      // If the interaction started inside, ignore this event entirely
-      if (insideClickRef.current) {
-        insideClickRef.current = false
-        return
-      }
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (!containerRef.current) return
+      const path = e.composedPath()
+      if (!path.includes(containerRef.current)) {
         setOpen(false)
       }
     }
@@ -51,14 +47,8 @@ export default function CourseSelector({
     }
   }, [open])
 
-  // Mark that an interaction started inside the dropdown so the outside-click
-  // handler knows to ignore the corresponding pointerdown on document.
-  function markInside() {
-    insideClickRef.current = true
-  }
-
   const selectedCount = selectedCourseIds.size
-  const triggerLabel = `Course Selector (${selectedCount})`
+  const triggerLabel = `${label("courseSelector")} (${selectedCount})`
 
   function toggleChecked(courseId: string) {
     const next = new Set(selectedCourseIds)
@@ -73,7 +63,12 @@ export default function CourseSelector({
   }
 
   function selectAll() {
-    onSelectedChange(new Set(courses.map((c) => c.id)))
+    const allIds = new Set(courses.map((c) => c.id))
+    onSelectedChange(allIds)
+    // A60: If no active course, auto-promote the first one so stats bar isn't blank
+    if (activeCourseId === null && courses.length > 0) {
+      onActiveChange(courses[0].id)
+    }
   }
 
   function clearAll() {
@@ -109,13 +104,19 @@ export default function CourseSelector({
       {open && (
         <div
           role="listbox"
-          onPointerDown={markInside}
+          /* The document listener uses composedPath() — no ref trick needed */
           className="absolute left-0 top-full mt-1 z-50 w-72 bg-card border border-border rounded-lg shadow-xl p-1"
         >
           <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Courses
+            {label("coursesLabel")}
           </div>
           <div className="max-h-72 overflow-y-auto">
+            {/* C9: Show empty state when courses list is empty */}
+            {courses.length === 0 && (
+              <div className="px-3 py-4 text-center">
+                <p className="text-xs text-muted-foreground">{label("noCoursesAvailable")}</p>
+              </div>
+            )}
             {courses.map((c) => {
               const isActive = c.id === activeCourseId
               const isChecked = selectedCourseIds.has(c.id)
@@ -128,7 +129,7 @@ export default function CourseSelector({
                 >
                   <button
                     type="button"
-                    aria-label={isChecked ? "Uncheck course" : "Check course"}
+                    aria-label={isChecked ? label("uncheckCourse") : label("checkCourse")}
                     onClick={(e) => {
                       e.stopPropagation()
                       toggleChecked(c.id)
@@ -148,7 +149,7 @@ export default function CourseSelector({
                       setActive(c.id)
                     }}
                     className="flex-1 text-left text-sm text-foreground truncate cursor-pointer"
-                    title={isActive ? "Currently viewing" : "Click to view this course"}
+                    title={isActive ? label("currentlyViewing") : label("clickToView")}
                   >
                     {c.name}
                   </button>
@@ -161,10 +162,10 @@ export default function CourseSelector({
                         setOpen(false)
                       }}
                       className="text-[10px] inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary font-semibold flex-shrink-0 transition-colors"
-                      title="Open in Plan Config"
+                      title={label("openInPlanner")}
                     >
                       <ExternalLink className="w-2.5 h-2.5" />
-                      Plan Config
+                      {label("planConfig")}
                     </button>
                   )}
                 </div>
@@ -180,7 +181,7 @@ export default function CourseSelector({
               }}
               className="text-xs text-primary hover:underline px-2 py-1"
             >
-              Select all
+              {label("selectAll")}
             </button>
             <button
               type="button"
@@ -190,11 +191,11 @@ export default function CourseSelector({
               }}
               className="text-xs text-muted-foreground hover:text-foreground px-2 py-1"
             >
-              Clear all
+              {label("clearAll")}
             </button>
           </div>
           <p className="text-[10px] text-muted-foreground px-2 py-1.5 leading-snug">
-            Tick boxes to display courses. Click a course name to focus it. Use Plan Config to create or edit plans.
+            {label("selectorInstructions")}
           </p>
         </div>
       )}

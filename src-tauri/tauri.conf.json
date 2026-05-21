@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "CySec CCPTL",
-  "version": "2.3.0",
-  "identifier": "studyplanner.app",
+  "productName": "ZeroTrust.StudyForcer",
+  "version": "2.3.1",
+  "identifier": "ccptl-portable",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "CySec CCPTL",
+        "title": "ZeroTrust.StudyForcer",
         "width": 1400,
         "height": 900,
         "minWidth": 768,

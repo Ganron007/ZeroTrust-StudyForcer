@@ -7,6 +7,8 @@ import { IS_TAURI } from "@/lib/is-tauri"
 import { open } from "@tauri-apps/plugin-shell"
 import { Newspaper, RefreshCw, ExternalLink, Filter, ChevronLeft, Globe } from "lucide-react"
 import { showToast } from "./NotificationToast"
+import { usePersonality } from "./PersonalityProvider"
+import { formatStr } from "@/lib/personality"
 
 type CategoryFilter = "all" | string
 
@@ -27,6 +29,7 @@ interface Props {
 }
 
 export default function SecurityNewsFeed({ onClose }: Props) {
+  const { label, toast: tToast } = usePersonality()
   const [items, setItems] = useState<NewsItem[]>([])
   const [fetchedAt, setFetchedAt] = useState("")
   const [loading, setLoading] = useState(false)
@@ -49,10 +52,11 @@ export default function SecurityNewsFeed({ onClose }: Props) {
       const fresh = await fetchNews()
       setItems(fresh)
       setFetchedAt(new Date().toISOString())
-      showToast(`Loaded ${fresh.length} articles`, "info")
-    } catch {
-      showToast("Failed to fetch news. Showing cached data.", "info")
-      await load()
+      showToast(formatStr(tToast("newsLoaded"), { count: fresh.length }), "info")
+    // A43: Don't reload cache on error — the existing cache is fine
+    } catch (e) {
+      console.error("[SecurityNewsFeed] Refresh failed:", e)
+      showToast(tToast("newsFailed"), "info")
     } finally {
       setLoading(false)
     }
@@ -100,19 +104,19 @@ export default function SecurityNewsFeed({ onClose }: Props) {
                 className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors mb-2"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Back to View
+                {label("backToView")}
               </button>
             )}
-            <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2">Security briefing</p>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Cybersecurity News</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2">{label("securityBriefing")}</p>
+            <h2 className="text-2xl font-bold text-foreground mb-1">{label("cybersecurityNews")}</h2>
             <p className="text-sm text-muted-foreground">
-              Aggregated from {sources.length} security blogs and feeds.
+              {label("aggregatedFrom")} {sources.length} {label("securityBlogsAndFeeds")}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {fetchedAt && (
               <span className="text-xs text-muted-foreground hidden sm:inline">
-                Last updated: {timeAgo(fetchedAt)}
+                {formatStr(label("lastUpdated"), { time: timeAgo(fetchedAt) })}
               </span>
             )}
             <button
@@ -121,7 +125,7 @@ export default function SecurityNewsFeed({ onClose }: Props) {
               className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              {loading ? "Fetching..." : "Refresh"}
+              {loading ? label("fetching") : label("refreshFeed")}
             </button>
           </div>
         </div>
@@ -133,10 +137,10 @@ export default function SecurityNewsFeed({ onClose }: Props) {
           <Globe className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-              Browser mode — using CORS proxies
+              {label("browserMode")}
             </p>
             <p className="text-xs text-amber-600/80 dark:text-amber-300/70 mt-0.5">
-              Some feeds may fail due to proxy limits. Use the desktop app for reliable native fetching.
+              {label("browserModeDesc")}
             </p>
           </div>
         </div>

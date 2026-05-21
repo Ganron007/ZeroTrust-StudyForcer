@@ -6,6 +6,44 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.3.1] — 2026-05-17
+
+### Added — Personality Layer Foundation (Stage 1)
+- **ZeroTrust.StudyForcer rename.** App renamed from "CySec CCPTL" across all files: `package.json`, `index.html`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `src/App.tsx`, `src/components/PlannerPage.tsx`, `scripts/build-all.cjs`, `README.md`, `Docs/*.md`, `Arch/*.md`, User-Agent strings, test assertions.
+- **`src/lib/personality.ts`** — Central personality module with 13 mode-keyed string dictionaries (~3508 lines, ~256 labels + ~33 toasts + ~13 empties + 3 greetings + 4 loading + 10 tips per mode): Standard, Drill Sergeant, Cyberpunk, Script Kiddie, Zero Trust Audit, Influencer, Politician, LinkedIn Lunatic, True Crime, Weather Anchor, Passive-Aggressive Mom, Conspiracy Theorist, Elderly Reluctant. All accessors fall back to standard mode or raw key. New modes spread standard maps as fallback — only distinctive keys overridden (~20–30 explicit lines per mode).
+- **`src/components/PersonalityProvider.tsx`** — React context that persists active mode to localStorage (`ztsf:personality-mode`). Provides `label()`, `toast()`, `empty()`, `greeting()`, `loading()`, `tips()` functions pre-bound to current mode.
+- **`src/hooks/usePersonality.ts`** — Re-exports `usePersonality` hook + `PersonalityMode` type.
+
+### Added — 8 Additional Personality Modes
+- **Expanded from 5 to 13 modes.** 8 new personality modes added to `src/lib/personality.ts`: Influencer (`influencer`), Politician (`politician`), LinkedIn Lunatic (`linkedin-lunatic`), True Crime (`true-crime`), Weather Anchor (`weather-anchor`), Passive-Aggressive Mom (`passive-aggressive`), Conspiracy Theorist (`conspiracy`), Elderly Reluctant (`elderly`).
+- **All 6 export dictionaries updated.** LABELS, TOASTS, EMPTY, GREETINGS, LOADING, TIPS each have 13 entries. Each mode spreads standard maps as fallback (~20–30 explicit overrides per mode).
+- **`getSavedMode()` validation updated.** Accepts all 13 mode IDs from localStorage.
+- **Duplicate key fixed.** `coursesLabel` appeared twice in elderlyLabels — removed second occurrence.
+- **All 203 tests pass, TypeScript compiles clean, ESLint zero warnings** after expansion.
+- **Portable EXE rebuilt.** `portable/2.3.1/ZTSFv2.3.1.exe` with all 13 modes baked in.
+
+### Changed — Personality Layer Wired (Stages 2–7)
+- **All user-facing strings** in every component now route through the personality layer: `App.tsx`, `DailyBriefing.tsx`, `PlannerPage.tsx`, `LogDialog.tsx`, `ScheduleView.tsx`, `ScheduleList.tsx`, `StudyTimer.tsx`, `ProgressDashboard.tsx`, `SidebarLabsStatus.tsx`, `SidebarNewsHighlights.tsx`, `CourseSelector.tsx`, `LabDashboard.tsx`, `SecurityNewsFeed.tsx`, `CourseBuilder.tsx`.
+- **Tips system updated.** `createTipPicker()` now accepts a `PersonalityMode` parameter and pulls tips from the personality module. Includes `setMode()` for live updates.
+- **Mode switch UI added** in the app header (next to theme picker). Dropdown with all 13 modes, each with icon + label + tagline. Persisted to localStorage on selection.
+- **Test mocks added.** Both `ui-components.test.tsx` and `planner-page.test.tsx` mock `usePersonality()` and `formatStr()` to avoid requiring `PersonalityProvider` wrapper in tests.
+
+### Changed — App Display
+- App header title → **ZeroTrust.StudyForcer** (standard mode). Mode switch changes all text app-wide instantly.
+- All toasts, empty states, greetings, loading messages, button labels, section titles, and tooltips sourced from personality module.
+
+### Fixed
+- `getLabel()` now falls back to standard mode before returning raw key, matching the behavior of `getToast()`, `getEmpty()`, etc.
+- Added missing `planStarts`, `page`, `read`, `logThisToEntry` labels to standard mode dictionary.
+- **DailyBriefing `noReadingToday` template not formatted.** `empty("noReadingToday")` contains `{date}` placeholder but was called without `formatStr()`, displaying literal `{date}` in the UI. Now uses `formatStr(empty("noReadingToday"), { date })`.
+- **CourseBuilder `courseValidation` toast not formatted.** `tToast("courseValidation")` contains `{error}` placeholder but was called without `formatStr()` when deleting the last unit, showing literal `{error}`. Now passes proper error message.
+- **Theme picker header hardcoded.** Header said "Theme" instead of using personality `label("theme")` — fixed.
+- **Dead `Smile` icon import** removed from App.tsx.
+
+### Notes
+- Standard mode text is identical to the pre-personality app text in English.
+- All engine/logic/data files remain untouched (queue system, anchor math, plan CRUD, schedule generation, persistence, types).
+
 ## [2.3.0] — 2026-05-17
 
 ### Added — Course Builder (in-app)

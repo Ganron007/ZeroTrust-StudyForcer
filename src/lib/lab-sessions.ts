@@ -21,14 +21,13 @@ export interface LabsStorage {
   sessions: LabSession[]
   categories: Record<string, LabCategory>
   customFocus?: Record<string, string>
-  weeklyGoalHours?: number
 }
 
 export const DEFAULT_EXTERNAL_LABS: LabDefinition[] = [
   { id: "blueteamlabs", name: "Blue Team Labs Online", url: "https://blueteamlabs.online", focus: "Blue Team", defaultCategory: "blue" },
   { id: "letsdefend", name: "LetsDefend", url: "https://letsdefend.io", focus: "Blue Team", defaultCategory: "blue" },
   { id: "tryhackme", name: "TryHackMe", url: "https://tryhackme.org", focus: "General Security", defaultCategory: "purple" },
-  { id: "threathuntinglabs", name: "Threat Hunting Labs", url: "https://threethuntinglabs.com", focus: "Threat Hunting", defaultCategory: "blue" },
+  { id: "threathuntinglabs", name: "Threat Hunting Labs", url: "https://threathuntinglabs.com", focus: "Threat Hunting", defaultCategory: "blue" },
   { id: "cyberdefenders", name: "CyberDefenders", url: "https://cyberdefenders.org", focus: "DFIR", defaultCategory: "dfir" },
   { id: "dfirlabs", name: "DFIR Labs", url: "https://dfirlabs.thedfirreport.com", focus: "DFIR", defaultCategory: "dfir" },
   { id: "infinity", name: "Infinity Cyber Warfare", url: "https://infinity.cyberwarfare.live", focus: "Offensive", defaultCategory: "purple" },
@@ -48,7 +47,7 @@ export const DEFAULT_EXTERNAL_LABS: LabDefinition[] = [
   { id: "extremeredlab", name: "Extreme Red Lab", url: "https://extremeredlab.0x29a.it", focus: "Offensive", defaultCategory: "red" },
   { id: "networkdefense", name: "Network Defense", url: "https://www.networkdefense.io/subscribe", focus: "Network Defense", defaultCategory: "blue" },
   { id: "pentesterlab", name: "PentesterLab", url: "https://pentesterlab.com/pro", focus: "Web App Security", defaultCategory: "red" },
-  { id: "entragoat", name: "EntraGoat", url: "https://entragoat", focus: "Azure Security", defaultCategory: "purple" },
+  { id: "entragoat", name: "EntraGoat", url: "https://github.com/semperis/entragoat", focus: "Azure Security", defaultCategory: "purple" },
   { id: "hackinghub", name: "HackingHub", url: "https://www.hackinghub.io", focus: "General Security", defaultCategory: "purple" },
   { id: "hacksmarter", name: "HackSmarter", url: "https://www.hacksmarter.org", focus: "General Security", defaultCategory: "purple" },
 ]

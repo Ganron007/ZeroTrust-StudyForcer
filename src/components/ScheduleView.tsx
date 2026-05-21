@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { type StudyDay } from "@/lib/cissp-data"
 import { ChevronLeft, ChevronRight, BookOpen, CheckCircle2, Circle, Settings2 } from "lucide-react"
 import type { LogGroup } from "./LogDialog"
+import { usePersonality } from "./PersonalityProvider"
 
 const MONTHS = [
   "January","February","March","April","May","June",
@@ -19,15 +20,13 @@ interface ScheduleViewProps {
   plansLoggedForDate: (date: string) => boolean
   selectedDate: string | null
   onSelectedDateChange: (date: string | null) => void
-  onSelectDay?: (day: StudyDay) => void
 }
 
 export default function ScheduleView({
   schedule, dailyLog, onMarkDone, onLogDay,
-  plansLoggedForDate, selectedDate, onSelectedDateChange, onSelectDay,
+  plansLoggedForDate, selectedDate, onSelectedDateChange,
 }: ScheduleViewProps) {
-  const variant = typeof __BUILD_VARIANT__ !== "undefined" ? __BUILD_VARIANT__ : "original"
-  const isAdaptive = variant === "adaptive"
+  const { label } = usePersonality()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -41,7 +40,13 @@ export default function ScheduleView({
     catch { return false }
   })
 
+  const isFirstMount = useRef(true)
+
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false
+      return
+    }
     try { localStorage.setItem("showCalendarLegend", showLegend ? "true" : "false") }
     catch { /* ignore */ }
   }, [showLegend])
@@ -128,7 +133,7 @@ export default function ScheduleView({
           </button>
           <button
             onClick={() => setShowLegend((v) => !v)}
-            aria-label="Calendar settings"
+             aria-label={label("howToRead")}
             className={`p-1.5 rounded-lg transition-colors ${
               showLegend
                 ? "bg-primary/10 text-primary hover:bg-primary/20"
@@ -185,11 +190,7 @@ export default function ScheduleView({
                 key={dateStr}
                 onClick={() => {
                   if (studyDay) {
-                    if (isAdaptive && onSelectDay) {
-                      onSelectDay(studyDay)
-                    } else {
-                      onSelectedDateChange(isSelected ? null : dateStr)
-                    }
+                    onSelectedDateChange(isSelected ? null : dateStr)
                   }
                 }}
                 className={`calendar-cell min-h-14 p-1.5 text-left transition-all relative
@@ -217,12 +218,12 @@ export default function ScheduleView({
                     {dayIsLogged ? (
                       <div className="flex items-center gap-0.5">
                         <CheckCircle2 className="w-2.5 h-2.5 text-green-500 flex-shrink-0" />
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium truncate">Done</span>
+                        <span className="text-xs text-green-600 dark:text-green-400 font-medium truncate">{label("done")}</span>
                       </div>
                     ) : dayIsPending ? (
                       <div className="flex items-center gap-0.5">
                         <Circle className="w-2.5 h-2.5 text-amber-500 flex-shrink-0" />
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium truncate">Pending</span>
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium truncate">{label("pending")}</span>
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-0.5">
@@ -293,7 +294,7 @@ export default function ScheduleView({
                   }`}
               >
                 <BookOpen className="w-4 h-4" />
-                Log
+                {label("log")}
               </button>
               <button
                 onClick={() => onMarkDone(selectedDay.date)}
@@ -305,7 +306,7 @@ export default function ScheduleView({
                   }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Mark Done
+                {label("markDone")}
               </button>
             </div>
           </div>
@@ -391,32 +392,32 @@ export default function ScheduleView({
       {/* Legend — hidden by default, toggled via ⚙ button */}
       {showLegend && (
         <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-xs font-medium text-muted-foreground mb-3">How to read the calendar</p>
+          <p className="text-xs font-medium text-muted-foreground mb-3">{label("howToRead")}</p>
           <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-              <span>Completed (Marked Done)</span>
+              <span>{label("completed")} ({label("markDone")})</span>
             </div>
             <div className="flex items-center gap-2">
               <Circle className="w-3.5 h-3.5 text-amber-500" />
-              <span>Pending (logged, not yet committed)</span>
+              <span>{label("pending")} ({label("log")}ged, not yet committed)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex gap-0.5">
                 <span className="w-3 h-3 rounded-sm bg-blue-500" />
                 <span className="w-3 h-3 rounded-sm bg-purple-600" />
               </div>
-              <span>Unit color dots</span>
+              <span>{label("studyOrder")}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold" style={{ fontSize: "10px" }}>D</span>
               </div>
-              <span>Today&apos;s date</span>
+              <span>{label("today")}</span>
             </div>
             <div className="flex items-center gap-2">
               <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-              <span>Click a day to log progress</span>
+              <span>{label("log")} a day to log progress</span>
             </div>
           </div>
         </div>

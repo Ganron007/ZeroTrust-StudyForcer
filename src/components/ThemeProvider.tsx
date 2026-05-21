@@ -23,7 +23,10 @@ export function useTheme() {
 }
 
 const ALL_THEMES: Theme[] = ["light", "light-grey", "dark-grey", "dark"]
-const STORAGE_KEY = "cissp-theme"
+// Migrated from "cissp-theme" to "ztsf:theme" for consistent branding.
+// Old key is read on first boot and migrated to the new key.
+const STORAGE_KEY = "ztsf:theme"
+const OLD_STORAGE_KEY = "cissp-theme"
 
 function isTheme(value: unknown): value is Theme {
   return typeof value === "string" && (ALL_THEMES as string[]).includes(value)
@@ -34,9 +37,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount flag to avoid hydration mismatch
+    // A71: Set mounted=true immediately in the effect to avoid the dead
+    // SSR-hydration pattern. The flag still prevents the class-application
+    // effect from running before the saved theme is loaded.
     setMounted(true)
     try {
+      // Migrate from old key if present
+      const oldSaved = !localStorage.getItem(STORAGE_KEY) ? localStorage.getItem(OLD_STORAGE_KEY) : null
+      if (oldSaved && isTheme(oldSaved)) {
+        localStorage.setItem(STORAGE_KEY, oldSaved)
+        localStorage.removeItem(OLD_STORAGE_KEY)
+      }
       const saved = localStorage.getItem(STORAGE_KEY)
       if (isTheme(saved)) {
         setThemeState(saved)

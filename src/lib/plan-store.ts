@@ -63,9 +63,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       const primaryActivePlanId =
         activePlanIds.length > 0
           ? activePlanIds[0]
-          : all.length > 0
-            ? all[0].id
-            : null
+          : null
 
       set({
         allPlans: all,
@@ -73,7 +71,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         primaryActivePlanId,
         isLoading: false,
       })
-    } catch {
+    } catch (e) {
+      console.warn("[plan-store] loadPlans failed:", e)
       set({ isLoading: false })
     }
   },
@@ -88,9 +87,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         ? state.primaryActivePlanId
         : validIds.length > 0
           ? validIds[0]
-          : all.length > 0
-            ? all[0].id
-            : null
+          : null
     set({ allPlans: all, activePlanIds: validIds, primaryActivePlanId })
   },
 
@@ -99,9 +96,10 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   updatePlan: async (plan) => {
     const saved = await planStorage.save(plan)
     const state = get()
-    const allPlans = state.allPlans.map((p) =>
-      p.id === saved.id ? saved : p,
-    )
+    const exists = state.allPlans.some((p) => p.id === saved.id)
+    const allPlans = exists
+      ? state.allPlans.map((p) => (p.id === saved.id ? saved : p))
+      : [...state.allPlans, saved]
     set({ allPlans })
   },
 
@@ -114,9 +112,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       state.primaryActivePlanId === id
         ? activePlanIds.length > 0
           ? activePlanIds[0]
-          : allPlans.length > 0
-            ? allPlans[0].id
-            : null
+          : null
         : state.primaryActivePlanId
     set({ allPlans, activePlanIds, primaryActivePlanId })
   },

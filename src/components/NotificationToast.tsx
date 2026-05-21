@@ -1,9 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { X, Clock, Coffee, CheckCircle } from "lucide-react"
 
 export type ToastType = "info" | "break" | "complete"
+
+const MAX_VISIBLE_TOASTS = 5
+const DISMISS_MS = 5000
 
 interface Toast {
   id: string
@@ -11,13 +14,12 @@ interface Toast {
   type: ToastType
 }
 
-let toastListeners: ((toast: Toast) => void)[] = []
+/** A65: Use a Set to prevent duplicate listeners in StrictMode/hot-reload. */
+let toastListeners = new Set<(toast: Toast) => void>()
 
+let counter = 0
 function generateId(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID()
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`
+  return `t${++counter}-${Date.now().toString(36)}`
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -28,19 +30,52 @@ export function showToast(message: string, type: ToastType = "info") {
 
 export default function NotificationToast() {
   const [toasts, setToasts] = useState<Toast[]>([])
+  // A66: track which toasts are being hovered to pause auto-dismiss
+  const hoveredRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     const listener = (toast: Toast) => {
-      setToasts((prev) => [...prev, toast])
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== toast.id))
-      }, 5000)
+      setToasts((prev) => {
+        // A67: Cap queue at MAX_VISIBLE_TOASTS, evict oldest
+        const next = [...prev, toast]
+        if (next.length > MAX_VISIBLE_TOASTS) {
+          return next.slice(next.length - MAX_VISIBLE_TOASTS)
+        }
+        return next
+      })
     }
-    toastListeners.push(listener)
+    toastListeners.add(listener)
     return () => {
-      toastListeners = toastListeners.filter((l) => l !== listener)
+      toastListeners.delete(listener)
     }
   }, [])
+
+  // A66: Pause timer on hover — each toast gets its own timeout managed here
+  useEffect(() => {
+    if (toasts.length === 0) return
+    const timers = new Map<string, ReturnType<typeof setTimeout>>()
+
+    function startTimer(id: string) {
+      if (hoveredRef.current.has(id)) return // paused
+      timers.set(id, setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id))
+      }, DISMISS_MS))
+    }
+
+    function stopTimer(id: string) {
+      const existing = timers.get(id)
+      if (existing) clearTimeout(existing)
+    }
+
+    // Start timers for all visible toasts
+    for (const t of toasts) {
+      if (!timers.has(t.id)) startTimer(t.id)
+    }
+
+    return () => {
+      for (const t of timers.values()) clearTimeout(t)
+    }
+  }, [toasts.length])
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -49,10 +84,13 @@ export default function NotificationToast() {
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
       {toasts.map((toast) => (
         <div
           key={toast.id}
+          // A66: pause auto-dismiss on hover
+          onMouseEnter={() => { hoveredRef.current.add(toast.id) }}
+          onMouseLeave={() => { hoveredRef.current.delete(toast.id) }}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border animate-in slide-in-from-bottom-2 fade-in duration-300 ${
             toast.type === "break"
               ? "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100"
@@ -68,10 +106,11 @@ export default function NotificationToast() {
           ) : (
             <Clock className="w-5 h-5 text-primary flex-shrink-0" />
           )}
-          <p className="text-sm font-medium">{toast.message}</p>
+          <p className="text-sm font-medium flex-1">{toast.message}</p>
           <button
             onClick={() => removeToast(toast.id)}
-            className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="ml-1 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+            aria-label="Dismiss"
           >
             <X className="w-4 h-4" />
           </button>

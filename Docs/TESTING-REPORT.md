@@ -1,7 +1,7 @@
 # Testing Report
 
 **Updated:** 2026-05-17
-**Version:** 2.2.1
+**Version:** 2.3.1
 **Runner:** Vitest v4.1.5 + jsdom
 **Total tests:** 203 across 10 files
 **Status:** all passing

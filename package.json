@@ -1,7 +1,7 @@
 {
-  "name": "cysec-ccptl",
+  "name": "zero-trust-studyforcer",
   "private": true,
-  "version": "2.3.0",
+  "version": "2.3.1",
   "license": "MIT",
   "type": "module",
   "scripts": {

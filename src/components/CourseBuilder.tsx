@@ -4,11 +4,14 @@ import { useState, useMemo } from "react"
 import { ChevronLeft, Plus, X, ArrowUp, ArrowDown, Save, Sparkles, RotateCcw, Eye, EyeOff } from "lucide-react"
 import { saveCourse } from "@/lib/course-storage"
 import { showToast } from "@/components/NotificationToast"
+import { usePersonality } from "./PersonalityProvider"
+import { formatStr } from "@/lib/personality"
 import type { CourseConfig, CourseUnit, CourseChapter } from "@/types/course"
 
 interface CourseBuilderProps {
   onBack: () => void
   onCourseSaved: () => void
+  existingCourses?: { id: string; name: string }[]
 }
 
 const DAY_LABELS = [
@@ -41,7 +44,8 @@ interface UnitState {
   chapters: ChapterState[]
 }
 
-export default function CourseBuilder({ onBack, onCourseSaved }: CourseBuilderProps) {
+export default function CourseBuilder({ onBack, onCourseSaved, existingCourses = [] }: CourseBuilderProps) {
+  const { label, toast: tToast } = usePersonality()
   // ── Basic fields ──────────────────────────────────────────────────────
   const [courseId, setCourseId] = useState("")
   const [courseName, setCourseName] = useState("")
@@ -101,7 +105,7 @@ export default function CourseBuilder({ onBack, onCourseSaved }: CourseBuilderPr
 
   function removeUnit(index: number) {
     if (units.length <= 1) {
-      showToast("A course needs at least one unit.", "info")
+      showToast(formatStr(tToast("courseValidation"), { error: "Cannot remove the last unit" }), "info")
       return
     }
     setUnits(units.filter((_, i) => i !== index))
@@ -250,25 +254,45 @@ export default function CourseBuilder({ onBack, onCourseSaved }: CourseBuilderPr
   }
 
   // ── Save ────────────────────────────────────────────────────────────────
+  // Reserved seed course IDs that cannot be overwritten
+  const RESERVED_IDS = ["cissp-10th-ed"]
+
   async function handleSave() {
     const config = buildCourseConfig()
     const errors = validate(config)
     if (errors.length > 0) {
-      showToast(`Validation: ${errors[0]}`, "info")
+      showToast(formatStr(tToast("courseValidation"), { error: errors[0] }), "info")
+      return
+    }
+    // Reject reserved seed IDs
+    if (RESERVED_IDS.includes(config.id)) {
+      showToast(formatStr(tToast("courseValidation"), { error: `"${config.id}" is a reserved course ID and cannot be overwritten` }), "break")
+      return
+    }
+    // Warn before overwriting an existing course
+    const existing = existingCourses.find((c) => c.id === config.id)
+    if (existing && !confirm(`Replace existing course "${existing.name}"? This will not affect existing study plans.`)) {
       return
     }
     try {
       await saveCourse(config)
-      showToast(`Course "${config.name}" saved to library.`, "complete")
+      showToast(formatStr(tToast("courseSaved"), { name: config.name }), "complete")
       onCourseSaved()
     } catch (e) {
-      showToast("Failed to save course.", "break")
+      showToast(tToast("courseSaveFailed"), "break")
       console.error("Course save failed:", e)
     }
   }
 
   // ── Load example ────────────────────────────────────────────────────────
+  function hasUnsavedChanges(): boolean {
+    return courseId !== "" || courseName !== "" || units.some((u) => u.title !== "" || u.chapters.length > 0)
+  }
+
   function loadExample() {
+    if (hasUnsavedChanges() && !confirm("Load example? This will replace your current form data.")) {
+      return
+    }
     setCourseId("example-book")
     setCourseName("Example Study Book")
     setSubtitle("1st Edition")
@@ -324,11 +348,11 @@ export default function CourseBuilder({ onBack, onCourseSaved }: CourseBuilderPr
             className="flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            Back to Planner
+            {label("backToPlanner")}
           </button>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Sparkles className="w-5 h-5 text-primary" />
-            <h1 className="font-bold text-foreground text-base">Course Builder</h1>
+            <h1 className="font-bold text-foreground text-base">{label("courseBuilder")}</h1>
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
@@ -337,21 +361,21 @@ export default function CourseBuilder({ onBack, onCourseSaved }: CourseBuilderPr
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium hover:bg-muted transition-all"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Load Example
+              {label("loadExample")}
             </button>
             <button
               onClick={() => setShowPreview(v => !v)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium hover:bg-muted transition-all"
             >
               {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              {showPreview ? "Hide JSON" : "Show JSON"}
+              {showPreview ? label("hideJSON") : label("showJSON")}
             </button>
             <button
               onClick={handleSave}
               className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all"
             >
               <Save className="w-3.5 h-3.5" />
-              Save Course
+            {label("saveCourse")}
             </button>
           </div>
         </div>
@@ -365,8 +389,8 @@ export default function CourseBuilder({ onBack, onCourseSaved }: CourseBuilderPr
             {/* Course Basics */}
             <section className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-border bg-muted/30">
-                <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">Course Basics</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Required fields to identify your course</p>
+                <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">{label("courseBasics")}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{label("courseBasicsDesc")}</p>
               </div>
               <div className="p-5 space-y-4">
                 <div>
@@ -778,7 +802,7 @@ export default function CourseBuilder({ onBack, onCourseSaved }: CourseBuilderPr
                     className="w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Save className="w-4 h-4" />
-                    Save Course to Library
+                    {label("saveCourseToLibrary")}
                   </button>
                 </div>
               </div>

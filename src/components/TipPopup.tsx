@@ -1,6 +1,8 @@
 "use client"
 
 import { Lightbulb, X, ChevronRight } from "lucide-react"
+import { usePersonality } from "./PersonalityProvider"
+import { formatStr } from "@/lib/personality"
 
 interface TipPopupProps {
   tip: string
@@ -11,6 +13,7 @@ interface TipPopupProps {
 }
 
 export default function TipPopup({ tip, tipNumber, totalTips, onNext, onClose }: TipPopupProps) {
+  const { label } = usePersonality()
   return (
     <div className="fixed top-20 right-4 z-50 w-80 animate-in fade-in slide-in-from-top-2 duration-200">
       <div className="bg-card border border-border rounded-xl shadow-2xl p-4">
@@ -18,7 +21,7 @@ export default function TipPopup({ tip, tipNumber, totalTips, onNext, onClose }:
           <div className="flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0" />
             <span className="text-xs font-medium text-muted-foreground">
-              Tip {tipNumber} of {totalTips}
+              {formatStr(label("tipOf"), { n: tipNumber, total: totalTips })}
             </span>
           </div>
           <button
@@ -44,7 +47,7 @@ export default function TipPopup({ tip, tipNumber, totalTips, onNext, onClose }:
             onClick={onNext}
             className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
           >
-            Next tip
+            {label("nextTip")}
             <ChevronRight className="w-3 h-3" />
           </button>
         </div>

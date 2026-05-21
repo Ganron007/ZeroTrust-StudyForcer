@@ -1,9 +1,10 @@
 # Executive Architecture Overview
 
-**System:** CySec CCPTL Desktop Application  
+**System:** ZeroTrust.StudyForcer Desktop Application  
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State Management:** Zustand 5 (single source of truth) + SQLite (Tauri) / localStorage (Web)  
-**Version:** 2.2.1
+**Personality Layer:** 13 text themes via `PersonalityProvider` React context — pure string overlay  
+**Version:** 2.3.1
 
 ---
 
@@ -27,10 +28,17 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘       │
 │       │            │            │            │              │
 │  ┌────▼────────────▼────────────▼────────────▼──────┐      │
-│  │              App.tsx (Handlers)                    │      │
-│  │  handleLogPlan / handleSkipPlan / handleMarkDone   │      │
-│  │  handleOpenLogDialog / handleLogDialogSave         │      │
+│  │           PersonalityProvider (Context)            │      │
+│  │  label(key) → string | toast(key) → string       │      │
+│  │  empty(key) → string | greeting(key) → string    │      │
 │  └────────────────────┬──────────────────────────────┘      │
+│                       │                                      │
+│  ┌────────────────────▼──────────────────────────────────────┐│
+│  │              App.tsx (Handlers)                           ││
+│  │  handleLogPlan / handleSkipPlan / handleMarkDone          ││
+│  │  handleOpenLogDialog / handleLogDialogSave                ││
+│  │  handleTimerLog / handleSaveEdit / handleDeletePlan       ││
+│  └────────────────────┬──────────────────────────────────────┘│
 └───────────────────────┼──────────────────────────────────────┘
                         │
 ┌───────────────────────▼──────────────────────────────────────┐
@@ -45,6 +53,11 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 │  │  syncStudyPlan() | generateSchedule()                  │    │
 │  │  buildPageSequence() | getOrderedChapters()            │    │
 │  └────────────────────┬─────────────────────────────────┘    │
+│                       │                                      │
+│  ┌────────────────────▼─────────────────────────────────┐    │
+│  │         Personality Data (personality.ts)             │    │
+│  │  13 modes × full string maps — zero logic impact      │    │
+│  └──────────────────────────────────────────────────────┘    │
 └───────────────────────┼──────────────────────────────────────┘
                         │
 ┌───────────────────────▼──────────────────────────────────────┐
@@ -54,7 +67,11 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 │  │  plan-storage.ts (public CRUD API)                    │    │
 │  └──────────────────────────────────────────────────────┘    │
 │  ┌──────────────────────────────────────────────────────┐    │
-│  │  Course Data (static JSON in data/courses/*.json)     │    │
+│  │  Course Data (JSON in <appDir>/data/courses/*.json)   │    │
+│  └──────────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │  Rust Backend (src-tauri/src/main.rs)                │    │
+│  │  FS I/O, RSS feeds, tray icon, window state          │    │
 │  └──────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -75,6 +92,11 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 | **Computed schedule (not stored)** | Always derived from plan + logs |
 | **Custom unit ordering** | `unitOrder` stored per plan; `getOrderedChapters()` reorders chapters |
 | **Anchor system** | Two modes: Velocity (locked pace) or Deadline (locked end date) |
+| **Personality layer** | 13 text themes via `PersonalityProvider` context — `label(key)`/`toast(key)`/`empty(key)`/`greeting(key)`/`loading(key)`/`tips()`. Pure string overlay, no engine/logic changes |
+| **Course Builder** | Built-in course config creator with JSON preview, validation, drag-to-reorder |
+| **StudyTimer** | Pomodoro/stopwatch/countdown with 10s disk-write debounce |
+| **Security News** | RSS/Atom feed reader (Rust backend, 13 feeds + HN Algolia) |
+| **Lab Tracker** | Session logging with streaks, at-risk alerts, smart scoring |
 
 ---
 
@@ -86,5 +108,7 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 4. **Queue is fixed** — No appending or inserting in the middle
 5. **`dailyLog` presence = day is "logged"** — No separate `completedDays` field
 6. **Unlogged past days: 0 effective consumption** — Pointer doesn't advance
-7. **Toast types:** "complete" (success), "break" (error/warning)
+7. **Toast types:** "complete" (success), "break" (error/warning), "info"
 8. **Plan creation delayed** — Full settings form; nothing saved until "Create Plan" clicked
+9. **Personality layer is pure string overlay** — Never modify engine/logic/data files. `label(key)` falls back to raw key if missing
+10. **`dailyLog` (storage) = `{ pagesRead, note? }`** — No `chapterChecks`, no `chapterProgress`. **`dailyLog` (React state) = `Record<date, Record<courseId, { pagesRead }>>`** — nested per-date, per-plan

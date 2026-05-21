@@ -1,4 +1,4 @@
-# CySec CCPTL — ARCHITECTURE.md
+# ZeroTrust.StudyForcer — ARCHITECTURE.md
 
 **Purpose**: Canonical reference for design decisions, constraints, and project conventions.
 Read this before making any change to ensure consistency with prior decisions.
@@ -94,6 +94,18 @@ consumption math via `dailyLog.pagesRead` is always correct).
 - "break" — for errors/warnings (NOT "warning" or "error")
 - "info" — for informational messages
 
+### 10. Personality Layer
+
+**Q: How are user-facing strings themed without touching engine logic?**
+**A:** A React Context (`PersonalityProvider`) wraps the app and provides `label()`, `toast()`, `empty()`, `greeting()`, `loading()`, `tips()` functions. These read from mode-keyed dictionaries in `personality.ts` (13 modes, ~256 labels + ~33 toasts + ~13 empties + 3 greetings + 4 loading + 10 tips per mode).
+
+**Key decisions:**
+- `label(key)` falls back to raw `key` if not found in current mode — never blank/undefined
+- `formatStr(template, {var})` interpolates `{var}` placeholders in toast/empty templates
+- New modes add string maps only — no logic, storage, or component changes
+- Mode persisted in `localStorage('ztsf:personality-mode')`
+- Mode switch re-seeds tip picker via `tipPicker.setMode(newMode)`
+
 ---
 
 ## Constraints & Inviolable Rules
@@ -108,8 +120,9 @@ consumption math via `dailyLog.pagesRead` is always correct).
 7. **Unlogged past days: pointer does NOT advance.** `effectiveSliceSize = 0`.
 8. **Skip = 0 pages consumed.** Pages stay in queue for future days.
 9. **Past completed days use actual `pagesRead` for slice size.** Enables recalibration.
-10. **Toast types:** "complete" (success), "break" (error/warning). **One toast per user action; pick the most severe outcome.** Never fire two toasts for the same action.
+10. **Toast types:** "complete" (success), "break" (error/warning), "info". **One toast per user action; pick the most severe outcome.** Never fire two toasts for the same action.
 11. **Version 2.0.1+** — queue-based model.
+12. **Personality layer is a pure string overlay.** `label(key)`/`toast(key)`/`empty(key)`/`greeting(key)`/`loading(key)`/`tips()` route through `PersonalityProvider` React context. Never modify engine/logic/data files — only `personality.ts` string maps and component call sites.
 
 ---
 

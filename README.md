@@ -1,6 +1,6 @@
-# CySec CCPTL
-**Certification Progress Tracker for Losers**
+# ZeroTrust.StudyForcer
 
+**Zero Trust in your ability to pass. Prove us wrong.**
 A cybersecurity certification study tracker — one plan at a time, no fluff. Runs as a desktop app *(recommended)* or locally in your browser.
 
 Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
@@ -16,13 +16,14 @@ Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 - **Online Labs** *(optional)* — Track lab sessions, streaks, at-risk alerts
 - **Security News** *(optional)* — Built-in RSS/Atom feed reader
 - **Course Builder** — Built-in tool to create custom course configs (find it in Planner → Build Course)
+- **Personality modes** — Switch between 13 text themes (Standard, Drill Sergeant, Cyberpunk, Script Kiddie, Zero Trust Audit, Influencer, Politician, LinkedIn Lunatic, True Crime, Weather Anchor, Passive-Aggressive Mom, Conspiracy Theorist, Elderly Reluctant) from the app header
 - **No install required** — Download the portable EXE from Releases and run
 
 ## Quick Start
 
 | Platform | How to run |
 |----------|-----------|
-| **Desktop** | Download `CySec CCPTL vX.X.X.exe` from [Releases](https://github.com/Ganron007/Study-Planner-app/releases) and double-click |
+| **Desktop** | Download `ZTSFvX.X.X.exe` from [Releases](https://github.com/Ganron007/Study-Planner-app/releases) and double-click |
 | **Browser** | `npm install && npm run dev` — opens at `http://localhost:5173` |
 
 > Note: In browser mode, News RSS is unavailable (requires the Tauri backend). Everything else works using localStorage.
@@ -54,6 +55,7 @@ npm run tauri:build:all  # Production EXE (clean portable build)
 | `Docs/ARCHITECTURE.md` | Design decisions and inviolable rules |
 | `Docs/CHANGELOG.md` | Version history |
 | `Docs/BUGS.md` | Bug registry with root causes |
+| `Docs/ZTSF_PERSONALITY_LAYER.md` | Personality layer — modes, wiring, audit |
 | `How_to_read.md` | Doc index with reading paths |
 
 ## License

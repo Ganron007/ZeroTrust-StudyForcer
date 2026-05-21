@@ -1,10 +1,10 @@
-# CySec CCPTL — Architecture Documentation
+# ZeroTrust.StudyForcer — Architecture Documentation
 
-**Updated:** 2026-05-17  
-**System:** CySec CCPTL Desktop Application  
+**Updated:** 2026-05-18  
+**System:** ZeroTrust.StudyForcer Desktop Application  
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State:** Zustand 5 + SQLite / localStorage  
-**Version:** 2.2.1 (renamed to CySec CCPTL, clean portable builds)
+**Version:** 2.3.1 (13 personality modes, bug fixes)
 
 ---
 
@@ -45,6 +45,10 @@ User Action → App.tsx handlers → React state (dailyLog temp)
                              Mark Done → Zustand store → SQLite
                                    ↓
                    schedule recalc → React re-render
+                                   
+All user-facing text routed through PersonalityProvider (React context):
+  label(key) | toast(key) | empty(key) | greeting(key) | loading(key) | tips()
+  → Pure string overlay — never modifies engine/logic/data files
 ```
 
 ---
@@ -59,7 +63,15 @@ User Action → App.tsx handlers → React state (dailyLog temp)
 | `src/lib/plan-storage.ts` | Public CRUD API (delegates to database.ts) |
 | `src/lib/plan-engine.ts` | `syncStudyPlan()`, `pagesConsumedBeforeToday()` |
 | `src/lib/cissp-data.ts` | `generateSchedule()`, `buildPageSequence()`, `getOrderedChapters()` |
+| `src/lib/personality.ts` | 13 personality mode string maps, `formatStr()`, `getSavedMode()` |
+| `src/components/PersonalityProvider.tsx` | React context — `usePersonality()` hook for `label()`, `toast()`, `empty()`, etc. |
 | `src/components/ScheduleView.tsx` | Calendar grid + day detail + Log/MarkDone buttons |
 | `src/components/LogDialog.tsx` | Per-plan page input modal |
 | `src/components/PlannerPage.tsx` | Plan CRUD + full settings form |
+| `src/components/CourseBuilder.tsx` | Built-in course config creator with JSON preview |
 | `src/components/ProgressDashboard.tsx` | Stats & charts |
+| `src/components/DailyBriefing.tsx` | Personality-driven greeting + empty states |
+| `src/components/StudyTimer.tsx` | Pomodoro / stopwatch / countdown |
+| `src/components/LabDashboard.tsx` | Lab session tracker with streaks |
+| `src/components/SecurityNewsFeed.tsx` | RSS/Atom feed reader (Tauri only) |
+| `src/lib/tips.ts` | Tip picker — mode-aware round-robin tips |

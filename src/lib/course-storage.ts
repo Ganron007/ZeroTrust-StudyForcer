@@ -5,7 +5,24 @@ import { IS_TAURI } from "./is-tauri"
 function isCourseConfig(value: unknown): value is CourseConfig {
   if (!value || typeof value !== "object") return false
   const v = value as Record<string, unknown>
-  return typeof v.id === "string" && typeof v.name === "string"
+  if (typeof v.id !== "string" || typeof v.name !== "string") return false
+  if (!Array.isArray(v.units) || v.units.length === 0) return false
+  // Validate each unit has chapters with unique IDs
+  const seenChapterIds = new Set<number>()
+  for (const unit of v.units) {
+    if (!unit || typeof unit !== "object") return false
+    const u = unit as Record<string, unknown>
+    if (typeof u.id !== "number" || !Array.isArray(u.chapters)) return false
+    for (const ch of u.chapters) {
+      if (!ch || typeof ch !== "object") return false
+      const c = ch as Record<string, unknown>
+      if (typeof c.id !== "number") return false
+      if (seenChapterIds.has(c.id)) return false // A56: reject duplicate chapter IDs
+      seenChapterIds.add(c.id)
+    }
+  }
+  if (v.defaultSettings === null || typeof v.defaultSettings !== "object") return false
+  return true
 }
 
 // ── Browser localStorage fallback ──────────────────────────────────────────
@@ -85,6 +102,7 @@ export async function saveCourse(config: CourseConfig): Promise<void> {
     return
   }
   localStorage.setItem(webCourseKey(config.id), JSON.stringify(config))
+  // Always update index to prevent desync (A34)
   const ids = webGetCourseIds()
   if (!ids.includes(config.id)) {
     ids.push(config.id)
@@ -117,6 +135,10 @@ export async function exportCourse(courseId: string, destPath: string): Promise<
 }
 
 export async function saveLogo(courseId: string, svgContent: string): Promise<void> {
+  if (!svgContent || svgContent.trim().length === 0) {
+    console.warn("[course-storage] Attempted to save empty SVG for course", courseId)
+    return
+  }
   if (IS_TAURI) {
     await invoke("save_logo_file", { courseId, content: svgContent })
     return

@@ -15,9 +15,9 @@ const portableRoot = path.join(__dirname, '..', 'portable')
 
 // Versioned output directory: portable/<version>/
 const versionDir = path.join(portableRoot, version)
-const exeName = `CySec CCPTL v${version}.exe`
+const exeName = `ZTSFv${version}.exe`
 
-console.log(`Building CySec CCPTL v${version}\n`)
+console.log(`Building ZeroTrust.StudyForcer v${version}\n`)
 
 // Patch identifier for a clean portable build
 conf.identifier = portableIdentifier
@@ -26,7 +26,7 @@ fs.writeFileSync(tauriConfPath, JSON.stringify(conf, null, 2))
 try {
   execSync('npm run tauri:build', { stdio: 'inherit', cwd: path.join(__dirname, '..') })
 
-  const srcExe = path.join(__dirname, '..', 'src-tauri', 'target', 'release', 'cysec-ccptl.exe')
+  const srcExe = path.join(__dirname, '..', 'src-tauri', 'target', 'release', 'zero-trust-studyforcer.exe')
   if (!fs.existsSync(versionDir)) fs.mkdirSync(versionDir, { recursive: true })
 
   // ── Copy EXE ────────────────────────────────────────────────────────────
@@ -117,10 +117,10 @@ function generateGitReleaseNotes(ver, fullNotes) {
   }
 
   // Build compact output
-  let out = `## CySec CCPTL v${ver}\n\n`
+  let out = `## ZeroTrust.StudyForcer v${ver}\n\n`
   out += `**Assets:**\n`
-  out += `- CySec CCPTL v${ver}.exe\n`
-  out += `- CySec CCPTL v${ver}.exe.md5\n\n`
+  out += `- ZTSFv${ver}.exe\n`
+  out += `- ZTSFv${ver}.exe.md5\n\n`
 
   for (const sec of sections) {
     const lines = sec.body.split('\n').filter(l => l.trim())

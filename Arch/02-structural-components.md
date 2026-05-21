@@ -6,7 +6,7 @@
 **Role:** Root React component, state container, event handler registry.
 
 **State (useState):**
-- `dailyLog: Record<date, {pagesRead, courseId?}>` — Temp per-date log state (not yet committed)
+- `dailyLog: Record<date, Record<courseId, {pagesRead}>>` — Temp per-date per-plan log state (not yet committed)
 - `logDialogDay / logDialogGroups` — Log dialog open state
 - UI state: `activeTab`, `isFullscreen`, `isPlannerOpen`, etc.
 
@@ -18,8 +18,8 @@
 - `handleLogDialogSave(date, logs)` — Batch-saves all plans from dialog
 
 **Derived (useMemo):**
-- `schedule: StudyDay[]` — Generated from all active plans
-- `dateToActivePlanId: Map<date, planId>` — Which plan owns each date
+- `schedule: StudyDay[]` — Generated from all active plans (merged across courses)
+- `plansLoggedForDate: (date) => boolean` — Checks all per-course temp entries against schedule
 - `selectedCoursesStats` — Stats for all selected courses
 
 ### 1.2 Zustand Store (plan-store.ts)
@@ -76,12 +76,20 @@
 - Delete/rename/duplicate plan
 
 ### 2.6 Other Components
-- **DayDetailDrawer**: Adaptive mode slide-out day detail
-- **CourseSelector**: Switch between courses
-- **ThemeProvider**: Light/dark theme toggle
-- **StudyTimer**: Pomodoro/stopwatch/countdown
-- **LabDashboard**: Lab session tracker
-- **SecurityNewsFeed**: RSS news feed
+- **CourseBuilder**: Built-in course config creator with live JSON preview, drag-to-reorder, validation
+- **DailyBriefing**: Personality-driven greeting + empty state messages
+- **CourseSelector**: Switch between courses with pill toggles
+- **ThemeProvider**: Light/dark/grey theme toggle
+- **PersonalityProvider**: React context — wraps `label()`, `toast()`, `empty()`, `greeting()`, `loading()`, `tips()` for current mode
+- **TipPopup**: `?` button in header — opens floating card with round-robin tips
+- **WallClock**: Live time display in header
+- **StudyTimer**: Pomodoro/stopwatch/countdown with auto-log
+- **LabDashboard**: Lab session tracker with streaks, at-risk alerts, smart scoring
+- **SecurityNewsFeed**: RSS news feed (Tauri backend) with category filtering
+- **SidebarLabsStatus**: Compact labs status widget in sidebar
+- **SidebarNewsHighlights**: Compact news headline widget in sidebar
+- **LogDialog**: Modal for per-plan page input across all plans on a day
+- **NotificationToast**: Single-slot toast renderer with "complete"/"break"/"info" types
 
 ---
 
@@ -130,15 +138,17 @@ Includes automatic migration from legacy JSON format.
 
 ```
 App.tsx
+├── PersonalityProvider (context → label/toast/empty/greeting/loading/tips)
+├── ThemeProvider (context → theme)
 ├── CourseProvider (context → course JSON)
 ├── Zustand store (plan-store.ts)
 │   └── allPlans[], activePlanIds[]
-├── useMemo: schedule (generateSchedule)
+├── useMemo: schedule (generateSchedule, mergeSchedules)
 │
 ├── ScheduleView
 │   ├── schedule[], dailyLog (props)
-│   ├── onMarkDone / onLogDay (callbacks)
-│   └── LogDialog (rendered by App, triggered by onLogDay)
+│   ├── onMarkDone / onOpenLogDialog (callbacks)
+│   └── LogDialog (rendered by App, triggered by onOpenLogDialog)
 │
 ├── ScheduleList
 │   └── schedule[], dailyLog, onMarkDone
@@ -146,9 +156,20 @@ App.tsx
 ├── ProgressDashboard
 │   └── stats from useMemo
 │
+├── DailyBriefing
+│   └── greeting/empty from PersonalityProvider
+│
 ├── PlannerPage (full-page overlay)
 │   └── plan CRUD via Zustand actions
 │
-└── DayDetailDrawer (adaptive mode)
-    └── day detail + onMarkDone
+├── CourseBuilder (in-app dialog)
+│   └── creates course JSON → saved via Rust FS commands
+│
+├── LabDashboard (full-page overlay)
+├── SecurityNewsFeed (overlay, Tauri only)
+├── StudyTimer (Pomodoro/stopwatch/countdown, sidebar)
+├── TipPopup (header button → floating card)
+├── WallClock (header)
+├── SidebarLabsStatus
+└── SidebarNewsHighlights
 ```
