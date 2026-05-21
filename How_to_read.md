@@ -12,13 +12,12 @@ in) can jump straight to the right place instead of opening files at random.
 | You are… | Read in this order |
 |---|---|
 | **Brand-new to the project** | `Docs/README.md` → `Arch/01-executive-overview.md` → `Docs/ARCHITECTURE.md` |
-| **Returning reviewer / future-you** | `Docs/CHANGELOG.md` → `Docs/BUGS.md` |
-| **About to change code** | `Docs/ARCHITECTURE.md` (rules) → the relevant `Arch/0X-*.md` → `Docs/BUGS.md` (don't reintroduce a fixed bug) |
+| **Returning reviewer / future-you** | `Docs/CHANGELOG.md` |
+| **About to change code** | `Docs/ARCHITECTURE.md` (rules) → the relevant `Arch/0X-*.md` |
 | **Debugging a data-flow issue** | `Arch/03-data-flow.md` + `Arch/05-state-management.md` |
 | **Touching the anchor / schedule math** | `Arch/06-anchor-system.md` + `Arch/04-control-flow.md` |
-| **Adding or fixing tests** | `Docs/TESTING-REPORT.md` (current state) → `Arch/07-testing-architecture.md` (philosophy) |
-| **Planning the next phase / roadmap** | `Docs/ROADMAP.md` |
-| **Understanding personality / mode switching** | `Docs/ZTSF_PERSONALITY_LAYER.md` |
+| **Adding or fixing tests** | `Arch/07-testing-architecture.md` (philosophy) |
+| **Understanding personality / mode switching** | Switch modes from the app header (13 themes available) |
 
 ---
 
@@ -39,12 +38,9 @@ These are the human-facing project docs. Read these first.
 |---|---|---|
 | `Docs/README.md` | What the app does, project layout, dev commands. | Updated for v2.3.1 |
 | `Docs/ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.3.1 |
-| `Docs/BUGS.md` | Every bug found, root cause, and fix. Use it to avoid re-introducing fixed bugs. | Current through v2.3.1 — 14 fixed bugs + 10 audit fixes |
 | `Docs/CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through 2.3.1 — 2026-05-17 |
-| `Docs/ROADMAP.md` | Committed work only — Phase 0 (shipped), Phase 1 (polish/UX), Phase 2 (hardening). | Refreshed 2026-05-17 |
-| `Docs/VISION.md` | Speculative directions (SaaS, sync, mobile, AI, marketplace, LMS). Not a plan — thought exercise. | Refreshed 2026-05-17 |
-| `Docs/TESTING-REPORT.md` | Current test inventory (203 tests / 10 files), coverage targets, commands, regression guards. | Refreshed 2026-05-17 |
-| `Docs/ZTSF_PERSONALITY_LAYER.md` | Personality layer — architecture, modes, component wiring, audit results. | Shipped v2.3.1 — 2026-05-17 |
+
+Internal docs (kept in `Docs/Internal/`, not committed): `BUGS.md`, `ROADMAP.md`, `VISION.md`, `TESTING-REPORT.md`, `ZTSF_PERSONALITY_LAYER.md`, `SUGGESTIONS.md`.
 
 ---
 
@@ -71,7 +67,7 @@ when something needs more context.
 
 ---
 
-For the current testing picture, use `Docs/TESTING-REPORT.md`.
+For the current testing picture, see `Arch/07-testing-architecture.md`.
 
 ---
 

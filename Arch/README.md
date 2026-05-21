@@ -31,9 +31,7 @@
 | Understanding auto-adjust | `06-anchor-system.md` + `04-control-flow.md` |
 | Adding tests | `07-testing-architecture.md` |
 | Recent decisions / Q&A history | `../Docs/ARCHITECTURE.md` |
-| Bug history (root causes + fixes) | `../Docs/BUGS.md` |
 | Version log | `../Docs/CHANGELOG.md` |
-| Future direction | `../Docs/ROADMAP.md` |
 
 ---
 

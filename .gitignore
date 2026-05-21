@@ -30,6 +30,9 @@ Thumbs.db
 AGENTS.md
 BruteForce.studyforcer.txt
 
+# Internal docs (not for public repo)
+Docs/Internal/
+
 # Logs
 *.log
 .claude/

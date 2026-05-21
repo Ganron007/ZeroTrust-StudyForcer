@@ -54,8 +54,6 @@ npm run tauri:build:all  # Production EXE (clean portable build)
 | `Docs/README.md` | Technical overview, project layout |
 | `Docs/ARCHITECTURE.md` | Design decisions and inviolable rules |
 | `Docs/CHANGELOG.md` | Version history |
-| `Docs/BUGS.md` | Bug registry with root causes |
-| `Docs/ZTSF_PERSONALITY_LAYER.md` | Personality layer — modes, wiring, audit |
 | `How_to_read.md` | Doc index with reading paths |
 
 ## License
