@@ -26,6 +26,9 @@ Thumbs.db
 .env
 .env.*
 
+# Agent instructions (local only)
+AGENTS.md
+
 # Logs
 *.log
 .claude/
