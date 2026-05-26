@@ -138,15 +138,12 @@ npx tsc -b --noEmit     # TypeScript type checking
 ## Reference Documents
 
 | File | Purpose |
-|---|---|
+|---|---|---|
 | `README.md` | What the app does + how to run it |
 | `CHANGELOG.md` | Version history with dates and summaries |
-| `BUGS.md` | Bug registry — every bug, root cause, and fix |
-| `ROADMAP.md` | Committed work — Phase 0 (shipped), Phase 1 (polish), Phase 2 (hardening) |
-| `VISION.md` | Speculative directions (SaaS, sync, mobile, AI, marketplace) — not committed |
-| `TESTING-REPORT.md` | Current test inventory, coverage targets, commands |
 | `../Arch/` | Deep architecture series (01 overview → 07 testing) |
 | `../How_to_read.md` | Doc index — start here if you're new |
+| — | Internal docs (`Docs/Internal/`): BUGS.md, ROADMAP.md, VISION.md, TESTING-REPORT.md, etc. |
 
 ---
 
