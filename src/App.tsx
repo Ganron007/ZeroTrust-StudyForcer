@@ -8,6 +8,7 @@ import { sanitizeSvg } from "./lib/sanitize-svg"
 import ScheduleView from "./components/ScheduleView"
 import ScheduleList from "./components/ScheduleList"
 import ProgressDashboard from "./components/ProgressDashboard"
+import CertPathView from "./components/CertPathView"
 import SecurityNewsFeed from "./components/SecurityNewsFeed"
 import LabDashboard from "./components/LabDashboard"
 import CourseSelector from "./components/CourseSelector"
@@ -26,7 +27,7 @@ import { computeTotalPages, getTrackingLabels } from "./types/course"
 import {
   LayoutGrid, List, BarChart3, Settings,
   Sun, Moon, CalendarCheck,
-  Maximize, Minimize, GraduationCap,
+  Maximize, Minimize, GraduationCap, Award,
   FlaskConical, Check, Palette, RefreshCw,
   Download, Upload, Newspaper, Trash2,
 } from "lucide-react"
@@ -54,7 +55,7 @@ function localToday(): string {
   return `${y}-${m}-${day}`
 }
 
-type Tab = "calendar" | "list" | "progress"
+type Tab = "calendar" | "list" | "progress" | "cert-path"
 
 function AppContent() {
   const { theme, setTheme } = useTheme()
@@ -434,6 +435,7 @@ function AppContent() {
     { id: "calendar", label: label("calendar"), Icon: LayoutGrid },
     { id: "list", label: label("schedule"), Icon: List },
     { id: "progress", label: label("progress"), Icon: BarChart3 },
+    { id: "cert-path", label: "Cert Path", Icon: Award },
   ]
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -643,6 +645,7 @@ function AppContent() {
         case "1": setActiveTab("calendar"); break
         case "2": setActiveTab("list"); break
         case "3": setActiveTab("progress"); break
+        case "4": setActiveTab("cert-path"); break
         case "p": case "P":
           if (!isPlannerOpen) { setPlannerInitialCourseId(activeCourseId); setIsPlannerOpen(true); }
           break
@@ -1237,6 +1240,9 @@ function AppContent() {
             )}
             {activeTab === "progress" && (
               <ProgressDashboard selectedCourseIds={Array.from(selectedCourseIds)} />
+            )}
+            {activeTab === "cert-path" && (
+              <CertPathView />
             )}
           </main>
 

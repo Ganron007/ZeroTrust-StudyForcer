@@ -6,6 +6,13 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.4.0] — 2026-05-26
+
+### Added — Certification Roadmap (Phase 1)
+- **`src/data/cert-roadmap.json`** — Static certification roadmap with 26 certifications across 6 career paths (Foundations, Pen Testing, Cloud Security, DFIR & Threat Intel, GRC, Management). Each entry includes difficulty rating (1–5), provider, exam cost, courseId prefix matching, and description.
+- **`src/components/CertPathView.tsx`** — New "Cert Path" tab (4th tab alongside Calendar/List/Progress). Visual career ladder showing per-cert status: Not Started → Planned → In Progress → Completed. Progress derived from existing `dailyLog` data — auto-detects when all pages are consumed. Manual "Mark Certified" override persisted to localStorage (`ztsf:certified-certs`). Collapsible path sections with completion counts.
+- **`src/App.tsx`** — Added `"cert-path"` tab type, keyboard shortcut `4`, Award icon, and `<CertPathView>` render slot. No engine or storage changes — pure read-only visualization.
+
 ## [2.3.1] — 2026-05-17
 
 ### Added — Personality Layer Foundation (Stage 1)
