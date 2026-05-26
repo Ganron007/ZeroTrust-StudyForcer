@@ -115,7 +115,7 @@ consumption math via `dailyLog.pagesRead` is always correct).
 3. **`dailyLog` presence = day is "logged".** No separate `completedDays` field.
 4. **`dailyLog` (storage) = `{ pagesRead, note? }`.** No `chapterChecks`, no `chapterProgress`.
    **`dailyLog` (React state) = `Record<date, Record<courseId, { pagesRead }>>`** — nested per-date, per-plan.
-5. **Queue is rebuilt only at plan creation and during pre-log edits.** `buildPageSequence()` is called from the schedule `useMemo`, so it re-derives every render — but `unitOrder` and `startingChapterId` (its only inputs besides the immutable course) are frozen by the edit form once `plan.dailyLog` has any entry (see [BUGS.md #5](BUGS.md#bug-5-unit-order-editable-after-logging)). Effect: stable queue for any plan with progress; no appending, no mid-stream inserts.
+5. **Queue is rebuilt only at plan creation and during pre-log edits.** `buildPageSequence()` is called from the schedule `useMemo`, so it re-derives every render — but `unitOrder` and `startingChapterId` (its only inputs besides the immutable course) are frozen by the edit form once `plan.dailyLog` has any entry (see internal bug registry: Bug #5 — unit order frozen after logging). Effect: stable queue for any plan with progress; no appending, no mid-stream inserts.
 6. **One action per plan per day.** Log or Skip — either replaces the previous temp entry.
 7. **Unlogged past days: pointer does NOT advance.** `effectiveSliceSize = 0`.
 8. **Skip = 0 pages consumed.** Pages stay in queue for future days.
