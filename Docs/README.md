@@ -10,6 +10,7 @@ A Tauri + React cybersecurity certification tracker (desktop + browser). Built a
 - Persists plans and active-plan IDs to a local SQLite database (`<appData>/studyplanner.app/study-planner.db` in Tauri, `localStorage` keys in web/test). Timer state, lab sessions, news cache, course JSONs, and window state are still flat JSON files next to the executable.
 - Bundles a Pomodoro/stopwatch/countdown timer and a separate lab-tracker view.
 - **Personality layer** — All user-facing text is themeable via 13 personality modes (Standard, Drill Sergeant, Cyberpunk, Script Kiddie, Zero Trust Audit, Influencer, Politician, LinkedIn Lunatic, True Crime, Weather Anchor, Passive-Aggressive Mom, Conspiracy Theorist, Elderly Reluctant). Switch modes from the app header; text changes instantly across all components.
+- **Certification Roadmap** — Interactive career path with 68 certs across 5 categories: Blue Team, Red Team, Pentest, Management, AI Security. Auto-detects progress from your `dailyLog`, supports manual certification marking, and provides difficulty tiers (Entry → Expert) with cost info. Access via keyboard shortcut `4`.
 
 ## Project layout
 

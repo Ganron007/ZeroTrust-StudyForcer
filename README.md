@@ -17,6 +17,7 @@ Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 - **Security News** *(optional)* — Built-in RSS/Atom feed reader
 - **Course Builder** — Built-in tool to create custom course configs (find it in Planner → Build Course)
 - **Personality modes** — Switch between 13 text themes (Standard, Drill Sergeant, Cyberpunk, Script Kiddie, Zero Trust Audit, Influencer, Politician, LinkedIn Lunatic, True Crime, Weather Anchor, Passive-Aggressive Mom, Conspiracy Theorist, Elderly Reluctant) from the app header
+- **Certification Roadmap** — Explore 68 certifications across 5 career tracks (Blue Team, Red Team, Pentest, Management, AI Security). Auto-detects progress from your study plans, shows difficulty tiers and costs from reputable providers (SANS/GIAC, OffSec, HTB, CompTIA, ISC2, ISACA, Altered Security, Zero Point Security, Security Blue Team, CyberDefenders, INE). Keyboard shortcut `4` to open.
 - **No install required** — Download the portable EXE from Releases and run
 
 ## Quick Start
