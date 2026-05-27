@@ -6,6 +6,18 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.4.1] — 2026-05-26
+
+### Changed — Security Operations Focus
+- **`src/data/cert-roadmap.json`** — Refined from 26 certifications across 6 broad paths to **20 curated certifications** focused exclusively on **Security Operations**. Removed Foundations, Cloud Security, GRC, and Management paths. New structure:
+  - **Forensics** (5 certs): CHFI, EnCE, GCFE, GCFA, CFCE
+  - **Incident Handling** (5 certs): ECIH, GCIH, GSNA, BTL2, MTIA
+  - **Penetration Testing** (7 certs): eJPT, Pentest+, BTL1, OSCP, GPEN, OSWE, OSEP
+  - **Exploitation** (3 certs): GREM, OSEE, OSCE3
+- **Difficulty ratings** now reflect Paul Jerimy's Security Certification Roadmap tiers (1-5 scale).
+- **Prerequisites documented** in descriptions (e.g., OSCP required for OSEP, SANS training costs noted for GIAC certs).
+- **Removed non-security-ops certs**: Network+, Security+, SecAI+, SSCP, CySA+, CCSP, AWS Security, Azure Security, GCLD, CISA, CISM, CISSP, CRISC, CISSP-ISSMP, PMP.
+
 ## [2.4.0] — 2026-05-26
 
 ### Added — Certification Roadmap (Phase 1)
