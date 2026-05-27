@@ -1,255 +1,830 @@
 {
-  "version": 1,
-  "paths": [
+  "version": 2,
+  "categories": [
     {
-      "id": "forensics",
-      "name": "Forensics",
-      "color": "#8b5cf6",
-      "icon": "microscope",
-      "certs": [
-        {
-          "id": "chfi",
-          "name": "CHFI",
-          "fullName": "Computer Hacking Forensic Investigator",
-          "provider": "EC-Council",
-          "difficulty": 2,
-          "courseIdPrefixes": ["chfi", "ec-council-chfi"],
-          "description": "Entry-level digital forensics certification. Covers evidence collection, file system forensics, mobile forensics, and report writing. Good starting point for forensics career path.",
-          "examCost": "$500",
-          "url": "https://www.eccouncil.org/programs/computer-hacking-forensic-investigator-chfi/"
-        },
-        {
-          "id": "ence",
-          "name": "EnCE",
-          "fullName": "EnCase Certified Examiner",
-          "provider": "OpenText",
-          "difficulty": 3,
-          "courseIdPrefixes": ["ence", "opentext-ence"],
-          "description": "Intermediate forensics certification focused on EnCase platform. Covers evidence acquisition, analysis, and reporting using industry-standard tools.",
-          "examCost": "$200",
-          "url": "https://www.opentext.com/products/encase-forensic"
-        },
-        {
-          "id": "gcfe",
-          "name": "GCFE",
-          "fullName": "GIAC Certified Forensic Examiner",
-          "provider": "GIAC",
-          "difficulty": 4,
-          "courseIdPrefixes": ["gcfe", "giac-gcfe"],
-          "description": "Advanced Windows forensics certification. Covers Windows artifact analysis, registry forensics, user activity reconstruction, and timeline analysis. Requires SANS FOR500 training (~$8,000).",
-          "examCost": "$949",
-          "url": "https://www.giac.org/certifications/certified-forensic-examiner-gcfe/"
-        },
-        {
-          "id": "gcfa",
-          "name": "GCFA",
-          "fullName": "GIAC Certified Forensic Analyst",
-          "provider": "GIAC",
-          "difficulty": 4,
-          "courseIdPrefixes": ["gcfa", "giac-gcfa"],
-          "description": "Advanced incident response and forensics certification. Covers memory forensics, timeline analysis, threat hunting, and enterprise-scale investigations. Requires SANS FOR508 training (~$8,000).",
-          "examCost": "$949",
-          "url": "https://www.giac.org/certifications/certified-forensic-analyst-gcfa/"
-        },
-        {
-          "id": "cfce",
-          "name": "CFCE",
-          "fullName": "Certified Forensic Computer Examiner",
-          "provider": "IACIS",
-          "difficulty": 5,
-          "courseIdPrefixes": ["cfce", "iacis-cfce"],
-          "description": "Expert-level forensics certification from International Association of Computer Investigative Specialists. Rigorous practical exam covering evidence handling, analysis, and courtroom testimony.",
-          "examCost": "$500",
-          "url": "https://www.iacis.com/certification/"
-        }
-      ]
-    },
-    {
-      "id": "incident-handling",
-      "name": "Incident Handling",
-      "color": "#f59e0b",
+      "id": "blue-team",
+      "name": "Blue Team",
+      "description": "Defensive Security: Forensics, IR, Threat Hunting, SOC",
+      "color": "#3b82f6",
       "icon": "shield",
-      "certs": [
+      "levels": [
         {
-          "id": "ecih",
-          "name": "ECIH",
-          "fullName": "EC-Council Certified Incident Handler",
-          "provider": "EC-Council",
-          "difficulty": 2,
-          "courseIdPrefixes": ["ecih", "ec-council-ecih"],
-          "description": "Entry-level incident response certification. Covers incident handling methodology, evidence collection, containment strategies, and post-incident activities.",
-          "examCost": "$500",
-          "url": "https://www.eccouncil.org/programs/certified-incident-handler-ecih/"
+          "id": "entry",
+          "name": "Entry Level",
+          "certs": [
+            {
+              "id": "comptia-security-plus",
+              "name": "Security+",
+              "fullName": "CompTIA Security+ (SY0-701)",
+              "provider": "CompTIA",
+              "cost": "$392",
+              "courseIdPrefixes": ["security-plus", "comptia-security"],
+              "description": "Entry-level security fundamentals, DoD 8570 baseline. Covers threats, attacks, architecture, operations, and governance.",
+              "url": "https://www.comptia.org/certifications/security"
+            },
+            {
+              "id": "comptia-cysa-plus",
+              "name": "CySA+",
+              "fullName": "CompTIA Cybersecurity Analyst (CySA+)",
+              "provider": "CompTIA",
+              "cost": "$392",
+              "courseIdPrefixes": ["cysa", "comptia-cysa"],
+              "description": "SOC analyst skills: threat detection, vulnerability management, incident response, and security operations.",
+              "url": "https://www.comptia.org/certifications/cybersecurity-analyst"
+            },
+            {
+              "id": "btl1",
+              "name": "BTL1",
+              "fullName": "Blue Team Level 1",
+              "provider": "Security Blue Team",
+              "cost": "£399",
+              "courseIdPrefixes": ["btl1", "security-blue-team-l1"],
+              "description": "Junior SOC certification: phishing analysis, digital forensics, SIEM, incident response. 24-hour practical exam.",
+              "url": "https://securityblue.team/btl1/"
+            },
+            {
+              "id": "htb-cdsa",
+              "name": "HTB CDSA",
+              "fullName": "HackTheBox Certified Defensive Security Analyst",
+              "provider": "HackTheBox",
+              "cost": "$490",
+              "courseIdPrefixes": ["htb-cdsa", "hackthebox-cdsa"],
+              "description": "Defensive security analyst fundamentals. SOC operations, log analysis, threat detection, and incident handling.",
+              "url": "https://academy.hackthebox.com/certification/htb-certified-defensive-security-analyst"
+            },
+            {
+              "id": "offsec-osir",
+              "name": "OSIR",
+              "fullName": "OffSec Incident Responder",
+              "provider": "OffSec",
+              "cost": "$1,749",
+              "courseIdPrefixes": ["osir", "offsec-osir"],
+              "description": "Foundational incident response certification. Splunk analysis, digital forensics, incident handling lifecycle. 8-hour practical exam.",
+              "url": "https://www.offensive-security.com/courses/ir-200/"
+            },
+            {
+              "id": "offsec-osth",
+              "name": "OSTH",
+              "fullName": "OffSec Threat Hunter",
+              "provider": "OffSec",
+              "cost": "$1,749",
+              "courseIdPrefixes": ["osth", "offsec-osth"],
+              "description": "Foundational threat hunting certification. CrowdStrike Falcon, Splunk, behavioral analysis, IoC detection. 8-hour practical exam.",
+              "url": "https://www.offensive-security.com/courses/th-200/"
+            }
+          ]
         },
         {
-          "id": "gcih",
-          "name": "GCIH",
-          "fullName": "GIAC Certified Incident Handler",
-          "provider": "GIAC",
-          "difficulty": 4,
-          "courseIdPrefixes": ["gcih", "giac-gcih"],
-          "description": "Advanced incident response certification. Covers detection, analysis, containment, and remediation of security incidents. Includes hands-on labs with real-world scenarios. Requires SANS SEC504 training (~$8,000).",
-          "examCost": "$949",
-          "url": "https://www.giac.org/certifications/certified-incident-handler-gcih/"
+          "id": "intermediate",
+          "name": "Intermediate",
+          "certs": [
+            {
+              "id": "comptia-casp-plus",
+              "name": "CASP+",
+              "fullName": "CompTIA Advanced Security Practitioner (CASP+)",
+              "provider": "CompTIA",
+              "cost": "$494",
+              "courseIdPrefixes": ["casp", "comptia-casp"],
+              "description": "Advanced security practitioner with technical leadership skills. Enterprise security architecture, risk management, and research.",
+              "url": "https://www.comptia.org/certifications/comptia-advanced-security-practitioner"
+            },
+            {
+              "id": "btl2",
+              "name": "BTL2",
+              "fullName": "Blue Team Level 2",
+              "provider": "Security Blue Team",
+              "cost": "£1,999",
+              "courseIdPrefixes": ["btl2", "security-blue-team-l2"],
+              "description": "Advanced SOC certification: malware analysis, advanced threat hunting, vulnerability management, and SIEM correlation.",
+              "url": "https://securityblue.team/btl2/"
+            },
+            {
+              "id": "cyberdefenders-ccdl1",
+              "name": "CCDL1",
+              "fullName": "CyberDefenders Certified CyberDefender Level 1",
+              "provider": "CyberDefenders",
+              "cost": "$500-$1,000",
+              "courseIdPrefixes": ["ccdl1", "cyberdefenders-l1"],
+              "description": "SOC analyst certification with 24-hour practical exam. Network forensics, disk forensics, memory forensics, threat hunting.",
+              "url": "https://cyberdefenders.org/certifications/certified-cyberdefender-level1/"
+            },
+            {
+              "id": "giac-gcih",
+              "name": "GCIH",
+              "fullName": "GIAC Certified Incident Handler",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gcih", "giac-gcih"],
+              "description": "Incident handler certification: detection, analysis, containment, and remediation. SANS SEC504 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/certified-incident-handler-gcih/"
+            },
+            {
+              "id": "giac-gcfe",
+              "name": "GCFE",
+              "fullName": "GIAC Certified Forensic Examiner",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gcfe", "giac-gcfe"],
+              "description": "Windows forensic analysis certification. Registry analysis, user activity reconstruction, timeline analysis. SANS FOR500 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/certified-forensic-examiner-gcfe/"
+            },
+            {
+              "id": "giac-gime",
+              "name": "GIME",
+              "fullName": "GIAC iOS and macOS Examiner",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gime", "giac-gime"],
+              "description": "Apple device forensics certification. iOS and macOS artifact analysis, data extraction, and evidence collection. SANS FOR518 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/ios-macos-examiner-gime/"
+            },
+            {
+              "id": "giac-gasf",
+              "name": "GASF",
+              "fullName": "GIAC Advanced Smartphone Forensics",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gasf", "giac-gasf"],
+              "description": "Mobile device forensics certification. Android/iOS analysis, app data extraction, cloud artifacts. SANS FOR585 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/advanced-smartphone-forensics-gasf/"
+            },
+            {
+              "id": "giac-gcir",
+              "name": "GCIR",
+              "fullName": "GIAC Cloud Incident Responder",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gcir", "giac-gcir"],
+              "description": "Cloud incident response certification. AWS/Azure/GCP log analysis, cloud forensics, incident handling. SANS SEC588 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/cloud-incident-responder-gcir/"
+            },
+            {
+              "id": "giac-glir",
+              "name": "GLIR",
+              "fullName": "GIAC Linux Incident Responder",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["glir", "giac-glir"],
+              "description": "Linux incident response certification. Command-line triage, log analysis, malware detection, system hardening. SANS SEC506 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/linux-incident-responder-glir/"
+            },
+            {
+              "id": "giac-gcti",
+              "name": "GCTI",
+              "fullName": "GIAC Cyber Threat Intelligence",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gcti", "giac-gcti"],
+              "description": "Threat intelligence certification. Strategic/operational/tactical intelligence, threat actor profiling, intelligence lifecycle. SANS FOR578 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/cyber-threat-intelligence-gcti/"
+            }
+          ]
         },
         {
-          "id": "gsna",
-          "name": "GSNA",
-          "fullName": "GIAC Security Network Analyst",
-          "provider": "GIAC",
-          "difficulty": 4,
-          "courseIdPrefixes": ["gsna", "giac-gsna"],
-          "description": "Network-focused incident response certification. Covers network traffic analysis, packet capture, protocol analysis, and network forensics. Requires SANS SEC503 training (~$8,000).",
-          "examCost": "$949",
-          "url": "https://www.giac.org/certifications/security-network-analyst-gsna/"
-        },
-        {
-          "id": "btl2",
-          "name": "BTL2",
-          "fullName": "Blue Team Level 2",
-          "provider": "Security Blue Team",
-          "difficulty": 4,
-          "courseIdPrefixes": ["btl2", "security-blue-team-l2"],
-          "description": "Advanced blue team certification. Covers threat hunting, SIEM correlation, incident response automation, and advanced log analysis. Practical exam with live environment.",
-          "examCost": "$395",
-          "url": "https://securityblue.team/btl2/"
-        },
-        {
-          "id": "mtia",
-          "name": "MTIA",
-          "fullName": "Mosse Certified Threat Intelligence Analyst",
-          "provider": "Mosse Institute",
-          "difficulty": 3,
-          "courseIdPrefixes": ["mtia", "mosse-mtia"],
-          "description": "Threat intelligence certification. Covers intelligence lifecycle, OSINT collection, threat actor profiling, indicator analysis, and intelligence reporting.",
-          "examCost": "$200",
-          "url": "https://www.mosse-institute.com/certifications/mtia-certified-threat-intelligence-analyst.html"
+          "id": "advanced",
+          "name": "Advanced",
+          "certs": [
+            {
+              "id": "cyberdefenders-ccdl2",
+              "name": "CCDL2",
+              "fullName": "CyberDefenders Certified CyberDefender Level 2",
+              "provider": "CyberDefenders",
+              "cost": "$1,000-$2,000",
+              "courseIdPrefixes": ["ccdl2", "cyberdefenders-l2"],
+              "description": "Advanced SOC certification with 48-hour practical exam. Enterprise forensics, advanced threat hunting, incident response at scale.",
+              "url": "https://cyberdefenders.org/certifications/certified-cyberdefender-level2/"
+            },
+            {
+              "id": "giac-gcfa",
+              "name": "GCFA",
+              "fullName": "GIAC Certified Forensic Analyst",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gcfa", "giac-gcfa"],
+              "description": "Advanced incident response and threat hunting certification. Memory forensics, timeline analysis, enterprise-scale investigations. SANS FOR508 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/certified-forensic-analyst-gcfa/"
+            },
+            {
+              "id": "giac-geir",
+              "name": "GEIR",
+              "fullName": "GIAC Enterprise Incident Response",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["geir", "giac-geir"],
+              "description": "Enterprise incident response certification. Large-scale IR, threat hunting, adversary tracking, incident coordination. SANS FOR508 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/enterprise-incident-response-geir/"
+            },
+            {
+              "id": "giac-gnfa",
+              "name": "GNFA",
+              "fullName": "GIAC Network Forensic Analyst",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gnfa", "giac-gnfa"],
+              "description": "Network forensics certification. Packet capture analysis, protocol analysis, network traffic reconstruction. SANS FOR572 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/network-forensic-analyst-gnfa/"
+            },
+            {
+              "id": "giac-gcfr",
+              "name": "GCFR",
+              "fullName": "GIAC Cloud Forensics Responder",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gcfr", "giac-gcfr"],
+              "description": "Cloud forensics certification. AWS/Azure/GCP forensic analysis, cloud artifact collection, incident response. SANS FOR509 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/cloud-forensics-responder-gcfr/"
+            },
+            {
+              "id": "giac-grem",
+              "name": "GREM",
+              "fullName": "GIAC Reverse Engineering Malware",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["grem", "giac-grem"],
+              "description": "Malware analysis certification. Static/dynamic analysis, debugging, disassembly, malware behavior extraction. SANS FOR610 training recommended (~$8,000).",
+              "url": "https://www.giac.org/certifications/reverse-engineering-malware-grem/"
+            }
+          ]
         }
       ]
     },
     {
-      "id": "penetration-testing",
-      "name": "Penetration Testing",
+      "id": "red-team",
+      "name": "Red Team",
+      "description": "Offensive Operations: Adversary simulation, exploit development",
       "color": "#ef4444",
       "icon": "crosshair",
-      "certs": [
+      "levels": [
         {
-          "id": "ejpt",
-          "name": "eJPT",
-          "fullName": "eLearnSecurity Junior Penetration Tester",
-          "provider": "INE",
-          "difficulty": 2,
-          "courseIdPrefixes": ["ejpt", "ine-ejpt"],
-          "description": "Entry-level hands-on penetration testing certification. 48-hour practical exam covering network attacks, web exploitation, and pivoting. Great first pentest cert.",
-          "examCost": "$200",
-          "url": "https://ine.com/learning/certifications/ejpt"
+          "id": "entry",
+          "name": "Entry Level",
+          "certs": [
+            {
+              "id": "ine-ejpt",
+              "name": "eJPT",
+              "fullName": "INE Junior Penetration Tester",
+              "provider": "INE",
+              "cost": "~$400",
+              "courseIdPrefixes": ["ejpt", "ine-ejpt"],
+              "description": "Junior penetration tester certification. Practical labs covering network attacks, web exploitation, and pivoting.",
+              "url": "https://elearnsecurity.com/product/ejpt-certification/"
+            },
+            {
+              "id": "htb-cpts",
+              "name": "HTB CPTS",
+              "fullName": "HackTheBox Certified Penetration Testing Specialist",
+              "provider": "HackTheBox",
+              "cost": "$490",
+              "courseIdPrefixes": ["htb-cpts", "hackthebox-cpts"],
+              "description": "Penetration testing fundamentals. Network pentesting, web exploitation, privilege escalation, reporting.",
+              "url": "https://academy.hackthebox.com/certification/htb-certified-penetration-testing-specialist"
+            }
+          ]
         },
         {
-          "id": "pentest-plus",
-          "name": "Pentest+",
-          "fullName": "CompTIA PenTest+ (PT0-002)",
-          "provider": "CompTIA",
-          "difficulty": 2,
-          "courseIdPrefixes": ["pentest-plus", "comptia-pentest"],
-          "description": "Entry-level penetration testing certification. Covers planning, information gathering, vulnerability assessment, penetration testing, and reporting. Mix of multiple-choice and performance-based questions.",
-          "examCost": "$392",
-          "url": "https://www.comptia.org/certifications/pentest"
+          "id": "intermediate",
+          "name": "Intermediate",
+          "certs": [
+            {
+              "id": "offsec-oscp",
+              "name": "OSCP",
+              "fullName": "OffSec Certified Professional",
+              "provider": "OffSec",
+              "cost": "$1,799",
+              "courseIdPrefixes": ["oscp", "offsec-oscp"],
+              "description": "Industry-standard penetration testing certification. 24-hour practical exam covering network exploitation, Active Directory attacks, web attacks, and privilege escalation. Requires PEN-200 course (~$1,500).",
+              "url": "https://www.offensive-security.com/courses/pen-200/"
+            },
+            {
+              "id": "offsec-oswp",
+              "name": "OSWP",
+              "fullName": "OffSec Wireless Professional",
+              "provider": "OffSec",
+              "cost": "$1,499",
+              "courseIdPrefixes": ["oswp", "offsec-oswp"],
+              "description": "Wireless penetration testing certification. WPA/WPA2 attacks, wireless reconnaissance, rogue AP deployment. Requires PEN-210 course (~$1,500).",
+              "url": "https://www.offensive-security.com/courses/pen-210/"
+            },
+            {
+              "id": "altered-security-crtp",
+              "name": "CRTP",
+              "fullName": "Certified Red Team Professional",
+              "provider": "Altered Security",
+              "cost": "~$500",
+              "courseIdPrefixes": ["crtp", "altered-security-crtp"],
+              "description": "Active Directory red team operations. AD enumeration, Kerberos attacks, privilege escalation, lateral movement.",
+              "url": "https://www.alteredsecurity.com/crtp"
+            },
+            {
+              "id": "zero-point-security-crto",
+              "name": "CRTO",
+              "fullName": "Certified Red Team Operator",
+              "provider": "Zero Point Security",
+              "cost": "~$600",
+              "courseIdPrefixes": ["crto", "zero-point-security-crto"],
+              "description": "Red team operations certification. CREST-aligned, adversary simulation, Cobalt Strike, operational security.",
+              "url": "https://www.zeropointsecurity.co.uk/certifications/crto"
+            }
+          ]
         },
         {
-          "id": "btl1",
-          "name": "BTL1",
-          "fullName": "Blue Team Level 1",
-          "provider": "Security Blue Team",
-          "difficulty": 3,
-          "courseIdPrefixes": ["btl1", "security-blue-team-l1"],
-          "description": "Intermediate blue team certification with offensive components. Covers SIEM, log analysis, incident response, and basic penetration testing for defenders. Practical exam.",
-          "examCost": "$295",
-          "url": "https://securityblue.team/btl1/"
+          "id": "advanced",
+          "name": "Advanced",
+          "certs": [
+            {
+              "id": "offsec-osep",
+              "name": "OSEP",
+              "fullName": "OffSec Experienced Penetration Tester",
+              "provider": "OffSec",
+              "cost": "$1,799",
+              "courseIdPrefixes": ["osep", "offsec-osep"],
+              "description": "Advanced penetration testing certification. Evasion techniques, lateral movement, custom tooling, AV bypass. Requires PEN-300 course (~$1,500). OSCP prerequisite.",
+              "url": "https://www.offensive-security.com/courses/pen-300/"
+            },
+            {
+              "id": "offsec-oswe",
+              "name": "OSWE",
+              "fullName": "OffSec Web Expert",
+              "provider": "OffSec",
+              "cost": "$1,799",
+              "courseIdPrefixes": ["oswe", "offsec-oswe"],
+              "description": "Web application security expert certification. White-box testing, source code review, advanced web exploitation. Requires WEB-300 course (~$1,500).",
+              "url": "https://www.offensive-security.com/courses/web-300/"
+            },
+            {
+              "id": "offsec-osed",
+              "name": "OSED",
+              "fullName": "OffSec Exploit Developer",
+              "provider": "OffSec",
+              "cost": "$1,799",
+              "courseIdPrefixes": ["osed", "offsec-osed"],
+              "description": "Exploit development certification. Windows exploitation, buffer overflows, shellcode development, bypass techniques. Requires EXP-301 course (~$1,500).",
+              "url": "https://www.offensive-security.com/courses/exp-301/"
+            },
+            {
+              "id": "altered-security-crte",
+              "name": "CRTE",
+              "fullName": "Certified Red Team Expert",
+              "provider": "Altered Security",
+              "cost": "~$800",
+              "courseIdPrefixes": ["crte", "altered-security-crte"],
+              "description": "Advanced red team certification. Multi-domain AD attacks, advanced persistence, evasion techniques, enterprise environments.",
+              "url": "https://www.alteredsecurity.com/crte"
+            },
+            {
+              "id": "altered-security-cartp",
+              "name": "CARTP",
+              "fullName": "Certified Azure Red Team Professional",
+              "provider": "Altered Security",
+              "cost": "~$700",
+              "courseIdPrefixes": ["cartp", "altered-security-cartp"],
+              "description": "Azure red team operations. Azure AD attacks, cloud persistence, hybrid identity exploitation, Azure security controls.",
+              "url": "https://www.alteredsecurity.com/cartp"
+            },
+            {
+              "id": "altered-security-carte",
+              "name": "CARTE",
+              "fullName": "Certified Azure Red Team Expert",
+              "provider": "Altered Security",
+              "cost": "~$900",
+              "courseIdPrefixes": ["carte", "altered-security-carte"],
+              "description": "Advanced Azure red team certification. Enterprise Azure environments, advanced evasion, multi-tenant attacks, cloud-native exploitation.",
+              "url": "https://www.alteredsecurity.com/carte"
+            },
+            {
+              "id": "altered-security-crtm",
+              "name": "CRTM",
+              "fullName": "Certified Red Team Master",
+              "provider": "Altered Security",
+              "cost": "~$1,200",
+              "courseIdPrefixes": ["crtm", "altered-security-crtm"],
+              "description": "Red team master certification. Multi-forest enterprise attacks, advanced adversary simulation, custom tooling, operational security at scale.",
+              "url": "https://www.alteredsecurity.com/crtm"
+            }
+          ]
         },
         {
-          "id": "oscp",
-          "name": "OSCP",
-          "fullName": "OffSec Certified Professional",
-          "provider": "OffSec",
-          "difficulty": 4,
-          "courseIdPrefixes": ["oscp", "offsec-oscp"],
-          "description": "Industry-standard penetration testing certification. 24-hour practical exam covering network exploitation, Active Directory attacks, web attacks, and privilege escalation. Requires PEN-200 course (~$1,500).",
-          "examCost": "$1,599",
-          "url": "https://www.offsec.com/courses/pen-200/"
-        },
-        {
-          "id": "gpen",
-          "name": "GPEN",
-          "fullName": "GIAC Penetration Tester",
-          "provider": "GIAC",
-          "difficulty": 4,
-          "courseIdPrefixes": ["gpen", "giac-gpen"],
-          "description": "Advanced penetration testing certification. Covers reconnaissance, exploitation, post-exploitation, and reporting. Includes legal and compliance considerations. Requires SANS SEC560 training (~$8,000).",
-          "examCost": "$949",
-          "url": "https://www.giac.org/certifications/penetration-tester-gpen/"
-        },
-        {
-          "id": "oswe",
-          "name": "OSWE",
-          "fullName": "OffSec Web Expert",
-          "provider": "OffSec",
-          "difficulty": 5,
-          "courseIdPrefixes": ["oswe", "offsec-oswe"],
-          "description": "Expert-level web application security certification. 48-hour practical exam covering source code review, white-box testing, and advanced web exploitation. Requires WEB-300 course (~$1,500). OSCP recommended prerequisite.",
-          "examCost": "$1,499",
-          "url": "https://www.offsec.com/courses/web-300/"
-        },
-        {
-          "id": "osep",
-          "name": "OSEP",
-          "fullName": "OffSec Experienced Penetration Tester",
-          "provider": "OffSec",
-          "difficulty": 5,
-          "courseIdPrefixes": ["osep", "offsec-osep"],
-          "description": "Expert-level adversary simulation certification. 48-hour practical exam covering advanced evasion, lateral movement, and custom tooling. Requires PEN-300 course (~$1,500). OSCP required prerequisite.",
-          "examCost": "$1,499",
-          "url": "https://www.offsec.com/courses/pen-300/"
+          "id": "expert",
+          "name": "Expert",
+          "certs": [
+            {
+              "id": "offsec-osee",
+              "name": "OSEE",
+              "fullName": "OffSec Exploitation Expert",
+              "provider": "OffSec",
+              "cost": "$1,799",
+              "courseIdPrefixes": ["osee", "offsec-osee"],
+              "description": "Exploitation expert certification. Kernel-level exploitation, advanced Windows internals, custom shellcode, 0-day research. Requires EXP-401 course (~$1,500).",
+              "url": "https://www.offensive-security.com/courses/exp-401/"
+            },
+            {
+              "id": "offsec-osce3",
+              "name": "OSCE3",
+              "fullName": "OffSec Certified Expert 3",
+              "provider": "OffSec",
+              "cost": "$4,497",
+              "courseIdPrefixes": ["osce3", "offsec-osce3"],
+              "description": "Elite combination certification: OSEP + OSWE + OSED. Demonstrates mastery across penetration testing, web exploitation, and exploit development.",
+              "url": "https://www.offensive-security.com/certifications/osce3/"
+            }
+          ]
         }
       ]
     },
     {
-      "id": "exploitation",
-      "name": "Exploitation",
-      "color": "#dc2626",
+      "id": "pentest",
+      "name": "Pentest",
+      "description": "Penetration Testing: Network, web, wireless, mobile",
+      "color": "#f59e0b",
       "icon": "bug",
-      "certs": [
+      "levels": [
         {
-          "id": "grem",
-          "name": "GREM",
-          "fullName": "GIAC Reverse Engineering Malware",
-          "provider": "GIAC",
-          "difficulty": 5,
-          "courseIdPrefixes": ["grem", "giac-grem"],
-          "description": "Expert-level malware analysis certification. Covers static/dynamic analysis, debugging, disassembly, and malware behavior extraction. Requires strong programming knowledge. Requires SANS FOR610 training (~$8,000).",
-          "examCost": "$949",
-          "url": "https://www.giac.org/certifications/reverse-engineering-malware-grem/"
+          "id": "entry",
+          "name": "Entry Level",
+          "certs": [
+            {
+              "id": "comptia-pentest-plus",
+              "name": "PenTest+",
+              "fullName": "CompTIA PenTest+ (PT0-002)",
+              "provider": "CompTIA",
+              "cost": "$392",
+              "courseIdPrefixes": ["pentest", "comptia-pentest"],
+              "description": "Penetration testing fundamentals. Methodology, reconnaissance, vulnerability assessment, reporting, and compliance.",
+              "url": "https://www.comptia.org/certifications/pentest"
+            },
+            {
+              "id": "ine-ejpt",
+              "name": "eJPT",
+              "fullName": "INE Junior Penetration Tester",
+              "provider": "INE",
+              "cost": "~$400",
+              "courseIdPrefixes": ["ejpt", "ine-ejpt"],
+              "description": "Junior pentester certification. Hands-on practical labs covering network attacks, web exploitation, and pivoting.",
+              "url": "https://elearnsecurity.com/product/ejpt-certification/"
+            },
+            {
+              "id": "htb-cpts",
+              "name": "HTB CPTS",
+              "fullName": "HackTheBox Certified Penetration Testing Specialist",
+              "provider": "HackTheBox",
+              "cost": "$490",
+              "courseIdPrefixes": ["htb-cpts", "hackthebox-cpts"],
+              "description": "Comprehensive pentest methodology. Network pentesting, web exploitation, privilege escalation, active directory, reporting.",
+              "url": "https://academy.hackthebox.com/certification/htb-certified-penetration-testing-specialist"
+            }
+          ]
         },
         {
-          "id": "osee",
-          "name": "OSEE",
-          "fullName": "OffSec Exploitation Expert",
-          "provider": "OffSec",
-          "difficulty": 5,
-          "courseIdPrefixes": ["osee", "offsec-osee"],
-          "description": "Expert-level exploit development certification. Covers advanced Windows exploitation, kernel debugging, bypass techniques, and custom shellcode development. Requires EXP-401 course (~$1,500).",
-          "examCost": "$1,499",
-          "url": "https://www.offsec.com/courses/exp-401/"
+          "id": "intermediate",
+          "name": "Intermediate",
+          "certs": [
+            {
+              "id": "offsec-oscp",
+              "name": "OSCP",
+              "fullName": "OffSec Certified Professional",
+              "provider": "OffSec",
+              "cost": "$1,799",
+              "courseIdPrefixes": ["oscp", "offsec-oscp"],
+              "description": "Gold standard pentest certification. 24-hour practical exam covering Active Directory, network exploitation, web attacks, and privilege escalation.",
+              "url": "https://www.offensive-security.com/courses/pen-200/"
+            },
+            {
+              "id": "offsec-oswp",
+              "name": "OSWP",
+              "fullName": "OffSec Wireless Professional",
+              "provider": "OffSec",
+              "cost": "$1,499",
+              "courseIdPrefixes": ["oswp", "offsec-oswp"],
+              "description": "Wireless pentest specialist. WPA/WPA2 attacks, wireless reconnaissance, rogue AP deployment, wireless security assessment.",
+              "url": "https://www.offensive-security.com/courses/pen-210/"
+            },
+            {
+              "id": "htb-cwee",
+              "name": "HTB CWEE",
+              "fullName": "HackTheBox Certified Web Exploitation Expert",
+              "provider": "HackTheBox",
+              "cost": "$1,260",
+              "courseIdPrefixes": ["htb-cwee", "hackthebox-cwee"],
+              "description": "Web exploitation expert. Advanced web vulnerabilities, API security, modern web frameworks, source code review.",
+              "url": "https://academy.hackthebox.com/certification/htb-certified-web-exploitation-expert"
+            },
+            {
+              "id": "htb-cade",
+              "name": "HTB CADE",
+              "fullName": "HackTheBox Certified Active Directory Pentesting Expert",
+              "provider": "HackTheBox",
+              "cost": "$1,260",
+              "courseIdPrefixes": ["htb-cade", "hackthebox-cade"],
+              "description": "Active Directory pentesting expert. AD enumeration, Kerberos attacks, domain persistence, lateral movement, AD security assessment.",
+              "url": "https://academy.hackthebox.com/certification/htb-certified-active-directory-pentesting-expert"
+            },
+            {
+              "id": "altered-security-crtp",
+              "name": "CRTP",
+              "fullName": "Certified Red Team Professional",
+              "provider": "Altered Security",
+              "cost": "~$500",
+              "courseIdPrefixes": ["crtp", "altered-security-crtp"],
+              "description": "Active Directory pentest focus. AD enumeration, Kerberos attacks, privilege escalation, lateral movement, persistence.",
+              "url": "https://www.alteredsecurity.com/crtp"
+            }
+          ]
         },
         {
-          "id": "osce3",
-          "name": "OSCE3",
-          "fullName": "OffSec Certified Expert 3",
-          "provider": "OffSec",
-          "difficulty": 5,
-          "courseIdPrefixes": ["osce3", "offsec-osce3"],
-          "description": "Elite certification combining OSEP, OSWE, and OSED. Demonstrates mastery across penetration testing, web exploitation, and exploit development. Requires passing all three exams.",
-          "examCost": "$4,497",
-          "url": "https://www.offsec.com/offsec/osce3-certification/"
+          "id": "advanced",
+          "name": "Advanced",
+          "certs": [
+            {
+              "id": "offsec-osep",
+              "name": "OSEP",
+              "fullName": "OffSec Experienced Penetration Tester",
+              "provider": "OffSec",
+              "cost": "$1,799",
+              "courseIdPrefixes": ["osep", "offsec-osep"],
+              "description": "Advanced pentest certification. Evasion techniques, lateral movement, custom tooling, AV bypass, operational security.",
+              "url": "https://www.offensive-security.com/courses/pen-300/"
+            },
+            {
+              "id": "offsec-oswe",
+              "name": "OSWE",
+              "fullName": "OffSec Web Expert",
+              "provider": "OffSec",
+              "cost": "$1,799",
+              "courseIdPrefixes": ["oswe", "offsec-oswe"],
+              "description": "Web application security expert. Source code review, white-box testing, advanced web exploitation, vulnerability research.",
+              "url": "https://www.offensive-security.com/courses/web-300/"
+            },
+            {
+              "id": "altered-security-crte",
+              "name": "CRTE",
+              "fullName": "Certified Red Team Expert",
+              "provider": "Altered Security",
+              "cost": "~$800",
+              "courseIdPrefixes": ["crte", "altered-security-crte"],
+              "description": "Advanced AD pentest. Multi-domain attacks, advanced persistence, evasion techniques, enterprise environment exploitation.",
+              "url": "https://www.alteredsecurity.com/crte"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "management",
+      "name": "Management",
+      "description": "Security Leadership: Governance, risk, compliance, strategy",
+      "color": "#8b5cf6",
+      "icon": "briefcase",
+      "levels": [
+        {
+          "id": "entry",
+          "name": "Entry Level",
+          "certs": [
+            {
+              "id": "comptia-security-plus",
+              "name": "Security+",
+              "fullName": "CompTIA Security+ (SY0-701)",
+              "provider": "CompTIA",
+              "cost": "$392",
+              "courseIdPrefixes": ["security-plus", "comptia-security"],
+              "description": "Security fundamentals and compliance baseline. Threats, attacks, architecture, operations, governance, and risk management.",
+              "url": "https://www.comptia.org/certifications/security"
+            },
+            {
+              "id": "comptia-project-plus",
+              "name": "Project+",
+              "fullName": "CompTIA Project+",
+              "provider": "CompTIA",
+              "cost": "$369",
+              "courseIdPrefixes": ["project-plus", "comptia-project"],
+              "description": "IT project management fundamentals. Project lifecycle, team leadership, scheduling, documentation, and governance.",
+              "url": "https://www.comptia.org/certifications/project"
+            }
+          ]
+        },
+        {
+          "id": "intermediate",
+          "name": "Intermediate",
+          "certs": [
+            {
+              "id": "comptia-casp-plus",
+              "name": "CASP+",
+              "fullName": "CompTIA Advanced Security Practitioner (CASP+)",
+              "provider": "CompTIA",
+              "cost": "$494",
+              "courseIdPrefixes": ["casp", "comptia-casp"],
+              "description": "Advanced security practitioner with technical leadership. Enterprise security architecture, risk management, research, and collaboration.",
+              "url": "https://www.comptia.org/certifications/comptia-advanced-security-practitioner"
+            },
+            {
+              "id": "comptia-cysa-plus",
+              "name": "CySA+",
+              "fullName": "CompTIA Cybersecurity Analyst (CySA+)",
+              "provider": "CompTIA",
+              "cost": "$392",
+              "courseIdPrefixes": ["cysa", "comptia-cysa"],
+              "description": "Security analyst with threat management focus. Vulnerability management, incident response, security operations, and compliance.",
+              "url": "https://www.comptia.org/certifications/cybersecurity-analyst"
+            },
+            {
+              "id": "isc2-sscp",
+              "name": "SSCP",
+              "fullName": "ISC2 Systems Security Certified Practitioner",
+              "provider": "ISC2",
+              "cost": "$249",
+              "courseIdPrefixes": ["sscp", "isc2-sscp"],
+              "description": "Systems security practitioner. Operational security, access controls, risk identification, security administration, and incident response.",
+              "url": "https://www.isc2.org/certifications/sscp"
+            }
+          ]
+        },
+        {
+          "id": "advanced",
+          "name": "Advanced",
+          "certs": [
+            {
+              "id": "isc2-cissp",
+              "name": "CISSP",
+              "fullName": "ISC2 Certified Information Systems Security Professional",
+              "provider": "ISC2",
+              "cost": "$749",
+              "description": "Gold standard security management certification. 8 domains: security and risk management, asset security, security architecture, communication and network security, identity and access management, security assessment and testing, security operations, software development security.",
+              "courseIdPrefixes": ["cissp", "isc2-cissp"],
+              "url": "https://www.isc2.org/certifications/cissp"
+            },
+            {
+              "id": "isc2-ccsp",
+              "name": "CCSP",
+              "fullName": "ISC2 Certified Cloud Security Professional",
+              "provider": "ISC2",
+              "cost": "$599",
+              "courseIdPrefixes": ["ccsp", "isc2-ccsp"],
+              "description": "Cloud security professional certification. Cloud concepts, architecture, design, data security, platform security, operations, and legal/compliance.",
+              "url": "https://www.isc2.org/certifications/ccsp"
+            },
+            {
+              "id": "isaca-cism",
+              "name": "CISM",
+              "fullName": "ISACA Certified Information Security Manager",
+              "provider": "ISACA",
+              "cost": "$575",
+              "courseIdPrefixes": ["cism", "isaca-cism"],
+              "description": "Information security management certification. Governance, risk management, program development, incident management, and security strategy.",
+              "url": "https://www.isaca.org/credentialing/cism"
+            },
+            {
+              "id": "isaca-cisa",
+              "name": "CISA",
+              "fullName": "ISACA Certified Information Systems Auditor",
+              "provider": "ISACA",
+              "cost": "$575",
+              "courseIdPrefixes": ["cisa", "isaca-cisa"],
+              "description": "Information systems auditing certification. Audit process, governance, IT lifecycle, asset protection, and business continuity.",
+              "url": "https://www.isaca.org/credentialing/cisa"
+            },
+            {
+              "id": "isaca-crisc",
+              "name": "CRISC",
+              "fullName": "ISACA Certified in Risk and Information Systems Control",
+              "provider": "ISACA",
+              "cost": "$575",
+              "courseIdPrefixes": ["crisc", "isaca-crisc"],
+              "description": "Risk management certification. IT risk identification, assessment, response, and control monitoring. Enterprise risk management.",
+              "url": "https://www.isaca.org/credentialing/crisc"
+            }
+          ]
+        },
+        {
+          "id": "expert",
+          "name": "Expert",
+          "certs": [
+            {
+              "id": "isc2-cissp-issmp",
+              "name": "CISSP-ISSMP",
+              "fullName": "ISC2 CISSP - Information Systems Security Management Professional",
+              "provider": "ISC2",
+              "cost": "$599",
+              "courseIdPrefixes": ["cissp-issmp", "isc2-issmp"],
+              "description": "Security management professional concentration. Strategic security leadership, business continuity, vendor risk management, and governance.",
+              "url": "https://www.isc2.org/certifications/issmp"
+            },
+            {
+              "id": "isc2-cissp-issap",
+              "name": "CISSP-ISSAP",
+              "fullName": "ISC2 CISSP - Information Systems Security Architecture Professional",
+              "provider": "ISC2",
+              "cost": "$599",
+              "courseIdPrefixes": ["cissp-issap", "isc2-issap"],
+              "description": "Security architecture professional concentration. Security architecture design, infrastructure security, identity management, and security operations.",
+              "url": "https://www.isc2.org/certifications/issap"
+            },
+            {
+              "id": "isc2-cissp-issep",
+              "name": "CISSP-ISSEP",
+              "fullName": "ISC2 CISSP - Information Systems Security Engineering Professional",
+              "provider": "ISC2",
+              "cost": "$599",
+              "courseIdPrefixes": ["cissp-issep", "isc2-issep"],
+              "description": "Security engineering professional concentration. Security engineering principles, systems security engineering, and technical security management.",
+              "url": "https://www.isc2.org/certifications/issep"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai-security",
+      "name": "AI Security",
+      "description": "AI/ML Security: Offensive AI, defensive AI, ML operations",
+      "color": "#ec4899",
+      "icon": "cpu",
+      "levels": [
+        {
+          "id": "entry",
+          "name": "Entry Level",
+          "certs": [
+            {
+              "id": "comptia-ai-plus",
+              "name": "AI+",
+              "fullName": "CompTIA AI+",
+              "provider": "CompTIA",
+              "cost": "$392",
+              "courseIdPrefixes": ["ai-plus", "comptia-ai"],
+              "description": "AI fundamentals certification. Machine learning concepts, neural networks, ethical AI, data preparation, and AI applications.",
+              "url": "https://www.comptia.org/certifications/ai"
+            },
+            {
+              "id": "htb-coae",
+              "name": "HTB COAE",
+              "fullName": "HackTheBox Certified Offensive AI Expert",
+              "provider": "HackTheBox",
+              "cost": "$490",
+              "courseIdPrefixes": ["htb-coae", "hackthebox-coae"],
+              "description": "Offensive AI expert certification. AI red teaming, LLM exploitation, prompt injection, model extraction, and AI system attacks.",
+              "url": "https://academy.hackthebox.com/certification/htb-certified-offensive-ai-expert"
+            }
+          ]
+        },
+        {
+          "id": "intermediate",
+          "name": "Intermediate",
+          "certs": [
+            {
+              "id": "offsec-osai",
+              "name": "OSAI",
+              "fullName": "OffSec AI Red Teamer",
+              "provider": "OffSec",
+              "cost": "$1,749",
+              "courseIdPrefixes": ["osai", "offsec-osai"],
+              "description": "AI red team certification. Attacking LLMs, multi-agent systems, RAG pipelines, embeddings, AI infrastructure. 24-hour practical exam.",
+              "url": "https://www.offensive-security.com/courses/ai-300/"
+            },
+            {
+              "id": "comptia-data-plus",
+              "name": "Data+",
+              "fullName": "CompTIA Data+",
+              "provider": "CompTIA",
+              "cost": "$392",
+              "courseIdPrefixes": ["data-plus", "comptia-data"],
+              "description": "Data analysis certification. Data visualization, statistical analysis, data governance, and AI/ML data preparation fundamentals.",
+              "url": "https://www.comptia.org/certifications/data"
+            }
+          ]
+        },
+        {
+          "id": "advanced",
+          "name": "Advanced",
+          "certs": [
+            {
+              "id": "giac-gasae",
+              "name": "GASAE",
+              "fullName": "GIAC AI Security Automation Engineer",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gasae", "giac-gasae"],
+              "description": "AI security automation engineer. AI for red/blue/purple teams, ML model security, AI-powered security operations, and automation.",
+              "url": "https://www.giac.org/certifications/ai-security-automation-engineer-gasae/"
+            },
+            {
+              "id": "giac-goaa",
+              "name": "GOAA",
+              "fullName": "GIAC Offensive AI Analyst",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["goaa", "giac-goaa"],
+              "description": "Offensive AI analyst certification. Offensive AI techniques, AI-powered attacks, adversarial machine learning, and AI threat modeling.",
+              "url": "https://www.giac.org/certifications/offensive-ai-analyst-goaa/"
+            },
+            {
+              "id": "giac-gmle",
+              "name": "GMLE",
+              "fullName": "GIAC Machine Learning Engineer",
+              "provider": "SANS/GIAC",
+              "cost": "~$8,949",
+              "courseIdPrefixes": ["gmle", "giac-gmle"],
+              "description": "Machine learning engineer for security. ML for SOC operations, threat detection, anomaly detection, and security automation.",
+              "url": "https://www.giac.org/certifications/machine-learning-engineer-gmle/"
+            }
+          ]
         }
       ]
     }

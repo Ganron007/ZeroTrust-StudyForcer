@@ -6,6 +6,30 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.4.2] — 2026-05-26
+
+### Changed — Comprehensive Certification Roadmap Restructure
+- **`src/data/cert-roadmap.json`** — Complete restructure from 4 categories to **5 high-level categories** with difficulty levels:
+  - **Blue Team** (Defensive): Entry (6 certs), Intermediate (10 certs), Advanced (6 certs) — 22 total
+  - **Red Team** (Offensive): Entry (2 certs), Intermediate (4 certs), Advanced (7 certs), Expert (2 certs) — 15 total
+  - **Pentest**: Entry (3 certs), Intermediate (5 certs), Advanced (3 certs) — 11 total
+  - **Management**: Entry (2 certs), Intermediate (3 certs), Advanced (5 certs), Expert (3 certs) — 13 total
+  - **AI Security**: Entry (2 certs), Intermediate (2 certs), Advanced (3 certs) — 7 total
+- **Total: 68 certifications** from reputable providers only (SANS/GIAC, OffSec, HTB, CompTIA, ISC2, ISACA, Altered Security, Zero Point Security, Security Blue Team, CyberDefenders, INE).
+- **Difficulty levels** now explicit (Entry/Intermediate/Advanced/Expert) instead of 1-5 scale.
+- **Cost information** standardized: SANS training noted as "~$8,949" (training + exam), self-study option mentioned.
+- **Removed non-reputable providers**: EC-Council, Mosse Institute, and other low-quality certs eliminated.
+- **Added comprehensive coverage**: All SANS forensics certs (GCFE, GIME, GASF, GCFA, GEIR, GNFA, GCFR, GREM, GLIR), all OffSec certs (OSCP, OSEP, OSWE, OSED, OSEE, OSCE3, OSAI, OSIR, OSTH), all HTB certs (CDSA, CPTS, CWEE, CADE, COAE), all CompTIA certs (Security+, CySA+, CASP+, PenTest+, AI+, Data+, Project+), all ISC2 certs (CISSP, CCSP, SSCP, concentrations), all ISACA certs (CISM, CISA, CRISC).
+- **JSON schema changed**: `paths` → `categories`, each category has `levels` array with `entry`/`intermediate`/`advanced`/`expert` tiers.
+- **`src/components/CertPathView.tsx`** — Rewritten to handle new structure:
+  - Category-level collapse (shows category description and completion count)
+  - Level headers within each category (Entry Level, Intermediate, Advanced, Expert)
+  - Cert cards show provider, cost, and status badge
+  - Progress bars for in-progress certs
+  - Manual "Mark as Certified" override persisted to localStorage
+  - Icon mapping updated for new category IDs (blue-team, red-team, pentest, management, ai-security)
+- **No engine or storage changes** — pure read-only visualization from existing `dailyLog` data.
+
 ## [2.4.1] — 2026-05-26
 
 ### Changed — Security Operations Focus

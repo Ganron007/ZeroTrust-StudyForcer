@@ -10,8 +10,8 @@ import type { StudyPlan } from "@/lib/plan-storage"
 import type { CourseConfig } from "@/types/course"
 import certRoadmap from "@/data/cert-roadmap.json"
 import {
-  Shield, Target, Cloud, ShieldCheck, Briefcase, Layers,
-  ChevronDown, ChevronRight, CheckCircle, Clock,
+  Shield, Target, Bug, Briefcase, Cpu,
+  ChevronDown, ChevronRight, CheckCircle,
   Award,
 } from "lucide-react"
 
@@ -20,24 +20,30 @@ interface CertEntry {
   name: string
   fullName: string
   provider: string
-  difficulty: number
+  cost: string
   courseIdPrefixes: string[]
   description: string
-  examCost?: string
   url?: string
 }
 
-interface CertPath {
+interface CertLevel {
   id: string
   name: string
+  certs: CertEntry[]
+}
+
+interface CertCategory {
+  id: string
+  name: string
+  description: string
   color: string
   icon: string
-  certs: CertEntry[]
+  levels: CertLevel[]
 }
 
 interface CertRoadmapData {
   version: number
-  paths: CertPath[]
+  categories: CertCategory[]
 }
 
 type CertStatus = "not-started" | "planned" | "in-progress" | "completed"
@@ -49,13 +55,12 @@ interface CertResult {
   pagesRead: number
 }
 
-const PATH_ICONS: Record<string, typeof Shield> = {
-  foundations: Layers,
-  "pen-testing": Target,
-  "cloud-security": Cloud,
-  "dfir-threat-intel": Shield,
-  grc: ShieldCheck,
+const CATEGORY_ICONS: Record<string, typeof Shield> = {
+  "blue-team": Shield,
+  "red-team": Target,
+  pentest: Bug,
   management: Briefcase,
+  "ai-security": Cpu,
 }
 
 const ROADMAP = certRoadmap as CertRoadmapData
@@ -126,13 +131,8 @@ function computeCertStatus(
   }
 }
 
-function difficultyDots(level: number): string {
-  return "●".repeat(level) + "○".repeat(5 - level)
-}
-
 function statusBadge(
   status: CertStatus,
-  label: (key: string) => string,
 ): { text: string; className: string } {
   switch (status) {
     case "completed":
@@ -154,11 +154,11 @@ export default function CertPathView() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [certified, setCertified] = useState<Set<string>>(loadCertified)
 
-  const togglePath = useCallback((pathId: string) => {
+  const toggleCategory = useCallback((categoryId: string) => {
     setCollapsed((prev) => {
       const next = new Set(prev)
-      if (next.has(pathId)) next.delete(pathId)
-      else next.add(pathId)
+      if (next.has(categoryId)) next.delete(categoryId)
+      else next.add(categoryId)
       return next
     })
   }, [])
@@ -181,23 +181,35 @@ export default function CertPathView() {
     [certified],
   )
 
-  const pathResults = useMemo(
+  const categoryResults = useMemo(
     () =>
-      ROADMAP.paths.map((path) => ({
-        ...path,
-        certs: path.certs.map((cert) => ({
-          ...cert,
-          result: computeCertStatus(cert, courses, allPlans, activePlanIds, certified),
+      ROADMAP.categories.map((category) => ({
+        ...category,
+        levels: category.levels.map((level) => ({
+          ...level,
+          certs: level.certs.map((cert) => ({
+            ...cert,
+            result: computeCertStatus(cert, courses, allPlans, activePlanIds, certified),
+          })),
         })),
       })),
     [courses, allPlans, activePlanIds, certified],
   )
 
-  const totalCertified = pathResults.reduce(
-    (sum, p) => sum + p.certs.filter((c) => c.result.status === "completed").length,
+  const totalCertified = categoryResults.reduce(
+    (sum, cat) =>
+      sum +
+      cat.levels.reduce(
+        (levelSum, level) =>
+          levelSum + level.certs.filter((c) => c.result.status === "completed").length,
+        0,
+      ),
     0,
   )
-  const totalCerts = pathResults.reduce((sum, p) => sum + p.certs.length, 0)
+  const totalCerts = categoryResults.reduce(
+    (sum, cat) => sum + cat.levels.reduce((levelSum, level) => levelSum + level.certs.length, 0),
+    0,
+  )
 
   return (
     <div className="space-y-4">
@@ -211,24 +223,31 @@ export default function CertPathView() {
         </div>
       </div>
 
-      {pathResults.map((path) => {
-        const Icon = PATH_ICONS[path.id] ?? Award
-        const isCollapsed = collapsed.has(path.id)
-        const pathCompleted = path.certs.filter((c) => c.result.status === "completed").length
+      {categoryResults.map((category) => {
+        const Icon = CATEGORY_ICONS[category.id] ?? Award
+        const isCollapsed = collapsed.has(category.id)
+        const categoryCompleted = category.levels.reduce(
+          (sum, level) => sum + level.certs.filter((c) => c.result.status === "completed").length,
+          0,
+        )
+        const categoryTotal = category.levels.reduce((sum, level) => sum + level.certs.length, 0)
 
         return (
           <div
-            key={path.id}
+            key={category.id}
             className="border border-border rounded-xl overflow-hidden bg-card/50"
           >
             <button
-              onClick={() => togglePath(path.id)}
+              onClick={() => toggleCategory(category.id)}
               className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-accent/30 transition-colors text-left"
             >
-              <Icon className="w-5 h-5 shrink-0" style={{ color: path.color }} />
-              <span className="font-semibold text-foreground flex-1">{path.name}</span>
+              <Icon className="w-5 h-5 shrink-0" style={{ color: category.color }} />
+              <div className="flex-1">
+                <span className="font-semibold text-foreground">{category.name}</span>
+                <p className="text-xs text-muted-foreground mt-0.5">{category.description}</p>
+              </div>
               <span className="text-xs text-muted-foreground tabular-nums mr-1">
-                {pathCompleted}/{path.certs.length}
+                {categoryCompleted}/{categoryTotal}
               </span>
               {isCollapsed ? (
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -238,118 +257,124 @@ export default function CertPathView() {
             </button>
 
             {!isCollapsed && (
-              <div className="px-5 pb-4 pt-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                {path.certs.map((cert) => {
-                  const badge = statusBadge(cert.result.status, label)
-                  const isManuallyCertified = certified.has(cert.id)
+              <div className="px-5 pb-4 pt-1 space-y-4">
+                {category.levels.map((level) => (
+                  <div key={level.id}>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                      {level.name}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {level.certs.map((cert) => {
+                        const badge = statusBadge(cert.result.status)
+                        const isManuallyCertified = certified.has(cert.id)
 
-                  return (
-                    <div
-                      key={cert.id}
-                      className={`border rounded-xl p-4 transition-colors ${
-                        cert.result.status === "completed"
-                          ? "border-green-500/20 bg-green-500/5"
-                          : "border-border bg-card"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-foreground truncate">
-                            {cert.name}
-                          </h3>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {cert.fullName}
-                          </p>
-                        </div>
-                        <span
-                          className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full border ${badge.className}`}
-                        >
-                          {badge.text}
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground/80 mb-2 line-clamp-2">
-                        {cert.description}
-                      </p>
-
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                        <span className="text-[10px] tracking-wider" title={`Difficulty ${cert.difficulty}/5`}>
-                          {difficultyDots(cert.difficulty)}
-                        </span>
-                        <span>{cert.provider}</span>
-                        {cert.examCost && <span>{cert.examCost}</span>}
-                      </div>
-
-                      {cert.result.status === "in-progress" && (
-                        <div className="space-y-1 mb-2">
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>
-                              {cert.result.pagesRead} / {cert.result.totalPages} pages
-                            </span>
-                            <span>{Math.round(cert.result.progress * 100)}%</span>
-                          </div>
-                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{
-                                width: `${Math.round(cert.result.progress * 100)}%`,
-                                backgroundColor: path.color,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {cert.result.status === "planned" && (
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Study plan created — start logging to track progress
-                        </p>
-                      )}
-
-                      {cert.result.status === "not-started" && cert.url && (
-                        <a
-                          href={cert.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline inline-block mb-2"
-                        >
-                          Learn more
-                        </a>
-                      )}
-
-                      {(cert.result.status === "in-progress" || cert.result.status === "planned") && (
-                        <button
-                          onClick={() => toggleCertified(cert.id)}
-                          className="text-xs text-green-400 hover:text-green-300 transition-colors mt-1 inline-flex items-center gap-1"
-                        >
-                          <CheckCircle className="w-3 h-3" />
-                          Mark as Certified
-                        </button>
-                      )}
-
-                      {isManuallyCertified && (
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Award className="w-3 h-3 text-green-400" />
-                            Manually certified
-                          </span>
-                          <button
-                            onClick={() => toggleCertified(cert.id)}
-                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        return (
+                          <div
+                            key={cert.id}
+                            className={`border rounded-xl p-4 transition-colors ${
+                              cert.result.status === "completed"
+                                ? "border-green-500/20 bg-green-500/5"
+                                : "border-border bg-card"
+                            }`}
                           >
-                            Undo
-                          </button>
-                        </div>
-                      )}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0">
+                                <h4 className="font-semibold text-foreground truncate">
+                                  {cert.name}
+                                </h4>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {cert.fullName}
+                                </p>
+                              </div>
+                              <span
+                                className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full border ${badge.className}`}
+                              >
+                                {badge.text}
+                              </span>
+                            </div>
 
-                      {(cert.result.status === "not-started" && cert.courseIdPrefixes.length > 0) && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          No matching study plan. Create a course with id starting with "{cert.courseIdPrefixes[0]}-..."
-                        </p>
-                      )}
+                            <p className="text-xs text-muted-foreground/80 mb-2 line-clamp-2">
+                              {cert.description}
+                            </p>
+
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                              <span>{cert.provider}</span>
+                              <span className="font-medium">{cert.cost}</span>
+                            </div>
+
+                            {cert.result.status === "in-progress" && (
+                              <div className="space-y-1 mb-2">
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                  <span>
+                                    {cert.result.pagesRead} / {cert.result.totalPages} pages
+                                  </span>
+                                  <span>{Math.round(cert.result.progress * 100)}%</span>
+                                </div>
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all"
+                                    style={{
+                                      width: `${Math.round(cert.result.progress * 100)}%`,
+                                      backgroundColor: category.color,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {cert.result.status === "planned" && (
+                              <p className="text-xs text-muted-foreground mb-2">
+                                Study plan created — start logging to track progress
+                              </p>
+                            )}
+
+                            {cert.result.status === "not-started" && cert.url && (
+                              <a
+                                href={cert.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline inline-block mb-2"
+                              >
+                                Learn more
+                              </a>
+                            )}
+
+                            {(cert.result.status === "in-progress" || cert.result.status === "planned") && (
+                              <button
+                                onClick={() => toggleCertified(cert.id)}
+                                className="text-xs text-green-400 hover:text-green-300 transition-colors mt-1 inline-flex items-center gap-1"
+                              >
+                                <CheckCircle className="w-3 h-3" />
+                                Mark as Certified
+                              </button>
+                            )}
+
+                            {isManuallyCertified && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Award className="w-3 h-3 text-green-400" />
+                                  Manually certified
+                                </span>
+                                <button
+                                  onClick={() => toggleCertified(cert.id)}
+                                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  Undo
+                                </button>
+                              </div>
+                            )}
+
+                            {(cert.result.status === "not-started" && cert.courseIdPrefixes.length > 0) && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                No matching study plan. Create a course with id starting with "{cert.courseIdPrefixes[0]}-..."
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </div>
