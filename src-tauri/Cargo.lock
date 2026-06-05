@@ -6549,7 +6549,7 @@ dependencies = [
 
 [[package]]
 name = "zero-trust-studyforcer"
-version = "2.4.2"
+version = "2.4.5"
 dependencies = [
  "atom_syndication",
  "chrono",

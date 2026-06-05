@@ -143,7 +143,7 @@ function generateGitReleaseNotes(ver, fullNotes, md5Hash, sizeMB) {
 
   out += `### Verification\n`
   out += `- TypeScript: \`npx tsc -b --noEmit\` clean\n`
-  out += `- Tests: 203 pass (10 files)\n`
+  out += `- Tests: 217 pass (10 files)\n`
   out += `- No new dependencies\n`
 
   return out

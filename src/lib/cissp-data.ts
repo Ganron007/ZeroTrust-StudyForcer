@@ -222,25 +222,34 @@ export function generateSchedule(
       >()
       for (const page of dayPages) {
         const entry = chapterMap.get(page.chapterId)
+        // v2.4.5 (root cause fix): always derive a numeric book page for each
+        // individual page. When the chapter has no `bookPageStart` (e.g. a
+        // front-matter / unnumbered chapter), the queue page number IS the
+        // book page. Previously these stayed `undefined`, forcing every
+        // consumer to fallback via `?? pagesStart`/`?? pagesEnd` and masking
+        // the bug at the engine level. Also fixed: `bps ?` treated `0` as
+        // missing; now uses `bps !== undefined`.
+        const bps = page.bookPageStart
+        const ctp = page.chapterTotalPages
+        const thisBookPage = bps !== undefined ? bps + page.pageNum - 1 : page.pageNum
         if (!entry) {
-          const bps = page.bookPageStart
-          const ctp = page.chapterTotalPages
           chapterMap.set(page.chapterId, {
             ...page,
             pagesStart: page.pageNum,
             pagesEnd: page.pageNum,
             pagesCount: 1,
-            bookPageStart: bps ? bps + page.pageNum - 1 : undefined,
-            bookPageEnd: bps ? bps + page.pageNum - 1 : undefined,
+            bookPageStart: thisBookPage,
+            bookPageEnd: thisBookPage,
             chapterBookStart: bps,
-            chapterBookEnd: bps && ctp ? bps + ctp - 1 : undefined,
+            chapterBookEnd: bps !== undefined && ctp !== undefined ? bps + ctp - 1 : undefined,
           })
         } else {
           entry.pagesEnd = page.pageNum
           entry.pagesCount++
-          if (entry.bookPageEnd && page.bookPageStart) {
-            entry.bookPageEnd = page.bookPageStart + page.pageNum - 1
-          }
+          // Always update bookPageEnd to the latest page's book position
+          // (even if the new page's bps differs from the first page's bps,
+          // the queue page number drives the offset within the chapter).
+          entry.bookPageEnd = thisBookPage
         }
       }
 
@@ -499,4 +508,69 @@ export function mergeSchedules(
   }
 
   return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/**
+ * Tag every chapter in a schedule with the given courseId + label.
+ * Used to make single-course (baseSchedule) view chapters match the shape
+ * of multi-course (mergedSchedule) view chapters, so downstream code
+ * (plansLoggedForDate, LogDialog, ScheduleList) can rely on a non-null
+ * courseId without conditional logic.
+ *
+ * Mirrors the tagging that mergeSchedules does internally (line 471).
+ * Returns a new schedule — does not mutate the input.
+ */
+export function tagChaptersWithCourseId(
+  schedule: StudyDay[],
+  courseId: string | undefined,
+  label: string,
+): StudyDay[] {
+  return schedule.map((day) => ({
+    ...day,
+    chapters: day.chapters.map((ch) => ({
+      ...ch,
+      courseId,
+      courseLabel: label,
+    })),
+  }))
+}
+
+/**
+ * Dedupe a schedule by date, with chapter-level dedup by chapterId within
+ * each day. Use this after `flatMap`-ing per-plan schedules for the same
+ * course: multiple active plans for the same course would otherwise produce
+ * duplicate `StudyDay` rows for the same calendar date, and even within a
+ * single day the same `chapterId` could appear twice (one per plan).
+ *
+ * Root-cause fix for v2.4.5: replaces the v2.4.4 ad-hoc dedup in App.tsx
+ * with a centralized, tested helper. Used by `baseSchedule` and
+ * `otherCoursesInfo` so both single-course and multi-course views share
+ * the same dedup semantics.
+ *
+ * - First occurrence of a date wins (preserves the first plan's dayNumber).
+ * - Within a date, the first occurrence of each `chapterId` wins.
+ * - Returns a new schedule; does not mutate the input.
+ * - Output is sorted by `date` ascending.
+ */
+export function dedupeScheduleByDate(schedule: StudyDay[]): StudyDay[] {
+  const byDate = new Map<string, StudyDay>()
+  for (const d of schedule) {
+    const existing = byDate.get(d.date)
+    if (!existing) {
+      byDate.set(d.date, { ...d, chapters: [...d.chapters] })
+      continue
+    }
+    const seenChapterIds = new Set(existing.chapters.map((c) => c.chapterId))
+    for (const ch of d.chapters) {
+      if (seenChapterIds.has(ch.chapterId)) continue
+      existing.chapters.push(ch)
+      seenChapterIds.add(ch.chapterId)
+    }
+    // Keep the earlier dayNumber (first plan to register this date).
+    if (d.dayNumber < existing.dayNumber) existing.dayNumber = d.dayNumber
+    // totalPages is the sum of the deduped chapters' pagesCount, not the
+    // raw totalPages from the second plan (which would double-count).
+    existing.totalPages = existing.chapters.reduce((s, c) => s + c.pagesCount, 0)
+  }
+  return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date))
 }

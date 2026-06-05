@@ -3,7 +3,7 @@
 A short tour of every `.md` file in this repo so you (or future-you, or anyone who stumbles
 in) can jump straight to the right place instead of opening files at random.
 
-**Last updated:** 2026-05-26 — for app version **2.4.2**.
+**Last updated:** 2026-06-02 — for app version **2.4.5**.
 
 ---
 
@@ -74,7 +74,7 @@ For the current testing picture, see `Arch/07-testing-architecture.md`.
 
 ## Quick sanity checks before you trust a doc
 
-1. **Version at the top.** Anything saying < `2.4.2` may be stale.
+1. **Version at the top.** Anything saying < `2.4.5` may be stale.
 2. **Cross-check with `Docs/CHANGELOG.md`** — entries dated after the doc's "Updated" line
    probably superseded what you're reading.
 3. **Verify code claims.** If a doc names a function/file, run a quick `Grep` before

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { planStorage, defaultPlan, type StudyPlan } from "../plan-storage"
 
 // Mock IS_TAURI to use web/localStorage path
@@ -20,6 +20,13 @@ Object.defineProperty(window, "localStorage", { value: localStorageMock })
 describe("planStorage — Persistence", () => {
   beforeEach(() => {
     localStorageMock.clear()
+    // v2.4.4: Use fake timers so the "ensure time difference" setTimeout
+    // resolves deterministically without real wall-clock waiting.
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it("getAll returns empty array when no plans exist", async () => {
@@ -38,11 +45,14 @@ describe("planStorage — Persistence", () => {
   })
 
   it("save updates existing plan preserving createdAt", async () => {
+    // v2.4.4: Pin Date.now() to a fixed instant so the second save() sees
+    // a strictly later timestamp without depending on real wall-clock timing.
+    vi.setSystemTime(new Date("2024-01-01T00:00:00.000Z"))
     const plan = defaultPlan("course-1", { name: "Original" })
     const saved = await planStorage.save(plan)
     const originalCreatedAt = saved.createdAt
 
-    await new Promise((r) => setTimeout(r, 10)) // ensure time difference
+    vi.setSystemTime(new Date("2024-01-01T00:00:00.020Z"))
 
     const updated = await planStorage.save({ ...saved, name: "Updated" })
     expect(updated.id).toBe(saved.id)

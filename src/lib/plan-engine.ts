@@ -121,8 +121,13 @@ export function syncStudyPlan(
   }
 
   // ── Anchor: VELOCITY ──────────────────────────────────────────────────────
-  const pace = Math.max(1, plan.pagesPerDay)
-  const neededDays = remaining > 0 ? Math.ceil(remaining / pace) : 0
+  // v2.4.4: Defensive guards — corrupt plan pagesPerDay could yield NaN/Infinity.
+  const safePagesPerDay = Number.isFinite(plan.pagesPerDay) && plan.pagesPerDay > 0
+    ? plan.pagesPerDay
+    : 1
+  const pace = Math.max(1, safePagesPerDay)
+  const safeRemaining = Number.isFinite(remaining) && remaining > 0 ? remaining : 0
+  const neededDays = safeRemaining > 0 ? Math.ceil(safeRemaining / pace) : 0
   const derivedEndDate = neededDays > 0
     ? nthStudyDay(effectiveFrom, neededDays, studyDaysArr, plan.skippedDays)
     : today

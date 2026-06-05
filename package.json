@@ -1,7 +1,7 @@
 {
   "name": "zero-trust-studyforcer",
   "private": true,
-  "version": "2.4.2",
+  "version": "2.4.5",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -10,6 +10,10 @@
     "build": "tsc -b && vite build",
     "build:adaptive": "cross-env VITE_VARIANT=adaptive tsc -b && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc -b --noEmit",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

@@ -26,14 +26,29 @@ let webCache: { plans: Record<string, StudyPlan>; activePlanIds: string[] } | nu
 
 function readWeb(): StorageData {
   if (webCache) return webCache
+  const plansRaw = localStorage.getItem(WEB_PLANS_KEY)
+  const activeRaw = localStorage.getItem(WEB_ACTIVE_KEY)
+  if (plansRaw === null && activeRaw === null) {
+    webCache = { plans: {}, activePlanIds: [] }
+    return webCache
+  }
   try {
-    const plansRaw = localStorage.getItem(WEB_PLANS_KEY)
-    const activeRaw = localStorage.getItem(WEB_ACTIVE_KEY)
     webCache = {
       plans: plansRaw ? JSON.parse(plansRaw) : {},
       activePlanIds: activeRaw ? JSON.parse(activeRaw) : [],
     }
-  } catch {
+  } catch (e) {
+    // v2.4.4: Don't silently return empty — preserve the corrupt blob for recovery.
+    const stamp = Date.now()
+    console.error("[database] localStorage parse failed, quarantining:", e)
+    if (plansRaw) {
+      try { localStorage.setItem(`${WEB_PLANS_KEY}.corrupt-${stamp}`, plansRaw) } catch { /* ignore */ }
+    }
+    if (activeRaw) {
+      try { localStorage.setItem(`${WEB_ACTIVE_KEY}.corrupt-${stamp}`, activeRaw) } catch { /* ignore */ }
+    }
+    try { localStorage.removeItem(WEB_PLANS_KEY) } catch { /* ignore */ }
+    try { localStorage.removeItem(WEB_ACTIVE_KEY) } catch { /* ignore */ }
     webCache = { plans: {}, activePlanIds: [] }
   }
   return webCache
@@ -122,8 +137,9 @@ export async function readStorage(): Promise<StorageData> {
         for (const row of planRows) {
           try {
             plans[row.id] = JSON.parse(row.data)
-          } catch {
-            /* skip corrupted record */
+          } catch (e) {
+            // v2.4.4: Surface per-row corruption instead of silently dropping.
+            console.warn(`[database] skipping corrupt plan row ${row.id}:`, e)
           }
         }
         const activePlanIds = (activeRows ?? [])

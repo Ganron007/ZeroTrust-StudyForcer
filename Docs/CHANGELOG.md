@@ -6,6 +6,58 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.4.5] — 2026-06-02
+
+### Fixed — Root-cause hardening (replaces v2.4.4 workarounds)
+The v2.4.4 patch included some defensive guards that were **workarounds** for underlying engine bugs. v2.4.5 fixes those bugs at the root so the workarounds are no longer needed.
+
+- **`bookPageStart` / `bookPageEnd` now always defined by the engine** (`src/lib/cissp-data.ts:206-252`). Previously, when a chapter had no `bookPageStart` (e.g., front-matter / unnumbered pages), the engine left `bookPageStart` and `bookPageEnd` as `undefined`, forcing every consumer to fallback via `?? pagesStart` / `?? pagesEnd`. The v2.4.4 `applyTempLog` `effectiveEnd` fallback was a workaround for this. **Root-cause fix**: the engine now derives `bookPageEnd` from the queue page number when the chapter has no book page data — `bps + pageNum - 1` if `bps` is defined, else `pageNum`. Also fixed the `bps ?` falsy-zero bug to `bps !== undefined`.
+- **`bookPageEnd` always tracks the last page in the chapter slice** (`src/lib/cissp-data.ts:251`). Previously, the update logic only fired when both `entry.bookPageEnd` and `page.bookPageStart` were defined — if the first page had `bps` but the second didn't, `bookPageEnd` stayed at the first page's book position, mismatching `pagesEnd`. **Root-cause fix**: every subsequent page now updates `bookPageEnd` to its own book position.
+- **New `dedupeScheduleByDate(schedule)` helper** (`src/lib/cissp-data.ts:555-579`). Centralized dedup-by-date + dedup-by-`chapterId`-within-day for multi-plan per-course schedules. The v2.4.4 inline dedup in `App.tsx` `baseSchedule` concatenated duplicates (would double-count pages if 2 plans had DIFFERENT chapters for the same date) and `otherCoursesInfo` had no dedup at all (same bug, just less visible). **Root-cause fix**: both views now call the same helper, with chapter-level dedup that handles the edge case correctly.
+- **Removed `1e9` upper-bound cap** from `validateLogEntry` (`src/App.tsx:471-477`). Arbitrary hack — the real upper bound is the schedule's `scheduleEnd` (checked in `applyTempLog`), and `pagesPerDay` math is bounded by the engine. The `Number.isFinite` / `Number.isInteger` / `< 0` checks are kept (they catch `NaN`, `Infinity`, non-integer, and negative inputs).
+- **Removed `effectiveEnd` dead code** from `applyTempLog` (`src/App.tsx:517-521`). Was unreachable — `scheduleEnd` is `lastCh.bookPageEnd ?? lastCh.pagesEnd` and `lastCh.pagesEnd` is always a number, so the `??` fallback never fired.
+
+### Added
+- **`dedupeScheduleByDate(schedule)`** in `src/lib/cissp-data.ts` — see above.
+- **10 new regression tests** in `cissp-helpers.test.ts` covering `dedupeScheduleByDate` (empty, single-day, multi-day dup, chapter-dedup, dayNumber preservation, sort, immutability) and the engine book-page fix (always-defined, pageNum fallback, last-page tracking).
+- **1 updated test** in `plan-engine.test.ts` (the "falls back to sequential pages" test now asserts the v2.4.5 root-cause behavior: `bookPageStart: 1`, `bookPageEnd: 20` instead of `undefined`).
+
+### Notes
+- 217 tests pass (10 new). TypeScript compiles clean. Vite build succeeds.
+- Zero engine semantics changed — only the bug fixes above. Queue math, anchor system, page sequencing, `mergeSchedules`, `tagChaptersWithCourseId`, `buildPageSequence`, and `syncStudyPlan` are **untouched**.
+- This is the "no workarounds" patch — every defensive guard added in v2.4.4 was re-examined; those that masked engine bugs are now fixed at the root, those that were genuine defensive guards (e.g., `plansLoggedForDate` `console.error`, `handleMarkDone` rollback logging, `database.ts` corrupt-row quarantine) are kept.
+
+## [2.4.4] — 2026-06-02
+
+### Fixed
+- **`baseSchedule` produced duplicate dates when multiple active plans share a course** (audit C1). `flatMap` of per-plan schedules would emit the same `date` twice (or more), then `mergedSchedule` would double the chapters. `src/App.tsx:262` now dedupes by date in a `Map`, concatenating chapters for plans covering the same day.
+- **`yesterdayTotal` ignored committed storage when temp state was partial** (audit M-3). The temp branch returned early on the first non-empty `tempLogs` entry, missing any committed `plan.dailyLog` rows from other courses. Now sums temp state per-course (deduped) and adds committed storage for any course not yet in temp state.
+- **`applyTempLog` used a non-null assertion** (audit C5) — replaced `schedule.find(d => d.date === date)!` with a real guard that logs and returns. Also added `Number.isFinite` / `Number.isInteger` / upper-bound validation in `validateLogEntry`.
+- **`plansLoggedForDate` would throw in the render path** (audit H5) — replaced `throw` with `console.error` + skip-chapter. Defensive guard preserved (the v2.4.3 fix prevents the upstream bug).
+- **`handleMarkDone` rollback silently swallowed failures** (audit M-31) — rollback failures now log + show a toast so the user can recover manually.
+- **`database.ts` silently dropped corrupt rows / localStorage payloads** (audit H1) — SQLite corrupt rows now `console.warn` with the row id; localStorage payloads are quarantined as `<key>.corrupt-<timestamp>` and the live key cleared (recoverable vs previous silent return-empty).
+- **Pace calculation could divide by NaN/Infinity** (audit M-33) — `syncStudyPlan` (`src/lib/plan-engine.ts:124`) now validates `plan.pagesPerDay` and `remaining` with `Number.isFinite` before division.
+- **Placeholder test in `ui-components.test.tsx:220`** (audit C1.3) — removed. No real assertion was being made.
+- **`plan-storage.test.ts` used real `setTimeout`** (audit H2.2) — replaced with `vi.setSystemTime` for deterministic time control.
+
+### Changed
+- **`package.json` scripts** (audit C1.2) — added `test`, `test:watch`, `test:coverage`, `typecheck` scripts (the `test` script was previously undocumented and only worked via direct `npx vitest`).
+
+### Notes
+- 207 tests pass (208 → 207: 1 placeholder test removed). TypeScript compiles clean. Vite build succeeds.
+- All fixes are **defensive guards** — no engine, storage, or schedule logic refactored.
+
+## [2.4.3] — 2026-05-26
+
+### Fixed
+- **"Chapter X has no courseId" runtime crash on single-course view.** `baseSchedule` builder (`src/App.tsx:250`) did not tag chapters with `courseId`/`courseLabel`, so the defensive throw in `plansLoggedForDate` (A5 fix from v2.3.1) fired whenever the user was in single-course view (the default for new installs). Extracted chapter-tagging into a pure helper `tagChaptersWithCourseId(schedule, courseId, label)` in `src/lib/cissp-data.ts`, mirroring the pattern `mergeSchedules` already uses for multi-course view. Both views now produce identical chapter shapes. The A5 throw is preserved as a defensive guard for any future code path that builds a schedule without tagging.
+
+### Added
+- **`tagChaptersWithCourseId(schedule, courseId, label)`** in `src/lib/cissp-data.ts` — pure helper that tags every chapter in a schedule with the given `courseId` and `courseLabel`. Returns a new schedule; does not mutate input. 5 new unit tests in `cissp-helpers.test.ts` cover tagging, immutability, undefined fallback, property preservation, and the regression scenario.
+
+### Notes
+- 208 tests pass (5 new, 203 existing). TypeScript compiles clean. Vite build succeeds.
+
 ## [2.4.2] — 2026-05-26
 
 ### Changed — Comprehensive Certification Roadmap Restructure

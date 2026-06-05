@@ -10,8 +10,12 @@ import {
   mergeSchedules,
   countStudyDays,
   nthStudyDay,
+  tagChaptersWithCourseId,
+  generateSchedule,
+  dedupeScheduleByDate,
 } from "../cissp-data"
 import type { Chapter, StudyDay } from "../cissp-data"
+import type { StudyPlan } from "../plan-storage"
 
 const CHAPTERS: Chapter[] = [
   { id: 1, title: "Ch 1", pages: 100, unitId: 1, unitName: "Unit 1", color: "#3b82f6" },
@@ -405,5 +409,209 @@ describe("nthStudyDay", () => {
     // Skip Apr 1, so 1st study day becomes Apr 2
     const result = nthStudyDay("2026-04-01", 1, [1, 2, 3, 4, 5], ["2026-04-01"])
     expect(result).toBe("2026-04-02")
+  })
+})
+
+describe("tagChaptersWithCourseId", () => {
+  const baseSchedule: StudyDay[] = [
+    {
+      date: "2026-04-01",
+      dayNumber: 1,
+      totalPages: 20,
+      chapters: [
+        { chapterId: 1, chapterTitle: "Ch 1", unit: 1, unitName: "U1", pagesStart: 1, pagesEnd: 20, pagesCount: 20, color: "#3b82f6" },
+        { chapterId: 2, chapterTitle: "Ch 2", unit: 1, unitName: "U1", pagesStart: 21, pagesEnd: 40, pagesCount: 20, color: "#3b82f6" },
+      ],
+    },
+  ]
+
+  it("tags every chapter with the given courseId and label", () => {
+    const tagged = tagChaptersWithCourseId(baseSchedule, "cissp-10th-ed", "CISSP")
+    expect(tagged[0].chapters[0].courseId).toBe("cissp-10th-ed")
+    expect(tagged[0].chapters[0].courseLabel).toBe("CISSP")
+    expect(tagged[0].chapters[1].courseId).toBe("cissp-10th-ed")
+    expect(tagged[0].chapters[1].courseLabel).toBe("CISSP")
+  })
+
+  it("does not mutate the input schedule", () => {
+    const tagged = tagChaptersWithCourseId(baseSchedule, "cissp-10th-ed", "CISSP")
+    expect(baseSchedule[0].chapters[0].courseId).toBeUndefined()
+    expect(baseSchedule[0].chapters[0].courseLabel).toBeUndefined()
+    expect(tagged[0].chapters[0]).not.toBe(baseSchedule[0].chapters[0])
+    expect(tagged[0]).not.toBe(baseSchedule[0])
+  })
+
+  it("accepts undefined courseId (for fallback safety)", () => {
+    const tagged = tagChaptersWithCourseId(baseSchedule, undefined, "Unknown")
+    expect(tagged[0].chapters[0].courseId).toBeUndefined()
+    expect(tagged[0].chapters[0].courseLabel).toBe("Unknown")
+  })
+
+  it("preserves all original chapter properties", () => {
+    const tagged = tagChaptersWithCourseId(baseSchedule, "cissp-10th-ed", "CISSP")
+    const orig = baseSchedule[0].chapters[0]
+    const out = tagged[0].chapters[0]
+    expect(out.chapterId).toBe(orig.chapterId)
+    expect(out.chapterTitle).toBe(orig.chapterTitle)
+    expect(out.unit).toBe(orig.unit)
+    expect(out.unitName).toBe(orig.unitName)
+    expect(out.pagesStart).toBe(orig.pagesStart)
+    expect(out.pagesEnd).toBe(orig.pagesEnd)
+    expect(out.pagesCount).toBe(orig.pagesCount)
+    expect(out.color).toBe(orig.color)
+  })
+
+  it("regression v2.4.3: every tagged chapter has a defined courseId (no more 'Chapter X has no courseId' crash)", () => {
+    const tagged = tagChaptersWithCourseId(baseSchedule, "cissp-10th-ed", "CISSP")
+    for (const day of tagged) {
+      for (const ch of day.chapters) {
+        expect(ch.courseId).toBeDefined()
+        expect(ch.courseId).not.toBe("")
+      }
+    }
+  })
+})
+
+describe("dedupeScheduleByDate (v2.4.5)", () => {
+  it("returns an empty array unchanged", () => {
+    expect(dedupeScheduleByDate([])).toEqual([])
+  })
+
+  it("returns a single-day schedule unchanged", () => {
+    const input: StudyDay[] = [
+      { date: "2026-04-01", dayNumber: 1, totalPages: 20, chapters: [
+        { chapterId: 1, chapterTitle: "Ch 1", unit: 1, unitName: "U1", pagesStart: 1, pagesEnd: 20, pagesCount: 20, color: "#3b82f6" },
+      ] },
+    ]
+    const out = dedupeScheduleByDate(input)
+    expect(out).toHaveLength(1)
+    expect(out[0].chapters).toHaveLength(1)
+  })
+
+  it("dedupes multiple StudyDay rows with the same date (multi-plan per-course)", () => {
+    const input: StudyDay[] = [
+      { date: "2026-04-01", dayNumber: 1, totalPages: 20, chapters: [
+        { chapterId: 1, chapterTitle: "Ch 1", unit: 1, unitName: "U1", pagesStart: 1, pagesEnd: 20, pagesCount: 20, color: "#3b82f6" },
+      ] },
+      { date: "2026-04-01", dayNumber: 1, totalPages: 20, chapters: [
+        { chapterId: 1, chapterTitle: "Ch 1", unit: 1, unitName: "U1", pagesStart: 1, pagesEnd: 20, pagesCount: 20, color: "#3b82f6" },
+      ] },
+      { date: "2026-04-02", dayNumber: 2, totalPages: 20, chapters: [
+        { chapterId: 2, chapterTitle: "Ch 2", unit: 1, unitName: "U1", pagesStart: 21, pagesEnd: 40, pagesCount: 20, color: "#3b82f6" },
+      ] },
+    ]
+    const out = dedupeScheduleByDate(input)
+    expect(out).toHaveLength(2)
+    const day1 = out.find((d) => d.date === "2026-04-01")!
+    expect(day1.chapters).toHaveLength(1)
+    expect(day1.totalPages).toBe(20) // not 40 (would-be-double-count fix)
+  })
+
+  it("dedupes chapters by chapterId within a day (different plans, overlapping chapters)", () => {
+    const input: StudyDay[] = [
+      { date: "2026-04-01", dayNumber: 1, totalPages: 30, chapters: [
+        { chapterId: 1, chapterTitle: "Ch 1", unit: 1, unitName: "U1", pagesStart: 1, pagesEnd: 20, pagesCount: 20, color: "#3b82f6" },
+        { chapterId: 2, chapterTitle: "Ch 2", unit: 1, unitName: "U1", pagesStart: 21, pagesEnd: 30, pagesCount: 10, color: "#3b82f6" },
+      ] },
+      { date: "2026-04-01", dayNumber: 1, totalPages: 30, chapters: [
+        { chapterId: 2, chapterTitle: "Ch 2", unit: 1, unitName: "U1", pagesStart: 21, pagesEnd: 30, pagesCount: 10, color: "#3b82f6" },
+        { chapterId: 3, chapterTitle: "Ch 3", unit: 1, unitName: "U1", pagesStart: 31, pagesEnd: 40, pagesCount: 10, color: "#3b82f6" },
+      ] },
+    ]
+    const out = dedupeScheduleByDate(input)
+    expect(out).toHaveLength(1)
+    const ids = out[0].chapters.map((c) => c.chapterId).sort()
+    expect(ids).toEqual([1, 2, 3])
+    expect(out[0].totalPages).toBe(40) // 20 + 10 + 10, not double-counted
+  })
+
+  it("preserves the earlier dayNumber when two plans register the same date", () => {
+    const input: StudyDay[] = [
+      { date: "2026-04-01", dayNumber: 5, totalPages: 20, chapters: [
+        { chapterId: 1, chapterTitle: "Ch 1", unit: 1, unitName: "U1", pagesStart: 1, pagesEnd: 20, pagesCount: 20, color: "#3b82f6" },
+      ] },
+      { date: "2026-04-01", dayNumber: 3, totalPages: 20, chapters: [
+        { chapterId: 1, chapterTitle: "Ch 1", unit: 1, unitName: "U1", pagesStart: 1, pagesEnd: 20, pagesCount: 20, color: "#3b82f6" },
+      ] },
+    ]
+    const out = dedupeScheduleByDate(input)
+    expect(out[0].dayNumber).toBe(3)
+  })
+
+  it("sorts the output by date ascending", () => {
+    const input: StudyDay[] = [
+      { date: "2026-04-03", dayNumber: 3, totalPages: 20, chapters: [] },
+      { date: "2026-04-01", dayNumber: 1, totalPages: 20, chapters: [] },
+      { date: "2026-04-02", dayNumber: 2, totalPages: 20, chapters: [] },
+    ]
+    const out = dedupeScheduleByDate(input)
+    expect(out.map((d) => d.date)).toEqual(["2026-04-01", "2026-04-02", "2026-04-03"])
+  })
+
+  it("does not mutate the input schedule", () => {
+    const input: StudyDay[] = [
+      { date: "2026-04-01", dayNumber: 1, totalPages: 20, chapters: [
+        { chapterId: 1, chapterTitle: "Ch 1", unit: 1, unitName: "U1", pagesStart: 1, pagesEnd: 20, pagesCount: 20, color: "#3b82f6" },
+      ] },
+    ]
+    const before = JSON.stringify(input)
+    dedupeScheduleByDate(input)
+    expect(JSON.stringify(input)).toBe(before)
+  })
+})
+
+describe("generateSchedule bookPage derivation (v2.4.5 root-cause fix)", () => {
+  // Chapter without bookPageStart — the v2.4.5 fix makes the engine fall
+  // back to the queue page number so bookPageStart/End are always defined.
+  const chaptersNoBookStart: Chapter[] = [
+    { id: 1, title: "Ch 1", pages: 10, unitId: 1, unitName: "Unit 1", color: "#3b82f6" },
+    { id: 2, title: "Ch 2", pages: 10, unitId: 1, unitName: "Unit 1", color: "#3b82f6" },
+  ]
+
+  it("always sets bookPageStart to a number, even when chapter has no bookPageStart", () => {
+    const plan: StudyPlan = {
+      id: "p1", courseId: "c1", name: "Test", unitOrder: [], startingChapterId: 1,
+      pagesPerDay: 5, startDate: "2026-04-01", studyDays: [1,2,3,4,5], skippedDays: [],
+      dailyLog: {}, chapterStartOverrides: {}, createdAt: "2026-04-01", updatedAt: "2026-04-01",
+      anchor: "pagesPerDay",
+    }
+    const { schedule } = generateSchedule(plan, chaptersNoBookStart, "2026-04-01", 5, null)
+    for (const day of schedule) {
+      for (const ch of day.chapters) {
+        expect(ch.bookPageStart).toBeDefined()
+        expect(ch.bookPageEnd).toBeDefined()
+        expect(typeof ch.bookPageStart).toBe("number")
+        expect(typeof ch.bookPageEnd).toBe("number")
+      }
+    }
+  })
+
+  it("falls back bookPageStart to the queue page number when chapter has no bookPageStart", () => {
+    const plan: StudyPlan = {
+      id: "p1", courseId: "c1", name: "Test", unitOrder: [], startingChapterId: 1,
+      pagesPerDay: 5, startDate: "2026-04-01", studyDays: [1,2,3,4,5], skippedDays: [],
+      dailyLog: {}, chapterStartOverrides: {}, createdAt: "2026-04-01", updatedAt: "2026-04-01",
+      anchor: "pagesPerDay",
+    }
+    const { schedule } = generateSchedule(plan, chaptersNoBookStart, "2026-04-01", 5, null)
+    const day1 = schedule.find((d) => d.date === "2026-04-01")!
+    expect(day1.chapters[0].bookPageStart).toBe(day1.chapters[0].pagesStart)
+  })
+
+  it("always sets bookPageEnd to the last page in the chapter slice (not just first page)", () => {
+    const plan: StudyPlan = {
+      id: "p1", courseId: "c1", name: "Test", unitOrder: [], startingChapterId: 1,
+      pagesPerDay: 5, startDate: "2026-04-01", studyDays: [1,2,3,4,5], skippedDays: [],
+      dailyLog: {}, chapterStartOverrides: {}, createdAt: "2026-04-01", updatedAt: "2026-04-01",
+      anchor: "pagesPerDay",
+    }
+    const { schedule } = generateSchedule(plan, chaptersNoBookStart, "2026-04-01", 5, null)
+    const day1 = schedule.find((d) => d.date === "2026-04-01")!
+    const day2 = schedule.find((d) => d.date === "2026-04-02")!
+    expect(day1.chapters[0].bookPageStart).toBe(1)
+    expect(day1.chapters[0].bookPageEnd).toBe(5)
+    expect(day1.chapters[0].bookPageEnd).toBe(day1.chapters[0].pagesEnd)
+    expect(day2.chapters[0].bookPageStart).toBe(6)
+    expect(day2.chapters[0].bookPageEnd).toBe(10)
   })
 })

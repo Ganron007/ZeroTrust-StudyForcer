@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
-import { getTotalPages, mergeSchedules, DEFAULT_STUDY_DAYS, type StudyDay, generateSchedule, getOrderedChapters } from "./lib/cissp-data"
+import { getTotalPages, mergeSchedules, DEFAULT_STUDY_DAYS, type StudyDay, generateSchedule, getOrderedChapters, tagChaptersWithCourseId, dedupeScheduleByDate } from "./lib/cissp-data"
 import { planStorage, type StudyPlan } from "./lib/plan-storage"
 import { usePlanStore } from "./lib/plan-store"
 import { syncStudyPlan } from "./lib/plan-engine"
@@ -108,14 +108,28 @@ function AppContent() {
     const m = String(d.getMonth() + 1).padStart(2, "0")
     const day = String(d.getDate()).padStart(2, "0")
     const yStr = `${y}-${m}-${day}`
-    // Temp state first (pending Mark Done)
     const tempLogs = dailyLog[yStr]
     if (tempLogs && Object.keys(tempLogs).length > 0) {
-      return Object.values(tempLogs).reduce((s, l) => s + l.pagesRead, 0)
+      // v2.4.4: Sum temp state per-course (deduped) so multiple plans sharing
+      // a course don't double-count, then add committed storage for any
+      // courses that aren't in temp state yet.
+      const seenCourses = new Set<string>()
+      let total = 0
+      for (const [courseId, l] of Object.entries(tempLogs)) {
+        if (seenCourses.has(courseId)) continue
+        seenCourses.add(courseId)
+        total += l.pagesRead
+      }
+      for (const plan of allPlans) {
+        if (seenCourses.has(plan.courseId)) continue
+        if (plan.dailyLog[yStr]) {
+          total += plan.dailyLog[yStr].pagesRead
+          seenCourses.add(plan.courseId)
+        }
+      }
+      return total
     }
-    // Fall back to committed storage — dedupe by courseId so plans
-    // sharing the same course don't double-count (v2.3.0 writes the same
-    // pagesRead to every active plan for a course).
+    // No temp state — committed storage only. Dedupe by courseId.
     const seenCourses = new Set<string>()
     let total = 0
     for (const plan of allPlans) {
@@ -244,35 +258,40 @@ function AppContent() {
 
   // ── Auto-save REMOVED — persistence is handled by Zustand store actions ──
 
-  // ── Schedule generation ─────────────────────────────────────────────────────
-  // Merge all active plans for the current course into one schedule.
-  // Uses anchor-aware generator that derives pages/day at generation time.
-  const baseSchedule = useMemo(() => {
-    if (!activeCourse) return [] as StudyDay[]
-    const activePlansForCourse = plans.filter(
-      (p) => p.courseId === activeCourseId && activePlanIds.includes(p.id),
-    )
-    const schedule: StudyDay[] = []
-    const today = localToday()
-
-    for (const plan of activePlansForCourse) {
-      const planChapters = getOrderedChapters(activeCourse, plan.unitOrder)
-      const params = syncStudyPlan(plan, planChapters, today)
-      const result = generateSchedule(plan, planChapters, today, params.pagesPerDay, params.endDate)
-      for (const day of result.schedule) {
-        schedule.push(day)
-      }
-    }
-    schedule.sort((a, b) => a.date.localeCompare(b.date))
-    return schedule
-  }, [plans, activeCourseId, activePlanIds, activeCourse])
-
   // Short label for a course id (shortens the two seed courses; falls back to name).
+  // Declared before baseSchedule so baseSchedule can call it on first render.
   const courseLabel = useCallback((id: string) => {
     if (id === "cissp-10th-ed") return "CISSP"
     if (id === "comptia-secai-cy0-001") return "SecAI+"
     return courses.find((c) => c.id === id)?.name ?? id
   }, [courses])
+
+  // ── Schedule generation ─────────────────────────────────────────────────────
+  // Merge all active plans for the current course into one schedule.
+  // Uses anchor-aware generator that derives pages/day at generation time.
+  // Tags every chapter with courseId/courseLabel so single-course view
+  // matches multi-course view (mergeSchedules does this for merged view).
+  // See tagChaptersWithCourseId in src/lib/cissp-data.ts and the v2.4.3
+  // fix for the "Chapter X has no courseId" runtime crash.
+  const baseSchedule = useMemo(() => {
+    if (!activeCourse) return [] as StudyDay[]
+    const activePlansForCourse = plans.filter(
+      (p) => p.courseId === activeCourseId && activePlanIds.includes(p.id),
+    )
+    const today = localToday()
+    const label = courseLabel(activeCourseId ?? "")
+    const taggedCourseId = activeCourseId ?? undefined
+
+    const days = activePlansForCourse.flatMap((plan) => {
+      const planChapters = getOrderedChapters(activeCourse, plan.unitOrder)
+      const params = syncStudyPlan(plan, planChapters, today)
+      const result = generateSchedule(plan, planChapters, today, params.pagesPerDay, params.endDate)
+      return tagChaptersWithCourseId(result.schedule, taggedCourseId, label)
+    })
+    // v2.4.5: Use the centralized dedup helper from cissp-data.ts
+    // (replaces the v2.4.4 inline dedup that concatenated duplicates).
+    return dedupeScheduleByDate(days)
+  }, [plans, activeCourseId, activePlanIds, activeCourse, courseLabel])
 
   // For each selected non-active course, merge ALL active plans' schedules.
   // The primary active plan provides logging metadata.
@@ -295,7 +314,10 @@ function AppContent() {
         const result = generateSchedule(plan, planChapters, today, params.pagesPerDay, params.endDate)
         mergedSched.push(...result.schedule)
       }
-      mergedSched.sort((a, b) => a.date.localeCompare(b.date))
+      // v2.4.5: Apply the same dedup as baseSchedule — multi-plan per-course
+      // would otherwise produce duplicate StudyDay rows (root-cause fix for
+      // the same bug fixed in baseSchedule in v2.4.4).
+      const dedupedSched = dedupeScheduleByDate(mergedSched)
 
       // Primary active plan for logging metadata
       const primaryPlan = activePlansForCourse[0]
@@ -303,7 +325,7 @@ function AppContent() {
         courseId: id,
         courseName: courseLabel(id),
         chapters: getOrderedChapters(cfg, primaryPlan.unitOrder),
-        schedule: mergedSched,
+        schedule: dedupedSched,
       })
     }
     return out
@@ -441,6 +463,13 @@ function AppContent() {
   // ── Handlers ─────────────────────────────────────────────────────────────────
   // Validate a page log entry (shared by LogDialog and direct log)
   const validateLogEntry = (date: string, courseId: string, pageValue: number): boolean => {
+    // v2.4.5 (root-cause fix): Reject NaN/Infinity/non-integer/negative. The
+    // upper-bound cap is checked in applyTempLog via `pageValue > scheduleEnd`,
+    // which is the *real* bound derived from the schedule — no arbitrary cap.
+    if (!Number.isFinite(pageValue) || !Number.isInteger(pageValue) || pageValue < 0) {
+      console.error("[validateLogEntry] invalid pageValue:", pageValue)
+      return false
+    }
     const daySchedule = schedule.find(d => d.date === date)
     if (!daySchedule) return false
     const planChapters = daySchedule.chapters.filter(ch => ch.courseId === courseId)
@@ -456,10 +485,24 @@ function AppContent() {
 
   // Apply a validated temp log entry
   const applyTempLog = (date: string, courseId: string, pageValue: number) => {
-    const daySchedule = schedule.find(d => d.date === date)!
+    // v2.4.4: Replaced `!` with a real guard.
+    const daySchedule = schedule.find(d => d.date === date)
+    if (!daySchedule) {
+      console.error("[applyTempLog] missing daySchedule for date:", date)
+      return
+    }
     const planChapters = daySchedule.chapters.filter(ch => ch.courseId === courseId)
+    if (planChapters.length === 0) {
+      console.error("[applyTempLog] no chapters for courseId:", courseId, "on date:", date)
+      return
+    }
     const firstCh = planChapters[0]
     const lastCh = planChapters[planChapters.length - 1]
+    // v2.4.5 (root-cause fix): bookPageStart/bookPageEnd are now always
+    // defined by the engine (queue page used when chapter has no book
+    // page data), so the `?? pagesStart` / `?? pagesEnd` fallbacks are no
+    // longer needed for engine output. We still keep them as defense-in-depth
+    // for any external data injected through the storage layer.
     const scheduleStart = firstCh.bookPageStart ?? firstCh.pagesStart
     const scheduleEnd = lastCh.bookPageEnd ?? lastCh.pagesEnd
     const pagesRead = pageValue - scheduleStart
@@ -495,12 +538,17 @@ function AppContent() {
   const plansLoggedForDate = useCallback((date: string): boolean => {
     const daySchedule = schedule.find(d => d.date === date)
     if (!daySchedule || daySchedule.chapters.length === 0) return true
-    // Every merged-schedule chapter must have a courseId. If any is missing,
-    // assert it so we surface the bug upstream instead of silently dropping it.
-    const planIds = new Set(daySchedule.chapters.map(ch => {
-      if (!ch.courseId) throw new Error(`Chapter ${ch.chapterId} has no courseId`)
-      return ch.courseId
-    }))
+    // v2.4.4: Defensive — log + treat as "logged" instead of throwing in the
+    // render path. The v2.4.3 baseSchedule fix prevents this in practice.
+    const planIds = new Set<string>()
+    for (const ch of daySchedule.chapters) {
+      if (!ch.courseId) {
+        console.error(`[plansLoggedForDate] chapter ${ch.chapterId} has no courseId on ${date}`)
+        continue
+      }
+      planIds.add(ch.courseId)
+    }
+    if (planIds.size === 0) return true
     const dateLogs = dailyLog[date]
     if (!dateLogs) return false
     for (const planId of planIds) {
@@ -551,7 +599,13 @@ function AppContent() {
           console.error(`Failed to persist Mark Done for plan ${plan.id}:`, e)
           // Roll back successful writes so storage doesn't get partially committed.
           for (const done of completedWrites) {
-            try { await storeUpdatePlan(done.original) } catch { /* best-effort rollback */ }
+            try {
+              await storeUpdatePlan(done.original)
+            } catch (rollbackErr) {
+              // v2.4.4: Surface rollback failures so the user can recover manually.
+              console.error(`[handleMarkDone] rollback also failed for plan ${done.planId}:`, rollbackErr)
+              showToast(formatStr(tToast("failedToSave"), { label: courseLabel(done.planId) }), "break")
+            }
           }
           showToast(formatStr(tToast("failedToSave"), { label: courseLabel(courseId) }), "break")
           return

@@ -608,8 +608,13 @@ describe("Book page ranges in schedule", () => {
     const params = syncStudyPlan(plan, chaptersNoBook, "2026-04-01")
     const result = generateSchedule(plan, chaptersNoBook, "2026-04-01", params.pagesPerDay, params.endDate)
     const day1 = result.schedule[0]
-    expect(day1.chapters[0].bookPageStart).toBeUndefined()
-    expect(day1.chapters[0].bookPageEnd).toBeUndefined()
+    // v2.4.5 (root-cause fix): when a chapter has no bookPageStart, the
+    // engine now derives bookPageStart/End from the queue page number
+    // (instead of leaving them undefined). This eliminates the need for
+    // every consumer to fallback via `?? pagesStart`/`?? pagesEnd` and
+    // matches the v2.4.5 regression test in cissp-helpers.test.ts.
+    expect(day1.chapters[0].bookPageStart).toBe(1)
+    expect(day1.chapters[0].bookPageEnd).toBe(20)
     expect(day1.chapters[0].pagesStart).toBe(1)
     expect(day1.chapters[0].pagesEnd).toBe(20)
   })

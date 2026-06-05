@@ -216,12 +216,3 @@ describe("PlannerPage UI", () => {
     expect(screen.getByTitle("Export")).toBeInTheDocument()
   })
 })
-
-describe("DailyLogModal UI", () => {
-  it("placeholder for log modal tests", () => {
-    // DailyLogModal is tightly coupled to App.tsx state.
-    // Extracting it for isolated testing would require significant refactoring.
-    // For now, the E2E flow tests cover the log → recompute behavior.
-    expect(true).toBe(true)
-  })
-})
