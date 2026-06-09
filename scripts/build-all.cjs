@@ -45,7 +45,7 @@ try {
   console.log(`  -> MD5: ${md5File} → ${md5}`)
 
   // ── Release notes (from CHANGELOG) ──────────────────────────────────────
-  const changelogPath = path.join(__dirname, '..', 'Docs', 'CHANGELOG.md')
+  const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md')
   const changelog = fs.readFileSync(changelogPath, 'utf8')
   const versionHeader = `## [${version}]`
   const startIdx = changelog.indexOf(versionHeader)

@@ -1,6 +1,6 @@
 # Testing Architecture
 
-**Current:** 203 tests, 10 files, all passing  
+**Current:** 421 tests, 25 files, all passing  
 **Runner:** Vitest v4.1.5  
 **Environment:** jsdom  
 **Framework:** @testing-library/react + jest-dom + user-event
@@ -20,9 +20,28 @@ src/lib/__tests__/
 ├── export-utils.test.ts         # 12 — JSON import/export round-trips
 ├── date-picker.test.tsx         # 10 — react-day-picker wiring
 ├── planner-page.test.tsx        # 9  — PlannerPage create/edit/delete
-└── ui-components.test.tsx       # 5  — misc component smoke tests
+├── ui-components.test.tsx       # 5  — misc component smoke tests
+├── sanitize-svg.test.ts         # 13 — SVG XSS sanitization (scriptKiddie + h2.3)
+├── plan-store.test.ts           # 6  — Zustand store actions (h2.4)
+├── database.test.ts             # 5  — readStorage / writeStorage / quota (h2.5)
+├── course-storage.test.ts       # 10 — loadAllCourses / loadCourse / logos (h2.6)
+├── personality.test.ts          # ~80 — all 13 modes × 7 fallback chains (h2.7)
+└── auto-backup.test.ts          # 5  — auto-backup write/prune (Phase 2.4)
+└── notifications.test.ts        # 9  — notification settings + scheduler (Phase 2.2)
+└── shortcuts.test.ts            # 8  — keyboard shortcuts catalog (Phase 2.5)
+
+src/hooks/__tests__/
+└── useFocusTrap.test.tsx        # 6  — focus management hook (Phase 2.5)
+
+src/components/__tests__/
+├── StreakChip.test.tsx          # 9  — header streak chip (Phase 2.3)
+├── CourseBuilderExport.test.tsx # 3  — Course Builder JSON export (Phase 2.6)
+├── ReportGenerator.test.tsx      # 6  — CSV/JSON/PDF report export (Phase 2.1)
+├── NotificationSettingsPanel.test.tsx # 5  — notification settings UI (Phase 2.2)
+├── KeyboardShortcutsCheatsheet.test.tsx # 8  — cheatsheet modal (Phase 2.5)
+└── axe-audit.test.tsx           # 1  — automated WCAG audit (Phase 2.5)
 ```
-Total: **203 tests / 10 files**, all passing at v2.3.1. Personality layer has manual QA coverage; automated `label()`/`toast()`/`empty()` fallback chain tests are in the backlog.
+Total: **421 tests / 25 files**, all passing at v2.4.11. Personality layer now has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI.
 
 ---
 

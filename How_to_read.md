@@ -3,7 +3,7 @@
 A short tour of every `.md` file in this repo so you (or future-you, or anyone who stumbles
 in) can jump straight to the right place instead of opening files at random.
 
-**Last updated:** 2026-06-02 — for app version **2.4.5**.
+**Last updated:** 2026-06-09 — for app version **2.4.11**.
 
 ---
 
@@ -11,9 +11,9 @@ in) can jump straight to the right place instead of opening files at random.
 
 | You are… | Read in this order |
 |---|---|
-| **Brand-new to the project** | `Docs/README.md` → `Arch/01-executive-overview.md` → `Docs/ARCHITECTURE.md` |
-| **Returning reviewer / future-you** | `Docs/CHANGELOG.md` |
-| **About to change code** | `Docs/ARCHITECTURE.md` (rules) → the relevant `Arch/0X-*.md` |
+| **Brand-new to the project** | `README.md` → `Arch/01-executive-overview.md` → `ARCHITECTURE.md` |
+| **Returning reviewer / future-you** | `CHANGELOG.md` |
+| **About to change code** | `ARCHITECTURE.md` (rules) → the relevant `Arch/0X-*.md` |
 | **Debugging a data-flow issue** | `Arch/03-data-flow.md` + `Arch/05-state-management.md` |
 | **Touching the anchor / schedule math** | `Arch/06-anchor-system.md` + `Arch/04-control-flow.md` |
 | **Adding or fixing tests** | `Arch/07-testing-architecture.md` (philosophy) |
@@ -31,15 +31,15 @@ in) can jump straight to the right place instead of opening files at random.
 
 ---
 
-## `Docs/` — top-level reference
+## Root-level docs
 
 These are the human-facing project docs. Read these first.
 
 | File | Purpose | Last refresh |
 |---|---|---|
-| `Docs/README.md` | What the app does, project layout, dev commands. | Updated for v2.3.1 |
-| `Docs/ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.3.1 |
-| `Docs/CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through 2.3.1 — 2026-05-17 |
+| `README.md` | What the app does, project layout, dev commands. | Updated for v2.4.10 |
+| `ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.4.10 |
+| `CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through v2.4.10 — 2026-06-05 |
 
 Internal docs (kept in `Docs/Internal/`, not committed): `BUGS.md`, `ROADMAP.md`, `VISION.md`, `TESTING-REPORT.md`, `ZTSF_PERSONALITY_LAYER.md`, `SUGGESTIONS.md`.
 
@@ -47,7 +47,7 @@ Internal docs (kept in `Docs/Internal/`, not committed): `BUGS.md`, `ROADMAP.md`
 
 ## `Arch/` — deep architecture series
 
-Seven numbered docs + an index. Cross-linked from `Docs/ARCHITECTURE.md`. Open these only
+Seven numbered docs + an index. Cross-linked from `ARCHITECTURE.md`. Open these only
 when you need depth beyond the top-level docs.
 
 | File | Topic |
@@ -61,9 +61,9 @@ when you need depth beyond the top-level docs.
 | `Arch/06-anchor-system.md` | Velocity vs Deadline anchors; queue + pointer math |
 | `Arch/07-testing-architecture.md` | Test pyramid, mocking strategy, coverage philosophy |
 
-**Note on duplication:** `Docs/ARCHITECTURE.md` and `Arch/*` overlap on purpose. `Docs/` is
+**Note on duplication:** `ARCHITECTURE.md` and `Arch/*` overlap on purpose. `ARCHITECTURE.md` is
 the **short, authoritative** version (rules + Q&A); `Arch/` is the **long, illustrated**
-version (diagrams + decision trees). Read `Docs/ARCHITECTURE.md` first; dive into `Arch/`
+version (diagrams + decision trees). Read `ARCHITECTURE.md` first; dive into `Arch/`
 when something needs more context.
 
 ---
@@ -74,8 +74,8 @@ For the current testing picture, see `Arch/07-testing-architecture.md`.
 
 ## Quick sanity checks before you trust a doc
 
-1. **Version at the top.** Anything saying < `2.4.5` may be stale.
-2. **Cross-check with `Docs/CHANGELOG.md`** — entries dated after the doc's "Updated" line
+1. **Version at the top.** Anything saying < `2.4.10` may be stale.
+2. **Cross-check with `CHANGELOG.md`** — entries dated after the doc's "Updated" line
    probably superseded what you're reading.
 3. **Verify code claims.** If a doc names a function/file, run a quick `Grep` before
    relying on it.

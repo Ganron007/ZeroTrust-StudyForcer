@@ -4,7 +4,7 @@
 **System:** ZeroTrust.StudyForcer Desktop Application  
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State:** Zustand 5 + SQLite / localStorage  
-**Version:** 2.3.1 (13 personality modes, bug fixes)
+**Version:** 2.4.11 (46 audit bugs fixed, all critical/high resolved)
 
 ---
 
@@ -18,7 +18,7 @@
 | 04 | `04-control-flow.md` | Decision trees for logging, queue advancement, autodjust |
 | 05 | `05-state-management.md` | Zustand + SQLite architecture, persistence patterns |
 | 06 | `06-anchor-system.md` | Auto-adjust engine: effective vs planned slice sizes |
-| 07 | `07-testing-architecture.md` | Test pyramid, 203 tests, coverage targets |
+| 07 | `07-testing-architecture.md` | Test pyramid, 421 tests, coverage targets |
 
 ---
 
@@ -30,8 +30,8 @@
 | Debugging data flow | `03-data-flow.md` + `05-state-management.md` |
 | Understanding auto-adjust | `06-anchor-system.md` + `04-control-flow.md` |
 | Adding tests | `07-testing-architecture.md` |
-| Recent decisions / Q&A history | `../Docs/ARCHITECTURE.md` |
-| Version log | `../Docs/CHANGELOG.md` |
+| Recent decisions / Q&A history | `../ARCHITECTURE.md` |
+| Version log | `../CHANGELOG.md` |
 
 ---
 
