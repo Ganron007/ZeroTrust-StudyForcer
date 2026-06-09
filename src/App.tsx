@@ -6,6 +6,7 @@ import { syncStudyPlan } from "./lib/plan-engine"
 import { CourseProvider, useCourse } from "./components/CourseProvider"
 import { sanitizeSvg } from "./lib/sanitize-svg"
 import ScheduleView from "./components/ScheduleView"
+import ExamCountdownBand from "./components/ExamCountdownBand"
 import ScheduleList from "./components/ScheduleList"
 import ProgressDashboard from "./components/ProgressDashboard"
 import CertPathView from "./components/CertPathView"
@@ -17,6 +18,11 @@ import CourseBuilder from "./components/CourseBuilder"
 import DailyBriefing from "./components/DailyBriefing"
 import SidebarLabsStatus from "./components/SidebarLabsStatus"
 import SidebarNewsHighlights from "./components/SidebarNewsHighlights"
+import StreakChip from "./components/StreakChip"
+import NotificationSettingsPanel from "./components/NotificationSettingsPanel"
+import KeyboardShortcutsCheatsheet from "./components/KeyboardShortcutsCheatsheet"
+import { scheduleDaily, loadSettings as loadNotificationSettings, sendNotification } from "./lib/notifications"
+import { useFocusTrap } from "./hooks/useFocusTrap"
 import { ThemeProvider, useTheme } from "./components/ThemeProvider"
 import StudyTimer from "./components/StudyTimer"
 import WallClock from "./components/WallClock"
@@ -26,7 +32,7 @@ import type { CourseConfig, Chapter } from "./types/course"
 import { computeTotalPages, getTrackingLabels } from "./types/course"
 import {
   LayoutGrid, List, BarChart3, Settings,
-  Sun, Moon, CalendarCheck,
+  Sun, Moon, CalendarCheck, Bell,
   Maximize, Minimize, GraduationCap, Award,
   FlaskConical, Check, Palette, RefreshCw,
   Download, Upload, Newspaper, Trash2,
@@ -39,6 +45,12 @@ import TipPopup from "./components/TipPopup"
 import { createTipPicker } from "./lib/tips"
 import { usePersonality } from "./components/PersonalityProvider"
 import { formatStr, MODE_OPTIONS, type PersonalityMode } from "./lib/personality"
+import { runAutoBackup } from "./lib/auto-backup"
+import { localToday } from "./lib/date-utils"
+import { migrateLegacyKeys } from "./lib/storage-keys"
+
+// X2: Migrate legacy bare localStorage keys to ztsf: prefix on first boot
+migrateLegacyKeys()
 
 const THEME_OPTIONS: { id: Theme; label: string; swatch: string }[] = [
   { id: "light", label: "Light", swatch: "#fafafa" },
@@ -47,14 +59,6 @@ const THEME_OPTIONS: { id: Theme; label: string; swatch: string }[] = [
   { id: "dark", label: "Dark", swatch: "#0a0a0a" },
 ]
 
-function localToday(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
-}
-
 type Tab = "calendar" | "list" | "progress" | "cert-path"
 
 function AppContent() {
@@ -62,6 +66,22 @@ function AppContent() {
   const { label, toast: tToast, empty, greeting, loading, mode, setMode } = usePersonality()
   const [showThemePicker, setShowThemePicker] = useState(false)
   const [showModePicker, setShowModePicker] = useState(false)
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false)
+  const [showCheatsheet, setShowCheatsheet] = useState(false)
+
+  // Phase 2.5: Focus traps for popovers
+  const themePopoverRef = useFocusTrap<HTMLDivElement>({
+    active: showThemePicker,
+    onEscape: () => setShowThemePicker(false),
+  })
+  const modePopoverRef = useFocusTrap<HTMLDivElement>({
+    active: showModePicker,
+    onEscape: () => setShowModePicker(false),
+  })
+  const notifPopoverRef = useFocusTrap<HTMLDivElement>({
+    active: showNotificationSettings,
+    onEscape: () => setShowNotificationSettings(false),
+  })
   const {
     activeCourse,
     activeCourseId,
@@ -211,6 +231,28 @@ function AppContent() {
     loadPlans()
   }, [loadPlans, courseLoading])
 
+  // Phase 2.4: Auto-backup. Snapshot the current plan set to
+  // <appData>/backups/YYYY-MM-DD.json on every plan-store mutation.
+  // The Rust command is idempotent (no-op if today's file exists), and
+  // we throttle to one backup per day. Initial run is triggered after
+  // the first plan load completes.
+  const initialBackupRanRef = useRef(false)
+  useEffect(() => {
+    if (allPlans.length === 0 && !initialBackupRanRef.current) {
+      // Still loading — wait until we have at least one plan snapshot
+      // (or until loadPlans finishes, in which case we backup an empty set).
+      return
+    }
+    if (!initialBackupRanRef.current) {
+      // First valid run — back up immediately.
+      initialBackupRanRef.current = true
+      runAutoBackup()
+      return
+    }
+    // Subsequent runs are throttled inside runAutoBackup (one-per-day).
+    runAutoBackup()
+  }, [allPlans, activePlanIds])
+
   // Reconcile primaryActivePlanId when the active course changes. switchCourse
   // doesn't touch the primary, so after a course switch the primary often points
   // at a plan for the previous course — which makes the stats bar look broken
@@ -255,6 +297,30 @@ function AppContent() {
       remindedRef.current.add("labs-today")
     }
   }, [isLoading, courseLoading, studyDays, completedDays])
+
+  // Phase 2.2: Native OS notification scheduler. Re-arms whenever the
+  // user toggles the setting or changes the time. The callback is invoked
+  // at the configured daily time, even if the app is in the background.
+  useEffect(() => {
+    const settings = loadNotificationSettings()
+    const cancel = scheduleDaily(settings, async (today) => {
+      // If today's already logged, skip the notification.
+      const hasLoggedToday = completedDays.has(today)
+      if (hasLoggedToday) return
+      const sent = await sendNotification(
+        label("notificationReminderTitle"),
+        formatStr(tToast("notificationReminderBody"), { date: today }),
+      )
+      if (!sent) {
+        // Fall back to in-app toast if native send failed.
+        showToast(formatStr(tToast("notificationReminderBody"), { date: today }), "info")
+      }
+    })
+    return cancel
+    // Re-arm whenever the settings panel opens (the user may have
+    // toggled enabled/time). We also depend on `label` so personality
+    // changes re-arm with the new template.
+  }, [showNotificationSettings, label, tToast, completedDays])
 
   // ── Auto-save REMOVED — persistence is handled by Zustand store actions ──
 
@@ -690,11 +756,32 @@ function AppContent() {
   // ── Keyboard shortcuts ───────────────────────────────────────────────────────
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      // Don't fire keyboard shortcuts when any modal/popover is open.
-      if (logDialogDay || showTimerLog || showModePicker || showThemePicker) return
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      // Don't fire keyboard shortcuts when typing in an input
       if (tag === "input" || tag === "textarea" || tag === "select") return
       if (e.metaKey || e.ctrlKey || e.altKey) return
+      // ? always works (it opens the cheatsheet, even if a modal is open)
+      if (e.key === "?") {
+        if (!showCheatsheet) {
+          e.preventDefault()
+          setShowCheatsheet(true)
+        }
+        return
+      }
+      // Esc always works (closes the cheatsheet or any open modal)
+      if (e.key === "Escape") {
+        if (showCheatsheet) {
+          e.preventDefault()
+          setShowCheatsheet(false)
+          return
+        }
+        // Don't fire other shortcuts when any modal/popover is open.
+        if (logDialogDay || showTimerLog || showModePicker || showThemePicker || showNotificationSettings) return
+      }
+      // Don't fire keyboard shortcuts when any modal/popover is open.
+      // Phase 2.5: showCheatsheet added so shortcuts don't fire while
+      // the cheatsheet dialog is open.
+      if (logDialogDay || showTimerLog || showModePicker || showThemePicker || showNotificationSettings || showCheatsheet) return
       switch (e.key) {
         case "1": setActiveTab("calendar"); break
         case "2": setActiveTab("list"); break
@@ -716,6 +803,7 @@ function AppContent() {
           else if (showTimerLog) setShowTimerLog(false)
           else if (showModePicker) setShowModePicker(false)
           else if (showThemePicker) setShowThemePicker(false)
+          else if (showNotificationSettings) setShowNotificationSettings(false)
           break
         case "f": case "F":
           toggleFullscreen()
@@ -726,14 +814,11 @@ function AppContent() {
         case "t": case "T":
           setShowThemePicker((v) => !v)
           break
-        case "?":
-          showToast(tToast("shortcutHelp"), "info")
-          break
       }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [activeCourseId, isPlannerOpen, isOnlineLabsOpen, isNewsOpen, showTimerLog, showThemePicker, showModePicker, logDialogDay, toggleFullscreen, setIsNewsOpen])
+  }, [activeCourseId, isPlannerOpen, isOnlineLabsOpen, isNewsOpen, showTimerLog, showThemePicker, showModePicker, showNotificationSettings, showCheatsheet, logDialogDay, toggleFullscreen, setIsNewsOpen])
 
   if (isLoading || courseLoading) {
     return (
@@ -820,7 +905,16 @@ function AppContent() {
     <div
       className="min-h-screen bg-background flex flex-col"
     >
-      <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-sm shadow-sm">
+      {/* Phase 2.5: Skip Link — visible only when focused, lets keyboard
+          and screen reader users jump straight to main content. */}
+      <a href="#main-content" className="skip-link">
+        {label("skipToContent")}
+      </a>
+
+      <header
+        role="banner"
+        className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-sm shadow-sm"
+      >
         <div className="w-full px-4 py-3 flex items-center gap-4">
           {/* Logo + Title */}
           <div className="flex items-center gap-3 flex-shrink-0">
@@ -841,6 +935,9 @@ function AppContent() {
                 <span className="ml-2 text-[10px] font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">v{__APP_VERSION__}</span>
               </h1>
             </div>
+
+            {/* Phase 2.3: Study Streak Counter — visible from any tab */}
+            <StreakChip className="hidden sm:inline-flex" />
           </div>
 
           {/* Course selector — multi-select with active/edit indicator */}
@@ -1054,7 +1151,9 @@ function AppContent() {
                     onClick={() => setShowThemePicker(false)}
                   />
                   <div
+                    ref={themePopoverRef}
                     role="menu"
+                    aria-label="Theme"
                     className="absolute right-0 top-full mt-2 z-50 w-48 bg-card border border-border rounded-lg shadow-lg p-1"
                   >
                     <div className="px-2 py-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -1106,7 +1205,12 @@ function AppContent() {
               {showModePicker && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowModePicker(false)} />
-                  <div role="menu" className="absolute right-0 top-full mt-2 z-50 w-56 bg-card border border-border rounded-lg shadow-lg p-1">
+                  <div
+                    ref={modePopoverRef}
+                    role="menu"
+                    aria-label="Personality mode"
+                    className="absolute right-0 top-full mt-2 z-50 w-56 bg-card border border-border rounded-lg shadow-lg p-1"
+                  >
                     <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{label("modeLabel")}</div>
                     {MODE_OPTIONS.map((opt) => {
                       const active = mode === opt.id
@@ -1127,6 +1231,36 @@ function AppContent() {
                         </button>
                       )
                     })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Phase 2.2: Notification settings button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotificationSettings((v) => !v)}
+                aria-label={label("notificationTitle")}
+                aria-haspopup="dialog"
+                aria-expanded={showNotificationSettings}
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                title={label("notificationTitle")}
+              >
+                <Bell className="w-4 h-4" />
+              </button>
+              {showNotificationSettings && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowNotificationSettings(false)}
+                  />
+                  <div
+                    ref={notifPopoverRef}
+                    role="dialog"
+                    aria-label={label("notificationTitle")}
+                    className="absolute right-0 top-full mt-2 z-50 w-80 bg-card border border-border rounded-xl shadow-lg p-1"
+                  >
+                    <NotificationSettingsPanel />
                   </div>
                 </>
               )}
@@ -1164,7 +1298,11 @@ function AppContent() {
       <div className="flex-1 w-full px-4 py-4">
         <div className="flex gap-6 h-full">
           {/* Daily Briefing sidebar — visible on large screens, takes horizontal space */}
-          <aside className="hidden lg:block w-72 flex-shrink-0 self-start">
+          <aside
+            role="complementary"
+            aria-label="Daily briefing sidebar"
+            className="hidden lg:block w-72 flex-shrink-0 self-start"
+          >
             <DailyBriefing
               schedule={schedule}
               dailyLog={dailyLog}
@@ -1177,7 +1315,12 @@ function AppContent() {
             <SidebarNewsHighlights onOpenNews={() => setIsNewsOpen(true)} />
           </aside>
 
-          <main className="flex-1 min-w-0">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            aria-label="Main content"
+            className="flex-1 min-w-0 focus:outline-none"
+          >
             {/* Daily Briefing inline — visible on small/medium screens only */}
             <div className="lg:hidden space-y-5">
               <DailyBriefing
@@ -1259,10 +1402,18 @@ function AppContent() {
               </div>
             </div>
 
-            <div className="tab-bar flex gap-1 mb-5 bg-muted rounded-xl p-1">
+            <div
+              role="tablist"
+              aria-label="Main content tabs"
+              className="tab-bar flex gap-1 mb-5 bg-muted rounded-xl p-1"
+            >
               {tabs.map(({ id, label, Icon }) => (
                 <button
                   key={id}
+                  role="tab"
+                  aria-selected={activeTab === id}
+                  aria-controls={`tabpanel-${id}`}
+                  tabIndex={activeTab === id ? 0 : -1}
                   onClick={() => setActiveTab(id)}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === id
                       ? "bg-card text-foreground shadow-sm"
@@ -1276,27 +1427,36 @@ function AppContent() {
             </div>
 
             {activeTab === "calendar" && (
-              <ScheduleView
-                schedule={schedule}
-                dailyLog={dailyLog}
-                onMarkDone={handleMarkDone}
-                onLogDay={handleOpenLogDialog}
-                plansLoggedForDate={plansLoggedForDate}
-                selectedDate={calendarSelectedDate}
-                onSelectedDateChange={setCalendarSelectedDate}
-              />
+              <div id="tabpanel-calendar" role="tabpanel" aria-labelledby="Calendar" className="space-y-4 focus:outline-none" tabIndex={-1}>
+                <ExamCountdownBand />
+                <ScheduleView
+                  schedule={schedule}
+                  dailyLog={dailyLog}
+                  onMarkDone={handleMarkDone}
+                  onLogDay={handleOpenLogDialog}
+                  plansLoggedForDate={plansLoggedForDate}
+                  selectedDate={calendarSelectedDate}
+                  onSelectedDateChange={setCalendarSelectedDate}
+                />
+              </div>
             )}
             {activeTab === "list" && (
-              <ScheduleList
-                schedule={schedule}
-                dailyLog={dailyLog}
-              />
+              <div id="tabpanel-list" role="tabpanel" aria-labelledby="Schedule" className="focus:outline-none" tabIndex={-1}>
+                <ScheduleList
+                  schedule={schedule}
+                  dailyLog={dailyLog}
+                />
+              </div>
             )}
             {activeTab === "progress" && (
-              <ProgressDashboard selectedCourseIds={Array.from(selectedCourseIds)} />
+              <div id="tabpanel-progress" role="tabpanel" aria-labelledby="Progress" className="focus:outline-none" tabIndex={-1}>
+                <ProgressDashboard selectedCourseIds={Array.from(selectedCourseIds)} />
+              </div>
             )}
             {activeTab === "cert-path" && (
-              <CertPathView />
+              <div id="tabpanel-cert-path" role="tabpanel" aria-labelledby="Cert Path" className="focus:outline-none" tabIndex={-1}>
+                <CertPathView />
+              </div>
             )}
           </main>
 
@@ -1354,6 +1514,12 @@ function AppContent() {
       )}
 
       <NotificationToast />
+
+      {/* Phase 2.5: Keyboard shortcuts cheatsheet */}
+      <KeyboardShortcutsCheatsheet
+        open={showCheatsheet}
+        onClose={() => setShowCheatsheet(false)}
+      />
 
       {/* Tip popup */}
       {showTip && (

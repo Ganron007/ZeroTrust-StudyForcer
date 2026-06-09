@@ -84,10 +84,12 @@ export default function NotificationToast() {
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
+    <div role="status" aria-live="polite" className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
       {toasts.map((toast) => (
         <div
           key={toast.id}
+          role={toast.type === "break" ? "alert" : "status"}
+          aria-live={toast.type === "break" ? "assertive" : "polite"}
           // A66: pause auto-dismiss on hover
           onMouseEnter={() => { hoveredRef.current.add(toast.id) }}
           onMouseLeave={() => { hoveredRef.current.delete(toast.id) }}

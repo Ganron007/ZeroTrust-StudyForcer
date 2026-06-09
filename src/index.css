@@ -100,3 +100,83 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Phase 2.5: WCAG-AA focus rings.
+   Only show focus ring when the element is focused via keyboard
+   (focus-visible) — not on mouse click. Outline is 2px solid at 3:1
+   contrast minimum against the background, satisfying WCAG 2.4.7. */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Custom focus ring for elements with rounded borders so the ring
+   doesn't get clipped. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="switch"]:focus-visible,
+[role="menuitemradio"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Remove the default outline from mouse clicks — :focus-visible handles it. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Phase 2.5: Skip link.
+   Hidden by default, becomes visible when focused via keyboard. The
+   first focusable element on the page lets screen reader and keyboard
+   users bypass the header and jump straight to main content. */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  z-index: 100;
+  padding: 8px 16px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 6px 0;
+  transition: top 0.15s ease-in-out;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;
+}
+
+/* Phase 2.5: Respect users who prefer reduced motion.
+   Disables non-essential animations and transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Phase 2.5: Screen-reader-only text.
+   Visually hidden but still announced to assistive technologies. Used
+   for icon-only buttons and similar. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
