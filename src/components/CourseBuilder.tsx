@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { ChevronLeft, Plus, X, ArrowUp, ArrowDown, Save, Sparkles, RotateCcw, Eye, EyeOff } from "lucide-react"
+import { ChevronLeft, Plus, X, ArrowUp, ArrowDown, Save, Download, Sparkles, RotateCcw, Eye, EyeOff } from "lucide-react"
 import { saveCourse } from "@/lib/course-storage"
 import { showToast } from "@/components/NotificationToast"
 import { usePersonality } from "./PersonalityProvider"
@@ -284,6 +284,35 @@ export default function CourseBuilder({ onBack, onCourseSaved, existingCourses =
     }
   }
 
+  // Phase 2.6: Export the current builder state to a .json file.
+  // Re-uses the same buildCourseConfig() as Save, so the exported file
+  // is byte-identical to what would be saved. Validates first; if
+  // there are errors, abort and show the first one.
+  function handleExport() {
+    const config = buildCourseConfig()
+    const errors = validate(config)
+    if (errors.length > 0) {
+      showToast(formatStr(tToast("courseValidation"), { error: errors[0] }), "info")
+      return
+    }
+    try {
+      const json = JSON.stringify(config, null, 2)
+      const blob = new Blob([json], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${config.id}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      showToast(formatStr(tToast("courseExported"), { name: config.name }), "complete")
+    } catch (e) {
+      console.error("Course export failed:", e)
+      showToast(tToast("courseSaveFailed"), "break")
+    }
+  }
+
   // ── Load example ────────────────────────────────────────────────────────
   function hasUnsavedChanges(): boolean {
     return courseId !== "" || courseName !== "" || units.some((u) => u.title !== "" || u.chapters.length > 0)
@@ -369,6 +398,17 @@ export default function CourseBuilder({ onBack, onCourseSaved, existingCourses =
             >
               {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               {showPreview ? label("hideJSON") : label("showJSON")}
+            </button>
+            {/* Phase 2.6: Course Builder Export — download the current
+                builder state as a .json file without persisting to the
+                library. Useful for sharing or backing up a draft. */}
+            <button
+              onClick={handleExport}
+              data-testid="course-builder-export"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium hover:bg-muted transition-all"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {label("exportCourseJson")}
             </button>
             <button
               onClick={handleSave}
