@@ -17,6 +17,7 @@ import { showToast } from "@/components/NotificationToast"
 import DatePicker from "./DatePicker"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
+import { localToday } from "@/lib/date-utils"
 
 interface PlannerPageProps {
   courses: CourseConfig[]
@@ -41,14 +42,6 @@ function flattenChapters(cfg: CourseConfig): Chapter[] {
       color: u.color,
     }))
   )
-}
-
-function localToday(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
 }
 
 const DAY_LABELS = [

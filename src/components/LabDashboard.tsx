@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import {
-  readLabsStorage, writeLabsStorage, localToday, getLast14Days, getLast7Days,
+  readLabsStorage, writeLabsStorage, getLast14Days, getLast7Days,
   getStreak, getWeekMinutes, getCoverage14, getAtRiskCount,
   getDaysSince, getLabCategory, computeSmartScore,
   getTodayMinutes, getMonthMinutes, getDaysInCurrentMonth,
 } from "@/lib/lab-session-storage"
+import { localToday } from "@/lib/date-utils"
 import { DEFAULT_EXTERNAL_LABS, type LabsStorage, type LabSession } from "@/lib/lab-sessions"
 import type { LabCategory } from "@/lib/lab-data"
 import { CATEGORY_LABELS, CATEGORY_COLORS } from "@/lib/lab-data"
@@ -47,7 +48,14 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
     await writeLabsStorage(next)
   }, [])
 
-  const today = localToday()
+  // A53: Use a state-based today that re-computes at midnight
+  const [today, setToday] = useState(() => localToday())
+  useEffect(() => {
+    const now = new Date()
+    const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
+    const timer = setTimeout(() => setToday(localToday()), msUntilMidnight + 100)
+    return () => clearTimeout(timer)
+  }, [today])
 
   // ── Computed stats ───────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -70,7 +78,7 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
       return { date, minutes, level }
     })
 
-    return { streak, weekMinutes, coverage, atRisk, cadence, todayMinutes, monthMinutes, monthlyGoalMinutes }
+    return { streak, weekMinutes, coverage, atRisk, cadence, todayMinutes, monthMinutes, monthlyGoalMinutes, dailyGoalMinutes }
   }, [data])
 
   // ── Lab statuses ─────────────────────────────────────────────────────────────
@@ -165,9 +173,11 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
 
   function submitLog() {
     if (!logLabId) return
+    // A53: Call localToday() at write time, not render time, to prevent
+    // sessions logged after midnight from getting yesterday's date
     const session: LabSession = {
       labId: logLabId,
-      date: today,
+      date: localToday(),
       minutes: Math.max(1, logMinutes),
       note: logNote.trim() || undefined,
       createdAt: new Date().toISOString(),
@@ -254,7 +264,7 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground">{label("daily")}</p>
-              <p className="text-sm font-bold text-foreground">6h</p>
+              <p className="text-sm font-bold text-foreground">{Math.round(stats.dailyGoalMinutes / 60)}h</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground">{label("streak")}</p>
@@ -274,7 +284,7 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground mb-1">Today</p>
           <p className="text-2xl font-bold text-foreground">{Math.round(stats.todayMinutes / 60 * 10) / 10}h</p>
-          <p className="text-[10px] text-muted-foreground mt-1">Goal: 6h</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Goal: {Math.round(stats.dailyGoalMinutes / 60)}h</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground mb-1">Month</p>

@@ -1,4 +1,5 @@
 import { readStorage, writeStorage } from "./database"
+import { localToday } from "./date-utils"
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -78,12 +79,19 @@ export const planStorage = {
       updatedAt: now,
       dailyLog: plan.dailyLog ?? {},
       skippedDays: plan.skippedDays ?? [],
-      // `"unitOrder" in plan` correctly handles both cases:
+      // S15: `"unitOrder" in plan` correctly handles both cases:
       // - `{ ...plan, unitOrder: undefined }` → key present, value undefined → clears it
       // - `{ ...plan }` (key omitted) → key present from spread, existing value preserved
       unitOrder: "unitOrder" in (plan as Record<string, unknown>) ? plan.unitOrder : existing?.unitOrder,
     }
     data.plans[id] = saved
+    // S17: Auto-activate new plans (plans that didn't exist before)
+    if (!existing) {
+      data.activePlanIds = (data.activePlanIds ?? [])
+      if (!data.activePlanIds.includes(id)) {
+        data.activePlanIds.push(id)
+      }
+    }
     await writeStorage(data)
     return saved
   },
@@ -119,6 +127,8 @@ export const planStorage = {
   async addActiveId(id: string): Promise<void> {
     const data = await readStorage()
     if (!data.plans[id]) return
+    // S18: Guard against undefined activePlanIds on legacy data
+    data.activePlanIds = data.activePlanIds ?? []
     if (!data.activePlanIds.includes(id)) {
       data.activePlanIds.push(id)
       await writeStorage(data)
@@ -127,21 +137,14 @@ export const planStorage = {
 
   async removeActiveId(id: string): Promise<void> {
     const data = await readStorage()
-    data.activePlanIds = data.activePlanIds.filter((pid) => pid !== id)
+    // S18: Guard against undefined activePlanIds on legacy data
+    data.activePlanIds = (data.activePlanIds ?? []).filter((pid) => pid !== id)
     await writeStorage(data)
   },
 
   async clearAll(): Promise<void> {
     await writeStorage({ plans: {}, activePlanIds: [] })
   },
-}
-
-function localToday(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
 }
 
 export function defaultPlan(

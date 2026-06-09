@@ -108,7 +108,11 @@ export default function ScheduleView({
     const logs = dayLogs(date)
     return Object.keys(logs).length > 0 && Object.values(logs).some(l => l.pagesRead > 0)
   }
-  const isPending = (date: string) => Object.keys(dayLogs(date)).length > 0
+  // A74: Centralized isPending — log exists AND all entries have 0 pages
+  const isPending = (date: string) => {
+    const logs = dayLogs(date)
+    return Object.keys(logs).length > 0 && Object.values(logs).every(l => l.pagesRead === 0)
+  }
 
   return (
     <div className="space-y-4">
@@ -263,7 +267,7 @@ export default function ScheduleView({
           <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
             <div>
               <h3 className="font-semibold text-foreground">
-                Day {selectedDay.dayNumber} —{" "}
+                {label("day")} {selectedDay.dayNumber} —{" "}
                 {new Date(selectedDay.date + "T00:00:00").toLocaleDateString("en-US", {
                   weekday: "long",
                   month: "long",
@@ -272,8 +276,8 @@ export default function ScheduleView({
               </h3>
               <p className="text-sm text-muted-foreground">
                 {dailyLog[selectedDay.date]
-                  ? `${totalPagesRead(selectedDay.date)} pages pending`
-                  : `${selectedDay.totalPages} pages planned`}
+                  ? `${totalPagesRead(selectedDay.date)} ${label("pagesPending")}`
+                  : `${selectedDay.totalPages} ${label("pagesPlanned")}`}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">

@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core"
 import { IS_TAURI } from "./is-tauri"
 import { DEFAULT_EXTERNAL_LABS, type LabsStorage, type LabSession } from "./lab-sessions"
 import type { LabCategory } from "./lab-data"
+import { localToday } from "./date-utils"
 
 const WEB_LABS_SESSIONS_KEY = "web:labs_sessions"
 
@@ -40,14 +41,6 @@ export async function writeLabsStorage(data: LabsStorage): Promise<void> {
     return
   }
   localStorage.setItem(WEB_LABS_SESSIONS_KEY, content)
-}
-
-export function localToday(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
 }
 
 export function getLast14Days(): string[] {
@@ -211,12 +204,12 @@ export function computeSmartScore(
   const labDef = DEFAULT_EXTERNAL_LABS.find((l) => l.id === labId)
   const focus = labDef?.focus ?? ""
   const last14 = getLast14Days()
-  // S8: Only apply category gap bonus if this focus has any labs
-  const focusLabsExists = DEFAULT_EXTERNAL_LABS.some((l) => l.focus === focus)
+  // S8: Only apply category gap bonus if this focus has labs OTHER than the current one
+  const otherLabsWithFocus = DEFAULT_EXTERNAL_LABS.some((l) => l.focus === focus && l.id !== labId)
   const focusSessions14 = sessions.filter(
     (s) => last14.includes(s.date) && DEFAULT_EXTERNAL_LABS.find((l) => l.id === s.labId)?.focus === focus,
   )
-  const categoryGapBonus = focusLabsExists && focusSessions14.length === 0 ? 10 : 0
+  const categoryGapBonus = otherLabsWithFocus && focusSessions14.length === 0 ? 10 : 0
 
   // 5. Recent use penalty (−10 if used in last 7 days)
   const today = new Date()

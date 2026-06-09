@@ -115,9 +115,12 @@ export async function deleteCourse(courseId: string): Promise<void> {
     await invoke("delete_course_config", { courseId })
     return
   }
+  // S1: Atomic web delete — read index, remove course + logo, write index in one pass
+  const ids = webGetCourseIds()
+  const filtered = ids.filter((id) => id !== courseId)
   localStorage.removeItem(webCourseKey(courseId))
   localStorage.removeItem(webLogoKey(courseId))
-  webSetCourseIds(webGetCourseIds().filter((id) => id !== courseId))
+  webSetCourseIds(filtered)
 }
 
 export async function importCourse(filePath: string): Promise<string> {
@@ -164,4 +167,9 @@ export async function listCourseIds(): Promise<string[]> {
   return webGetCourseIds()
 }
 
+// S3: Runtime-validated default course ID
 export const DEFAULT_COURSE_ID = "cissp-10th-ed"
+
+export function validateDefaultCourse(): Promise<boolean> {
+  return loadCourse(DEFAULT_COURSE_ID).then((c) => c !== null)
+}

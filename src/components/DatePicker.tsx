@@ -34,6 +34,13 @@ export default function DatePicker({
   disabled,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
+  // A69: State-based "now" that re-computes at midnight so isToday stays correct
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
+    const timer = setTimeout(() => setNow(new Date()), msUntilMidnight + 100)
+    return () => clearTimeout(timer)
+  }, [now])
   const [viewDate, setViewDate] = useState(() =>
     value ? parseISO(value + "T00:00:00") : new Date()
   )
@@ -54,15 +61,22 @@ export default function DatePicker({
 
   useEffect(() => {
     if (!open) return
+    let rafId = 0
+    // A68: Throttle scroll/resize via requestAnimationFrame
     function updatePos() {
-      if (buttonRef.current) {
-        const rect = buttonRef.current.getBoundingClientRect()
-        setPopupPos({ top: rect.bottom + 4, left: rect.left })
-      }
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = 0
+        if (buttonRef.current) {
+          const rect = buttonRef.current.getBoundingClientRect()
+          setPopupPos({ top: rect.bottom + 4, left: rect.left })
+        }
+      })
     }
     window.addEventListener("resize", updatePos)
     window.addEventListener("scroll", updatePos, true)
     return () => {
+      cancelAnimationFrame(rafId)
       window.removeEventListener("resize", updatePos)
       window.removeEventListener("scroll", updatePos, true)
     }

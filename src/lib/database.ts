@@ -24,6 +24,15 @@ const WEB_ACTIVE_KEY = "web:activePlanIds"
 /** In-memory write-through cache for web mode (avoids JSON parse on every read). */
 let webCache: { plans: Record<string, StudyPlan>; activePlanIds: string[] } | null = null
 
+// S25: Listen for cross-tab localStorage changes and invalidate cache
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === WEB_PLANS_KEY || e.key === WEB_ACTIVE_KEY) {
+      webCache = null
+    }
+  })
+}
+
 function readWeb(): StorageData {
   if (webCache) return webCache
   const plansRaw = localStorage.getItem(WEB_PLANS_KEY)
@@ -147,7 +156,9 @@ export async function readStorage(): Promise<StorageData> {
           .filter((id: string) => !!plans[id])
         return { plans, activePlanIds }
       } catch (e) {
-        console.warn("[database] SQLite read failed, falling back to localStorage:", e)
+        // S27: Log error before falling back
+        console.error("[database] SQLite read failed:", e)
+        console.warn("[database] Falling back to localStorage")
         return readWeb()
       }
     }
@@ -161,9 +172,14 @@ export async function writeStorage(data: StorageData): Promise<void> {
     if (db) {
       try {
         await db.execute("BEGIN TRANSACTION")
+        // C6 fix: DELETE plans first, then INSERT OR REPLACE the new set.
+        // Previously only INSERT OR REPLACE was used per row, so plans
+        // removed from in-memory state would linger as orphaned SQLite rows
+        // and silently resurrect after restart. Mirrors writeWeb's full-replace.
+        await db.execute("DELETE FROM plans")
         for (const [id, plan] of Object.entries(data.plans)) {
           await db.execute(
-            "INSERT OR REPLACE INTO plans (id, data) VALUES ($1, $2)",
+            "INSERT INTO plans (id, data) VALUES ($1, $2)",
             [id, JSON.stringify(plan)],
           )
         }

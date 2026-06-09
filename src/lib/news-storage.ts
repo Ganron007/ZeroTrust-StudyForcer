@@ -106,24 +106,33 @@ function parseRss(xml: string): { title: string; link: string; isoDate: string }
 async function fetchViaProxy(proxyUrl: string): Promise<string> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
-  const res = await fetch(proxyUrl, {
-    signal: controller.signal,
-    headers: {
-      "User-Agent": "ZeroTrust-StudyForcer/1.0",
-    },
-  })
-  clearTimeout(timeout)
-  if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`)
+  try {
+    const res = await fetch(proxyUrl, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "ZeroTrust-StudyForcer/1.0",
+      },
+    })
+    if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`)
 
-  const contentType = res.headers.get("content-type") || ""
-  if (contentType.includes("application/json")) {
-    const json = await res.json()
-    if (typeof json.contents === "string") return json.contents
-    if (typeof json.data === "string") return json.data
-    throw new Error("Unexpected JSON response from proxy")
+    const contentType = res.headers.get("content-type") || ""
+    // S12: Try JSON parse first for known proxy formats
+    if (contentType.includes("application/json")) {
+      try {
+        const json = await res.json()
+        if (typeof json.contents === "string") return json.contents
+        if (typeof json.data === "string") return json.data
+      } catch {
+        // JSON parse failed — fall through to text
+      }
+      throw new Error("Unexpected JSON response from proxy")
+    }
+
+    return await res.text()
+  } finally {
+    // S13: Always clear timeout to prevent timer leak
+    clearTimeout(timeout)
   }
-
-  return res.text()
 }
 
 async function fetchFeedViaProxy(
@@ -154,8 +163,16 @@ export async function readNewsCache(): Promise<NewsCache> {
     if (!data) return { items: [], fetched_at: "" }
     const parsed = JSON.parse(data)
     if (!parsed || typeof parsed !== "object") return { items: [], fetched_at: "" }
+    // S9: Both Tauri and web paths now validate items consistently
+    const rawItems = Array.isArray(parsed.items) ? parsed.items : []
+    const items = rawItems.filter((item: unknown): item is NewsItem => {
+      if (!item || typeof item !== "object") return false
+      const i = item as Record<string, unknown>
+      return typeof i.id === "string" && typeof i.title === "string" &&
+        typeof i.url === "string" && typeof i.source === "string"
+    })
     return {
-      items: Array.isArray(parsed.items) ? parsed.items : [],
+      items,
       fetched_at: typeof parsed.fetched_at === "string" ? parsed.fetched_at : "",
     }
   } catch {

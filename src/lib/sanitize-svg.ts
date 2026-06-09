@@ -14,8 +14,8 @@ const ALLOWED_TAGS = new Set([
   "svg", "g", "defs", "title", "desc",
   "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
   "text", "tspan",
-  "linearGradient", "radialGradient", "stop",
-  "clipPath", "mask", "pattern",
+  "lineargradient", "radialgradient", "stop",
+  "clippath", "mask", "pattern",
   "use", "symbol",
 ])
 
