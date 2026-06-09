@@ -13,6 +13,8 @@ import {
 } from "lucide-react"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
+import DomainAnalyzer from "./DomainAnalyzer"
+import { localToday } from "@/lib/date-utils"
 
 interface CourseStats {
   courseId: string
@@ -32,14 +34,6 @@ interface CourseStats {
   remainingDays: number
   avgActualPace: number
   loggedCount: number
-}
-
-function localToday(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
 }
 
 function computeCourseStats(cfg: CourseConfig, plan: StudyPlan): CourseStats {
@@ -390,6 +384,14 @@ export default function ProgressDashboard({ selectedCourseIds = [] }: ProgressDa
               })}
             </div>
           </div>
+
+          {/* Domain Weakness Analyzer */}
+          {viewingCourse && (
+            <DomainAnalyzer
+              course={viewingCourse}
+              unitProgress={stats.unitProgress}
+            />
+          )}
 
           {/* Pace Analysis */}
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm">

@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "ZeroTrust.StudyForcer",
-  "version": "2.4.5",
-  "identifier": "ccptl-portable",
+  "version": "2.4.11",
+  "identifier": "studyplanner.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",

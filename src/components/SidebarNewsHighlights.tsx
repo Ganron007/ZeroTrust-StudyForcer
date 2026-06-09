@@ -55,12 +55,19 @@ export default function SidebarNewsHighlights({ onOpenNews }: SidebarNewsHighlig
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => {
-                  if (IS_TAURI) {
-                    e.preventDefault()
-                    import("@tauri-apps/plugin-shell").then((shell) => {
-                      shell.open(a.url)
-                    })
-                  }
+                    if (IS_TAURI) {
+                      e.preventDefault()
+                      // v2.4.6 (M-29): validate URL before passing to shell.open
+                      // to prevent file:// or javascript: URL injection from RSS feeds.
+                      const url = a.url.trim()
+                      if (!/^https:\/\/[^\s/$.?#].[^\s]*$/i.test(url)) {
+                        console.warn("[SidebarNewsHighlights] blocked non-https URL:", url)
+                        return
+                      }
+                      import("@tauri-apps/plugin-shell").then((shell) => {
+                        shell.open(url)
+                      })
+                    }
                 }}
                 className="block text-xs text-foreground hover:text-primary transition-colors leading-snug"
               >

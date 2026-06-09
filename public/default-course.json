@@ -13,6 +13,16 @@
     "domainsLabel": "8 CBK domains",
     "experienceReq": "5 years in 2+ domains"
   },
+  "examDomains": [
+    { "id": "security-risk", "name": "Security & Risk Management", "weight": 16 },
+    { "id": "asset-security", "name": "Asset Security", "weight": 10 },
+    { "id": "arch-engineering", "name": "Security Architecture & Engineering", "weight": 13 },
+    { "id": "comm-network", "name": "Communication & Network Security", "weight": 13 },
+    { "id": "iam", "name": "Identity & Access Management", "weight": 13 },
+    { "id": "assessment-testing", "name": "Security Assessment & Testing", "weight": 12 },
+    { "id": "ops", "name": "Security Operations", "weight": 13 },
+    { "id": "dev-security", "name": "Software Development Security", "weight": 10 }
+  ],
   "studyEstimate": {
     "minutesPerPage": [
       3,
@@ -25,6 +35,7 @@
       "title": "Security & Risk Management",
       "color": "#2563EB",
       "weight": 16,
+      "domainId": "security-risk",
       "chapters": [
         {
           "id": 1,
@@ -57,6 +68,7 @@
       "title": "Asset Security",
       "color": "#7C3AED",
       "weight": 10,
+      "domainId": "asset-security",
       "chapters": [
         {
           "id": 5,
@@ -71,6 +83,7 @@
       "title": "Security Architecture & Engineering",
       "color": "#059669",
       "weight": 13,
+      "domainId": "arch-engineering",
       "chapters": [
         {
           "id": 6,
@@ -109,6 +122,7 @@
       "title": "Communication & Network Security",
       "color": "#D97706",
       "weight": 13,
+      "domainId": "comm-network",
       "chapters": [
         {
           "id": 11,
@@ -129,6 +143,7 @@
       "title": "Identity & Access Management",
       "color": "#DC2626",
       "weight": 13,
+      "domainId": "iam",
       "chapters": [
         {
           "id": 13,
@@ -149,6 +164,7 @@
       "title": "Security Assessment & Testing",
       "color": "#0891B2",
       "weight": 12,
+      "domainId": "assessment-testing",
       "chapters": [
         {
           "id": 15,
@@ -163,6 +179,7 @@
       "title": "Security Operations",
       "color": "#65A30D",
       "weight": 13,
+      "domainId": "ops",
       "chapters": [
         {
           "id": 16,
@@ -195,6 +212,7 @@
       "title": "Software Development Security",
       "color": "#C2410C",
       "weight": 10,
+      "domainId": "dev-security",
       "chapters": [
         {
           "id": 20,

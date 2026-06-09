@@ -1,3 +1,10 @@
+export interface CourseExamDomain {
+  id: string
+  name: string
+  /** Exam weight percentage (e.g. 16 for 16%). */
+  weight: number
+}
+
 export interface CourseChapter {
   id: number
   title: string
@@ -11,6 +18,8 @@ export interface CourseUnit {
   title: string
   color: string
   weight?: number
+  /** ID linking this unit to an entry in `CourseConfig.examDomains[]`. */
+  domainId?: string
   chapters: CourseChapter[]
 }
 
@@ -44,6 +53,9 @@ export interface CourseConfig {
   totalPages?: number
   studyPages?: number
   examInfo?: CourseExamInfo
+  /** Structured exam domain data for the Weakness Analyzer.
+   *  Each domain maps to 1+ units via `domainId`. */
+  examDomains?: CourseExamDomain[]
   studyEstimate?: CourseStudyEstimate
   units: CourseUnit[]
   defaultSettings: CourseDefaultSettings

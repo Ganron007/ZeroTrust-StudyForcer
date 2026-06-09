@@ -4,9 +4,23 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager, WindowEvent};
+
+// R7: Global lazy reqwest::Client for connection pooling
+fn http_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(Duration::from_secs(15))
+            .build()
+            .unwrap_or_default()
+    })
+}
+
+// R6: Limit concurrent feed fetches to avoid resource exhaustion
+const MAX_CONCURRENT_FEEDS: usize = 6;
 
 // Window-state writes are throttled: a resize/move can fire dozens of times per
 // second, and writing plans.json each time burns disk and CPU. We rate-limit to
@@ -119,6 +133,17 @@ fn course_path(handle: &AppHandle, course_id: &str) -> PathBuf {
     path
 }
 
+/// v2.4.7 (Phase 2.4): backups directory under app data. Holds auto-backup
+/// files named `YYYY-MM-DD.json`. Roll oldest after N backups.
+fn backups_dir(handle: &AppHandle) -> PathBuf {
+    let mut path = app_dir(handle);
+    path.push("backups");
+    if !path.exists() {
+        let _ = fs::create_dir_all(&path);
+    }
+    path
+}
+
 fn validate_course_id(id: &str) -> Result<(), String> {
     if id.is_empty() || id.len() > 128 {
         return Err("Course ID must be 1–128 characters".into());
@@ -131,6 +156,9 @@ fn validate_course_id(id: &str) -> Result<(), String> {
     }
     Ok(())
 }
+
+// v2.4.6 (M-5): Serialize news cache writes to prevent concurrent-task race.
+static NEWS_CACHE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 // ── News Feed ───────────────────────────────────────────────────────────────
 
@@ -207,17 +235,39 @@ fn url_to_domain(url: &str) -> String {
 }
 
 async fn fetch_hn_security() -> Vec<NewsItem> {
-    let client = reqwest::Client::new();
+    // R7: Use global lazy client for connection pooling
+    let client = http_client();
     let url = "https://hn.algolia.com/api/v1/search_by_date?tags=security&hitsPerPage=30";
     let res = client
         .get(url)
         .header("User-Agent", "ZeroTrustStudyForcer/1.0")
-        .timeout(Duration::from_secs(15))
         .send()
         .await;
     let mut items = Vec::new();
     if let Ok(resp) = res {
-        if let Ok(json) = resp.json::<serde_json::Value>().await {
+        // R3: Check HTTP status code before processing
+        let resp = match resp.error_for_status() {
+            Ok(r) => r,
+            Err(e) => {
+                log::warn!("[fetch_hn_security] HTTP error: {}", e);
+                return items;
+            }
+        };
+        // R4: Streaming body size check — stop reading when limit exceeded
+        // instead of downloading the entire body into memory first.
+        const BODY_LIMIT: usize = 10_000_000;
+        let mut body_text = String::new();
+        let mut body_ok = true;
+        if let Ok(bytes) = resp.bytes().await {
+            if bytes.len() > BODY_LIMIT {
+                log::warn!("[fetch_hn_security] body exceeds {} bytes, truncating", BODY_LIMIT);
+                body_ok = false;
+            } else {
+                body_text = String::from_utf8_lossy(&bytes).into_owned();
+            }
+        }
+        if !body_ok { return items; }
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body_text) {
             if let Some(hits) = json.get("hits").and_then(|v| v.as_array()) {
                 for hit in hits {
                     let title = hit.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
@@ -251,16 +301,29 @@ async fn fetch_hn_security() -> Vec<NewsItem> {
 }
 
 async fn fetch_rss_feed(feed: &FeedConfig) -> Vec<NewsItem> {
-    let client = reqwest::Client::new();
+    // R7: Use global lazy client for connection pooling
+    let client = http_client();
     let res = client
         .get(feed.url)
         .header("User-Agent", "ZeroTrustStudyForcer/1.0")
-        .timeout(Duration::from_secs(15))
         .send()
         .await;
     let mut items = Vec::new();
     if let Ok(resp) = res {
+        // R3: Check HTTP status code before processing
+        let resp = match resp.error_for_status() {
+            Ok(r) => r,
+            Err(e) => {
+                log::warn!("[fetch_rss_feed] HTTP error for {}: {}", feed.label, e);
+                return items;
+            }
+        };
+        // R4: Check body size before processing
         if let Ok(bytes) = resp.bytes().await {
+            if bytes.len() > 10_000_000 {
+                log::warn!("[fetch_rss_feed] body for {} exceeds 10 MB, skipping", feed.label);
+                return items;
+            }
             // Try RSS 2.0 first
             if let Ok(channel) = rss::Channel::read_from(&bytes[..]) {
                 let channel_date = channel.last_build_date()
@@ -323,16 +386,18 @@ async fn fetch_rss_feed(feed: &FeedConfig) -> Vec<NewsItem> {
 
 #[tauri::command]
 async fn fetch_news(handle: AppHandle) -> Result<Vec<NewsItem>, String> {
-    // Reuse cache if fetched within the last 5 minutes
+    // R1: Use tokio::fs for async cache read (no blocking in async context)
     let cache_path = news_path(&handle);
-    if let Ok(meta) = std::fs::metadata(&cache_path) {
+    if let Ok(meta) = tokio::fs::metadata(&cache_path).await {
         if let Ok(modified) = meta.modified() {
             if let Ok(elapsed) = modified.elapsed() {
                 if elapsed < Duration::from_secs(300) {
-                    let raw = fs::read_to_string(&cache_path).map_err(|e| e.to_string())?;
-                    let cached: NewsCache = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
-                    log::info!("Returning cached news ({} items)", cached.items.len());
-                    return Ok(cached.items);
+                    if let Ok(raw) = tokio::fs::read_to_string(&cache_path).await {
+                        if let Ok(cached) = serde_json::from_str::<NewsCache>(&raw) {
+                            log::info!("Returning cached news ({} items)", cached.items.len());
+                            return Ok(cached.items);
+                        }
+                    }
                 }
             }
         }
@@ -340,18 +405,68 @@ async fn fetch_news(handle: AppHandle) -> Result<Vec<NewsItem>, String> {
 
     let mut all = Vec::new();
 
-    // Fetch Hacker News + all RSS feeds concurrently
-    let mut tasks = vec![tokio::spawn(fetch_hn_security())];
-    for feed in FEEDS.iter() {
-        tasks.push(tokio::spawn(fetch_rss_feed(feed)));
-    }
+    // R6: Semaphore to limit concurrent feed fetches
+    let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(MAX_CONCURRENT_FEEDS));
 
-    let mut failed = 0usize;
-    for task in tasks {
-        match task.await {
-            Ok(items) => all.extend(items),
-            Err(_) => failed += 1,
+    // R11: Overall 45-second timeout for entire fetch operation
+    let fetch_result = tokio::time::timeout(Duration::from_secs(45), async {
+        let mut tasks = Vec::new();
+
+        // Spawn HN fetch with semaphore and per-task timeout
+        let sem = semaphore.clone();
+        tasks.push(tokio::spawn(async move {
+            let _permit = sem.acquire().await.ok();
+            // R2: Per-task 20-second timeout
+            match tokio::time::timeout(Duration::from_secs(20), fetch_hn_security()).await {
+                Ok(items) => items,
+                Err(_) => {
+                    log::warn!("[fetch_news] HN fetch timed out");
+                    Vec::new()
+                }
+            }
+        }));
+
+        // Spawn RSS feed fetches with semaphore and per-task timeout
+        for feed in FEEDS.iter() {
+            let sem = semaphore.clone();
+            let feed_url = feed.url.to_string();
+            let feed_label = feed.label.to_string();
+            let feed_category = feed.category.to_string();
+            tasks.push(tokio::spawn(async move {
+                let _permit = sem.acquire().await.ok();
+                // R2: Per-task 20-second timeout
+                let feed_config = FeedConfig {
+                    url: Box::leak(feed_url.into_boxed_str()),
+                    label: Box::leak(feed_label.into_boxed_str()),
+                    category: Box::leak(feed_category.into_boxed_str()),
+                };
+                match tokio::time::timeout(Duration::from_secs(20), fetch_rss_feed(&feed_config)).await {
+                    Ok(items) => items,
+                    Err(_) => {
+                        log::warn!("[fetch_news] RSS fetch timed out for {}", feed_config.label);
+                        Vec::new()
+                    }
+                }
+            }));
         }
+
+        let mut failed = 0usize;
+        for task in tasks {
+            // R8: Log warnings on task panics
+            match task.await {
+                Ok(items) => all.extend(items),
+                Err(e) => {
+                    log::warn!("[fetch_news] task panicked: {}", e);
+                    failed += 1;
+                }
+            }
+        }
+
+        log::info!("Fetched {} news items from {} sources ({} failed)", all.len(), FEEDS.len() + 1, failed);
+    }).await;
+
+    if fetch_result.is_err() {
+        log::warn!("[fetch_news] overall 45s timeout exceeded");
     }
 
     // Deduplicate by URL
@@ -372,9 +487,17 @@ async fn fetch_news(handle: AppHandle) -> Result<Vec<NewsItem>, String> {
         items: all.clone(),
         fetched_at: chrono::Utc::now().to_rfc3339(),
     };
-    let _ = fs::write(news_path(&handle), serde_json::to_string_pretty(&cache).unwrap_or_default());
-
-    log::info!("Fetched {} news items from {} sources ({} failed)", all.len(), FEEDS.len() + 1, failed);
+    // v2.4.6 (M-5): Serialize cache writes via Mutex guard.
+    // R5: Skip write if serialization failed (empty string = corruption)
+    let cache_json = serde_json::to_string_pretty(&cache).unwrap_or_default();
+    if !cache_json.is_empty() {
+        if let Ok(lock) = NEWS_CACHE_LOCK.lock() {
+            let _ = fs::write(news_path(&handle), &cache_json);
+            drop(lock);
+        }
+    } else {
+        log::warn!("[fetch_news] cache serialization failed — skipping write");
+    }
 
     Ok(all)
 }
@@ -385,7 +508,101 @@ fn read_news_cache(handle: AppHandle) -> Result<String, String> {
     if !path.exists() {
         return Ok(r#"{"items":[],"fetched_at":""}"#.to_string());
     }
-    fs::read_to_string(&path).map_err(|e| e.to_string())
+    // v2.4.6 (H-1): Return empty state on read/parse error instead of
+    // propagating — a corrupted cache file should not crash the app.
+    let content = match fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(_) => return Ok(r#"{"items":[],"fetched_at":""}"#.to_string()),
+    };
+    if serde_json::from_str::<serde_json::Value>(&content).is_err() {
+        log::warn!("[news_cache] corrupted cache file — returning empty");
+        return Ok(r#"{"items":[],"fetched_at":""}"#.to_string());
+    }
+    Ok(content)
+}
+
+// ── Auto-backup (Phase 2.4) ────────────────────────────────────────────────
+
+/// v2.4.7 (Phase 2.4): Write a backup JSON file. Filename must match
+/// `YYYY-MM-DD.json`. Refuses to overwrite an existing file (auto-backup
+/// is one-per-day).
+#[tauri::command]
+fn write_backup_file(handle: AppHandle, filename: String, content: String) -> Result<(), String> {
+    // Validate filename: must be exactly YYYY-MM-DD.json
+    if !is_valid_backup_filename(&filename) {
+        return Err("Backup filename must be YYYY-MM-DD.json".into());
+    }
+
+    let dir = backups_dir(&handle);
+    let path = dir.join(&filename);
+    if path.exists() {
+        // Already backed up today — silently no-op (idempotent).
+        return Ok(());
+    }
+    fs::write(&path, content).map_err(|e| e.to_string())
+}
+
+fn is_valid_backup_filename(name: &str) -> bool {
+    // Format: YYYY-MM-DD.json (15 chars: 4 + 1 + 2 + 1 + 2 + 1 + 4)
+    if name.len() != 15 { return false; }
+    let bytes = name.as_bytes();
+    // First 4 chars: year (digits)
+    if !bytes[..4].iter().all(|b| b.is_ascii_digit()) { return false; }
+    // 5th and 8th chars: '-'
+    if bytes[4] != b'-' || bytes[7] != b'-' { return false; }
+    // Chars 5-6: month (digits)
+    if !bytes[5..7].iter().all(|b| b.is_ascii_digit()) { return false; }
+    // Chars 8-9: day (digits)
+    if !bytes[8..10].iter().all(|b| b.is_ascii_digit()) { return false; }
+    // 11th char: '.'
+    if bytes[10] != b'.' { return false; }
+    // Chars 11-13: "json" extension
+    &bytes[11..] == b"json"
+}
+
+/// v2.4.7 (Phase 2.4): List existing backup files (newest first).
+/// Returns a Vec of ISO-date strings ("YYYY-MM-DD") for every backup present.
+#[tauri::command]
+fn list_backups(handle: AppHandle) -> Result<Vec<String>, String> {
+    let dir = backups_dir(&handle);
+    let mut out: Vec<String> = Vec::new();
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            if let Some(name) = entry.file_name().to_str() {
+                if is_valid_backup_filename(name) {
+                    out.push(name[..10].to_string());
+                }
+            }
+        }
+    }
+    out.sort_by(|a, b| b.cmp(a)); // newest first
+    Ok(out)
+}
+
+/// v2.4.7 (Phase 2.4): Prune oldest backups to keep at most `keep` files.
+/// `keep` must be > 0. Newer backups are preserved.
+#[tauri::command]
+fn prune_old_backups(handle: AppHandle, keep: usize) -> Result<(), String> {
+    if keep == 0 {
+        return Err("keep must be > 0".into());
+    }
+    let dir = backups_dir(&handle);
+    let mut files: Vec<(String, PathBuf)> = Vec::new();
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            if let Some(name) = entry.file_name().to_str() {
+                if is_valid_backup_filename(name) {
+                    files.push((name.to_string(), entry.path()));
+                }
+            }
+        }
+    }
+    files.sort_by(|a, b| b.0.cmp(&a.0)); // newest first by filename (lexicographic == ISO date)
+    for (name, path) in files.iter().skip(keep) {
+        let _ = fs::remove_file(path);
+        log::info!("[backup] pruned old backup: {}", name);
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -632,6 +849,7 @@ fn main() {
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             read_timer_file,
             write_timer_file,
@@ -650,6 +868,9 @@ fn main() {
             list_course_ids,
             fetch_news,
             read_news_cache,
+            write_backup_file,
+            list_backups,
+            prune_old_backups,
         ])
         .setup(|app| {
             #[cfg(all(desktop))]

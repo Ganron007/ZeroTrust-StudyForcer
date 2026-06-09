@@ -10,6 +10,17 @@ import { showToast } from "./NotificationToast"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
 
+// v2.4.6 (M-29): Only allow https:// URLs through shell.open to prevent
+// file:// or javascript: injection from RSS feeds.
+function safeOpen(url: string) {
+  const trimmed = url.trim()
+  if (!/^https:\/\/[^\s/$.?#].[^\s]*$/i.test(trimmed)) {
+    console.warn("[SecurityNewsFeed] blocked non-https URL:", trimmed)
+    return
+  }
+  open(trimmed)
+}
+
 type CategoryFilter = "all" | string
 
 const DEFAULT_CATEGORIES = [
@@ -149,19 +160,19 @@ export default function SecurityNewsFeed({ onClose }: Props) {
       {/* Stats bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Total articles</p>
+          <p className="text-xs text-muted-foreground mb-1">{label("totalArticles")}</p>
           <p className="text-2xl font-bold text-foreground">{items.length}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Sources</p>
+          <p className="text-xs text-muted-foreground mb-1">{label("sources")}</p>
           <p className="text-2xl font-bold text-foreground">{sources.length}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Categories</p>
+          <p className="text-xs text-muted-foreground mb-1">{label("categories")}</p>
           <p className="text-2xl font-bold text-foreground">{categories.length}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">HN articles</p>
+          <p className="text-xs text-muted-foreground mb-1">{label("hnArticles")}</p>
           <p className="text-2xl font-bold text-foreground">{hnItems.length}</p>
         </div>
       </div>
@@ -226,7 +237,7 @@ export default function SecurityNewsFeed({ onClose }: Props) {
               tabIndex={0}
               onClick={async () => {
                 if (IS_TAURI) {
-                  await open(item.url)
+                  safeOpen(item.url)
                 } else {
                   window.open(item.url, "_blank")
                 }
@@ -235,7 +246,7 @@ export default function SecurityNewsFeed({ onClose }: Props) {
                 if (e.key === "Enter") {
                   e.preventDefault()
                   if (IS_TAURI) {
-                    open(item.url)
+                    safeOpen(item.url)
                   } else {
                     window.open(item.url, "_blank")
                   }
