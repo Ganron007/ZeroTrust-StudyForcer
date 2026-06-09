@@ -1,6 +1,6 @@
 # Testing Architecture
 
-**Current:** 421 tests, 25 files, all passing  
+**Current:** 430 tests, 26 files, all passing  
 **Runner:** Vitest v4.1.5  
 **Environment:** jsdom  
 **Framework:** @testing-library/react + jest-dom + user-event
@@ -26,9 +26,10 @@ src/lib/__tests__/
 ├── database.test.ts             # 5  — readStorage / writeStorage / quota (h2.5)
 ├── course-storage.test.ts       # 10 — loadAllCourses / loadCourse / logos (h2.6)
 ├── personality.test.ts          # ~80 — all 13 modes × 7 fallback chains (h2.7)
-└── auto-backup.test.ts          # 5  — auto-backup write/prune (Phase 2.4)
-└── notifications.test.ts        # 9  — notification settings + scheduler (Phase 2.2)
-└── shortcuts.test.ts            # 8  — keyboard shortcuts catalog (Phase 2.5)
+├── auto-backup.test.ts          # 5  — auto-backup write/prune (Phase 2.4)
+├── notifications.test.ts        # 9  — notification settings + scheduler (Phase 2.2)
+├── shortcuts.test.ts            # 8  — keyboard shortcuts catalog (Phase 2.5)
+└── css-entry-point.test.ts      # 9  — CSS entry point + Phase 2.5 rules (v2.4.11)
 
 src/hooks/__tests__/
 └── useFocusTrap.test.tsx        # 6  — focus management hook (Phase 2.5)
@@ -41,7 +42,7 @@ src/components/__tests__/
 ├── KeyboardShortcutsCheatsheet.test.tsx # 8  — cheatsheet modal (Phase 2.5)
 └── axe-audit.test.tsx           # 1  — automated WCAG audit (Phase 2.5)
 ```
-Total: **421 tests / 25 files**, all passing at v2.4.11. Personality layer now has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI.
+Total: **430 tests / 26 files**, all passing at v2.4.11. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files).
 
 ---
 

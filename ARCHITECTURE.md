@@ -129,7 +129,7 @@ consumption math via `dailyLog.pagesRead` is always correct).
 ## Testing
 
 ```sh
-npx vitest run          # Run all tests (421 tests, 25 files)
+npx vitest run          # Run all tests (430 tests, 26 files)
 npx tsc -b --noEmit     # TypeScript type checking
 ```
 

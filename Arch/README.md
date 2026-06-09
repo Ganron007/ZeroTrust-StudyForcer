@@ -18,7 +18,7 @@
 | 04 | `04-control-flow.md` | Decision trees for logging, queue advancement, autodjust |
 | 05 | `05-state-management.md` | Zustand + SQLite architecture, persistence patterns |
 | 06 | `06-anchor-system.md` | Auto-adjust engine: effective vs planned slice sizes |
-| 07 | `07-testing-architecture.md` | Test pyramid, 421 tests, coverage targets |
+| 07 | `07-testing-architecture.md` | Test pyramid, 430 tests, coverage targets |
 
 ---
 

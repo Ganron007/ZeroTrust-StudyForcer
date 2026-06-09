@@ -6,6 +6,28 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.4.11] — 2026-06-10
+
+### Fixed — Phase 2.5 CSS bundled into production build
+
+**Critical bug**: Phase 2.5 CSS rules (skip-link, focus-visible, sr-only, prefers-reduced-motion) were added to `src/index.css`, but `src/main.tsx` imports `src/globals.css`. The CSS was never bundled into the production build, so the "Skip to main content" link was visible at the top of the page in every release.
+
+**Root cause**: The Phase 2.5 commit added CSS to the wrong file. `src/index.css` was a dead file that no entry point imported.
+
+**Fix**: Moved all Phase 2.5 CSS rules from `src/index.css` to `src/globals.css` (the file that actually gets imported by `main.tsx`). Deleted the dead `src/index.css`.
+
+**Regression test**: `src/lib/__tests__/css-entry-point.test.ts` (9 new tests) verifies:
+- `main.tsx` imports `globals.css` (not `index.css`)
+- `src/index.css` does not exist
+- The skip-link rule uses `transform: translateY(-150%)` (not `top: -100px`, which leaks visible text)
+- `:focus-visible`, `.sr-only`, and `prefers-reduced-motion` are present in the correct file
+
+This test would have caught the bug at the source-code level instead of shipping to production.
+
+Test count: 421 → 430 (+9 new CSS regression tests), 25 → 26 test files.
+
+---
+
 ## [2.4.11] — 2026-06-09
 
 ### Fixed — Comprehensive Audit Remediation (46 bugs)

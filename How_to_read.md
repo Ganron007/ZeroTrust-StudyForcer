@@ -3,7 +3,7 @@
 A short tour of every `.md` file in this repo so you (or future-you, or anyone who stumbles
 in) can jump straight to the right place instead of opening files at random.
 
-**Last updated:** 2026-06-09 — for app version **2.4.11**.
+**Last updated:** 2026-06-10 — for app version **2.4.11**.
 
 ---
 
@@ -37,9 +37,9 @@ These are the human-facing project docs. Read these first.
 
 | File | Purpose | Last refresh |
 |---|---|---|
-| `README.md` | What the app does, project layout, dev commands. | Updated for v2.4.10 |
-| `ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.4.10 |
-| `CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through v2.4.10 — 2026-06-05 |
+| `README.md` | What the app does, project layout, dev commands. | Updated for v2.4.11 |
+| `ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.4.11 |
+| `CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through v2.4.11 — 2026-06-10 |
 
 Internal docs (kept in `Docs/Internal/`, not committed): `BUGS.md`, `ROADMAP.md`, `VISION.md`, `TESTING-REPORT.md`, `ZTSF_PERSONALITY_LAYER.md`, `SUGGESTIONS.md`.
 
