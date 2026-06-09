@@ -1,14 +1,19 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { usePersonality } from "./PersonalityProvider"
 import { usePlanStore } from "@/lib/plan-store"
 import { useCourse } from "./CourseProvider"
 import { computeTotalPages } from "@/types/course"
 import { showToast } from "./NotificationToast"
+import { formatStr } from "@/lib/personality"
 import type { StudyPlan } from "@/lib/plan-storage"
 import type { CourseConfig } from "@/types/course"
 import certRoadmap from "@/data/cert-roadmap.json"
+import GapAnalysis from "./GapAnalysis"
+import CareerMode from "./CareerMode"
+import ComplianceReport from "./ComplianceReport"
+import ReportGenerator from "./ReportGenerator"
 import {
   Shield, Target, Bug, Briefcase, Cpu,
   ChevronDown, ChevronRight, CheckCircle,
@@ -103,17 +108,27 @@ function computeCertStatus(
   let totalPages = 0
   let pagesRead = 0
   let hasAnyLog = false
+  // B2 fix: dedupe by courseId — 2 active plans for same CISSP cert shouldn't
+  // double the course's total page count. pagesRead is also deduped by max
+  // per (courseId, date) since the user can't physically read more pages
+  // than what's logged once on a given day.
+  const seenCourses = new Set<string>()
+  const maxPagesByCourseDate = new Map<string, number>()
 
   for (const plan of matchingPlans) {
     const course = courses.find((c) => c.id === plan.courseId)
-    if (course) {
+    if (course && !seenCourses.has(course.id)) {
       totalPages += computeTotalPages(course)
+      seenCourses.add(course.id)
     }
-    for (const log of Object.values(plan.dailyLog)) {
-      pagesRead += log.pagesRead
+    for (const [date, log] of Object.entries(plan.dailyLog)) {
+      const key = `${plan.courseId}|${date}`
+      const prev = maxPagesByCourseDate.get(key) ?? 0
+      if (log.pagesRead > prev) maxPagesByCourseDate.set(key, log.pagesRead)
       hasAnyLog = true
     }
   }
+  pagesRead = Array.from(maxPagesByCourseDate.values()).reduce((s, v) => s + v, 0)
 
   if (!hasAnyLog) {
     return { status: "planned", progress: 0, totalPages, pagesRead }
@@ -147,12 +162,24 @@ function statusBadge(
 }
 
 export default function CertPathView() {
-  const { label } = usePersonality()
+  const { label, toast: tToast } = usePersonality()
   const { courses } = useCourse()
   const allPlans = usePlanStore((s) => s.allPlans)
   const activePlanIds = usePlanStore((s) => s.activePlanIds)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [certified, setCertified] = useState<Set<string>>(loadCertified)
+
+  // E7 fix: cross-tab sync. If the user has the app open in two tabs
+  // and toggles a cert in one, the other tab's `certified` state would
+  // otherwise be stale until reload. The 'storage' event fires on
+  // other tabs when localStorage changes.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "ztsf:certified-certs") setCertified(loadCertified())
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
 
   const toggleCategory = useCallback((categoryId: string) => {
     setCollapsed((prev) => {
@@ -165,20 +192,26 @@ export default function CertPathView() {
 
   const toggleCertified = useCallback(
     (certId: string) => {
+      // D2 fix: capture wasCertified BEFORE setState — the closure would
+      // otherwise re-evaluate `certified` after React commits the new state
+      // and silently flip the toast message. Read once, branch once.
+      const wasCertified = certified.has(certId)
       setCertified((prev) => {
         const next = new Set(prev)
-        if (next.has(certId)) next.delete(certId)
+        if (wasCertified) next.delete(certId)
         else next.add(certId)
         saveCertified(next)
         return next
       })
-      if (certified.has(certId)) {
-        showToast(`Removed ${certId} from certified certs`, "info")
+      // D2 fix: route through personality layer instead of hard-coded English
+      // so the 13 modes can customize the cert-toggle toast independently.
+      if (wasCertified) {
+        showToast(formatStr(tToast("certRemoved"), { id: certId }), "info")
       } else {
-        showToast(`Marked ${certId} as certified!`, "complete")
+        showToast(formatStr(tToast("certMarked"), { id: certId }), "complete")
       }
     },
-    [certified],
+    [certified, tToast],
   )
 
   const categoryResults = useMemo(
@@ -222,6 +255,11 @@ export default function CertPathView() {
           </p>
         </div>
       </div>
+
+      <GapAnalysis />
+      <CareerMode />
+      <ComplianceReport />
+      <ReportGenerator />
 
       {categoryResults.map((category) => {
         const Icon = CATEGORY_ICONS[category.id] ?? Award
