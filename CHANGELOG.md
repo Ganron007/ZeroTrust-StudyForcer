@@ -8,6 +8,28 @@ All notable changes to this project are documented here.
 
 ## [2.4.11] — 2026-06-10
 
+### Fixed — Skip-link CSS positioning (third attempt, final)
+
+**Bug**: After the CSS bundling fix, the skip-link was still visible on page load. The `position: absolute` + `translateY(-150%)` combination only moved the element -60px from its parent's top (not the viewport), which was often still in the visible area.
+
+**Root cause**: 
+- `position: absolute` is relative to the nearest positioned ancestor, not the viewport
+- `translateY(-150%)` is relative to the element's own height (40px), so -150% = -60px
+- The link was at y=-60 from the parent, not from the viewport top
+
+**Fix**: Changed to `position: fixed` (relative to viewport) + `transform: translateY(-200%)` = -80px. Now guaranteed above the viewport.
+
+**Regression test**: Added `e2e/app.spec.ts` (11 Playwright E2E tests) that run in a real browser. The skip-link tests use `boundingBox()` to verify the element's actual position:
+- `skip-link is outside the viewport on page load` — y < 0
+- `skip-link enters the viewport when focused via Tab` — y >= 0 after focus + 150ms transition
+- `clicking skip-link moves focus to main content` — verifies `#main-content` receives focus
+
+**Tooling added**: `@playwright/test@1.60.0`, `fast-check@4.8.0`, `@stryker-mutator/vitest-runner@9.6.1`.
+
+**CI fix**: Added Playwright browser install step to `.github/workflows/ci.yml` and excluded `e2e/` from Vitest (was matching `**/*.spec.ts`).
+
+Test count: 430 unit + 11 E2E = 441 total.
+
 ### Fixed — Phase 2.5 CSS bundled into production build
 
 **Critical bug**: Phase 2.5 CSS rules (skip-link, focus-visible, sr-only, prefers-reduced-motion) were added to `src/index.css`, but `src/main.tsx` imports `src/globals.css`. The CSS was never bundled into the production build, so the "Skip to main content" link was visible at the top of the page in every release.
@@ -23,6 +45,8 @@ All notable changes to this project are documented here.
 - `:focus-visible`, `.sr-only`, and `prefers-reduced-motion` are present in the correct file
 
 This test would have caught the bug at the source-code level instead of shipping to production.
+
+**Note**: This fix was necessary but not sufficient. The CSS rule itself was still wrong (see "Skip-link CSS positioning" entry above). The bundling fix made the rule reach the browser, but the rule needed `position: fixed` to actually hide the element.
 
 Test count: 421 → 430 (+9 new CSS regression tests), 25 → 26 test files.
 
