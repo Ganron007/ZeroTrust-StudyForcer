@@ -152,7 +152,7 @@ select:focus-visible {
    Uses transform: translateY(-150%) to clip rendered text cleanly
    (top: -100px leaks visible text above the viewport). */
 .skip-link {
-  position: absolute;
+  position: fixed;
   left: 0;
   top: 0;
   z-index: 100;
@@ -162,7 +162,7 @@ select:focus-visible {
   font-weight: 600;
   text-decoration: none;
   border-radius: 0 0 6px 0;
-  transform: translateY(-150%);
+  transform: translateY(-200%);
   transition: transform 0.15s ease-in-out;
 }
 .skip-link:focus,

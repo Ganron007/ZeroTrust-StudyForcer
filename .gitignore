@@ -38,3 +38,8 @@ Docs/Internal/
 .claude/
 OSCAR_OVER_ARR.md
 desktop.ini
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
