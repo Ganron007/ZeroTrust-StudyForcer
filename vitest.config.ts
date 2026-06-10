@@ -19,9 +19,15 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'src-tauri/',
+        'e2e/',
         '**/*.test.ts',
         '**/*.config.*',
       ],
     },
+    exclude: [
+      'node_modules/',
+      'e2e/**',
+      'src-tauri/**',
+    ],
   },
 })
