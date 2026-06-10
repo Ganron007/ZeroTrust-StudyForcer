@@ -110,14 +110,35 @@ async function initSqlite(): Promise<DbHandle | null> {
     )`)
 
     // ── Migrations ──────────────────────────────────────────────────────────
+    // S28: Migration array. Each entry migrates from version N to N+1.
+    // Add new migrations here as schema evolves.
+    type Migration = { from: number; run: (db: Awaited<ReturnType<typeof Database.load>>) => Promise<void> }
+    const MIGRATIONS: Migration[] = [
+      {
+        from: 0,
+        run: async (db) => {
+          // v0 → v1: initial schema (plans, active_plan_ids tables already created above)
+          await db.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '1')",
+          )
+        },
+      },
+    ]
+
     const rows: { value: string }[] = await db.select(
       "SELECT value FROM meta WHERE key = 'schema_version'",
     )
-    const version = rows.length > 0 ? Number(rows[0].value) : 0
-    if (version < 1) {
-      await db.execute(
-        "INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '1')",
-      )
+    let version = rows.length > 0 ? Number(rows[0].value) : 0
+    for (const migration of MIGRATIONS) {
+      if (migration.from === version) {
+        try {
+          await migration.run(db)
+          version = migration.from + 1
+        } catch (e) {
+          console.warn(`[database] migration from v${migration.from} failed:`, e)
+          break
+        }
+      }
     }
 
     _db = db

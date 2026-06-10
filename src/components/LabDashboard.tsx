@@ -67,7 +67,9 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
     const todayMinutes = getTodayMinutes(data.sessions)
     const monthMinutes = getMonthMinutes(data.sessions)
     const daysInMonth = getDaysInCurrentMonth()
-    const dailyGoalMinutes = 360 // 6 hours
+    // C12: Derive daily goal from weeklyGoalHours (default 6h = 360min)
+    const weeklyGoalHours = data.weeklyGoalHours ?? 6
+    const dailyGoalMinutes = (weeklyGoalHours * 60) / 7
     const monthlyGoalMinutes = daysInMonth * dailyGoalMinutes
 
     const cadence = last7.map((date) => {
@@ -98,7 +100,8 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
 
     const doneToday = new Set(data.sessions.filter((s) => s.date === today).map((s) => s.labId))
 
-    return DEFAULT_EXTERNAL_LABS.map((lab) => {
+    // C11: Use data.labs (includes custom labs) instead of hardcoded DEFAULT_EXTERNAL_LABS
+    return data.labs.map((lab) => {
       const lastSession = labLastSession.get(lab.id)
       const daysSince = getDaysSince(lastSession?.date ?? null)
       const totalMinutes = labTotalMinutes.get(lab.id) ?? 0
@@ -649,11 +652,11 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
                   <p className="text-[10px] text-muted-foreground mt-1">Log your first session to start tracking.</p>
                 </div>
               )}
-              {recentActivity.map((session, i) => {
+              {recentActivity.map((session) => {
                 const lab = DEFAULT_EXTERNAL_LABS.find((l) => l.id === session.labId)
                 const cat = lab ? getLabCategory(data, lab.id) : "purple"
                 return (
-                  <div key={i} className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/20 p-2.5">
+                  <div key={session.createdAt} className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/20 p-2.5">
                     <div
                       className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
                       style={{ backgroundColor: CATEGORY_COLORS[cat] }}

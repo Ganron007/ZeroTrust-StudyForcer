@@ -168,8 +168,17 @@ export function getAtRiskCount(sessions: LabSession[]): number {
   return count
 }
 
+// S7: Valid LabCategory set for runtime validation
+const VALID_LAB_CATEGORIES: ReadonlySet<LabCategory> = new Set([
+  "blue", "red", "dfir", "purple",
+])
+
 export function getLabCategory(data: LabsStorage, labId: string): LabCategory {
-  return data.categories[labId] ?? DEFAULT_EXTERNAL_LABS.find((l) => l.id === labId)?.defaultCategory ?? "purple"
+  const stored = data.categories[labId]
+  if (stored && VALID_LAB_CATEGORIES.has(stored)) return stored
+  const labDefault = DEFAULT_EXTERNAL_LABS.find((l) => l.id === labId)?.defaultCategory
+  if (labDefault && VALID_LAB_CATEGORIES.has(labDefault)) return labDefault
+  return "purple"
 }
 
 // ── Smart scoring ────────────────────────────────────────────────────────────

@@ -158,7 +158,12 @@ fn validate_course_id(id: &str) -> Result<(), String> {
 }
 
 // v2.4.6 (M-5): Serialize news cache writes to prevent concurrent-task race.
-static NEWS_CACHE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+// R1: Use tokio::sync::Mutex so the guard can be held across .await (tokio::fs::write).
+// tokio::sync::Mutex::new is not const, so use OnceLock for lazy init.
+static NEWS_CACHE_LOCK: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+fn news_cache_lock() -> &'static tokio::sync::Mutex<()> {
+    NEWS_CACHE_LOCK.get_or_init(|| tokio::sync::Mutex::new(()))
+}
 
 // ── News Feed ───────────────────────────────────────────────────────────────
 
@@ -488,12 +493,15 @@ async fn fetch_news(handle: AppHandle) -> Result<Vec<NewsItem>, String> {
         fetched_at: chrono::Utc::now().to_rfc3339(),
     };
     // v2.4.6 (M-5): Serialize cache writes via Mutex guard.
+    // R1: Use tokio::fs to avoid blocking the async runtime.
     // R5: Skip write if serialization failed (empty string = corruption)
     let cache_json = serde_json::to_string_pretty(&cache).unwrap_or_default();
     if !cache_json.is_empty() {
-        if let Ok(lock) = NEWS_CACHE_LOCK.lock() {
-            let _ = fs::write(news_path(&handle), &cache_json);
-            drop(lock);
+        let _lock = news_cache_lock().lock().await;
+        let path = news_path(&handle);
+        let write_result = tokio::fs::write(&path, &cache_json).await;
+        if let Err(e) = write_result {
+            log::warn!("[fetch_news] cache write failed: {}", e);
         }
     } else {
         log::warn!("[fetch_news] cache serialization failed — skipping write");
@@ -634,8 +642,26 @@ fn read_window_state(handle: AppHandle) -> Result<String, String> {
 
 #[tauri::command]
 fn write_window_state(handle: AppHandle, content: String) -> Result<(), String> {
-    // R12: Route through persist_window_state to respect the Mutex throttle.
-    // Direct writes bypass the throttle and can cause excessive disk IO.
+    // R12: Respect the same throttle as persist_window_state.
+    // The event-handler path already throttles; the command path was bypassing it.
+    {
+        let mut guard = match LAST_WINDOW_STATE_WRITE.lock() {
+            Ok(g) => g,
+            Err(poisoned) => {
+                log::warn!("Window-state Mutex was poisoned — recovering");
+                poisoned.into_inner()
+            }
+        };
+        let now = Instant::now();
+        if let Some(prev) = *guard {
+            if now.duration_since(prev) < WINDOW_STATE_THROTTLE {
+                // Throttled — skip the write (frontend will retry on next event)
+                return Ok(());
+            }
+        }
+        *guard = Some(now);
+    }
+    // A39: Atomic write via tmp + rename
     let path = window_state_path(&handle);
     let tmp = path.with_extension("tmp");
     fs::write(&tmp, &content).map_err(|e| e.to_string())?;

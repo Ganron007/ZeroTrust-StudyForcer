@@ -17,10 +17,13 @@ export interface LabDefinition {
 }
 
 export interface LabsStorage {
+  // X3: schemaVersion for migration tracking. v1 = original, v2 = added schemaVersion field.
+  schemaVersion?: number
   labs: LabDefinition[]
   sessions: LabSession[]
   categories: Record<string, LabCategory>
   customFocus?: Record<string, string>
+  weeklyGoalHours?: number
 }
 
 export const DEFAULT_EXTERNAL_LABS: LabDefinition[] = [

@@ -195,7 +195,13 @@ export default function ScheduleList({
 
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {/* Log button: Log progress for this day on the list */}
-                  {!isDone && (
+                  {/* C6: Differentiate pending (skipped) vs not-yet-logged */}
+                  {!isDone && isPending && (
+                    <span className="text-xs text-amber-500 font-medium mr-1">
+                      {label("updatePages")}
+                    </span>
+                  )}
+                  {!isDone && !isPending && (
                     <span className="text-xs text-muted-foreground mr-1">
                       {label("useCalendarToLog")}
                     </span>

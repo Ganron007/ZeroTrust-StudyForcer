@@ -71,10 +71,11 @@ function parseRss(xml: string): { title: string; link: string; isoDate: string }
     const pubDate = item.querySelector("pubDate")?.textContent?.trim() || ""
     if (title && link) {
       const date = new Date(pubDate)
+      // S14: Keep raw pubDate string if unparseable (don't fabricate timestamp)
       items.push({
         title,
         link,
-        isoDate: isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString(),
+        isoDate: isNaN(date.getTime()) ? pubDate || "" : date.toISOString(),
       })
     }
   })
@@ -92,10 +93,11 @@ function parseRss(xml: string): { title: string; link: string; isoDate: string }
       ""
     if (title && link) {
       const date = new Date(published)
+      // S14: Keep raw published string if unparseable
       items.push({
         title,
         link,
-        isoDate: isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString(),
+        isoDate: isNaN(date.getTime()) ? published || "" : date.toISOString(),
       })
     }
   })
