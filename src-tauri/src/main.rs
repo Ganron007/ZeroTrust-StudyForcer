@@ -285,9 +285,11 @@ async fn fetch_hn_security() -> Vec<NewsItem> {
                     let created_at = hit.get("created_at").and_then(|v| v.as_str()).unwrap_or("").to_string();
                     let points = hit.get("points").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
                     let domain = url_to_domain(&story_url);
+                    // A38: Use empty string for unparseable dates instead of now().
+                    // Items with unparseable dates sort to the bottom (UNIX_EPOCH in sort).
                     let published = parse_date(&created_at)
                         .map(|d| d.to_rfc3339())
-                        .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
+                        .unwrap_or_default();
                     items.push(NewsItem {
                         id: format!("hn-{}", object_id),
                         title,
@@ -338,11 +340,12 @@ async fn fetch_rss_feed(feed: &FeedConfig) -> Vec<NewsItem> {
                     let title = item.title().unwrap_or("").to_string();
                     if title.is_empty() { continue; }
                     let url = item.link().unwrap_or("").to_string();
+                    // A38: Use empty string for unparseable dates instead of now()
                     let pub_date = item.pub_date()
                         .and_then(|d| parse_date(d))
                         .or(channel_date)
                         .map(|d| d.to_rfc3339())
-                        .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
+                        .unwrap_or_default();
                     let domain = url_to_domain(&url);
                     items.push(NewsItem {
                         id: format!("rss-{}", format!("{:x}", md5::compute(format!("{}{}", feed.url, title)))),
@@ -365,11 +368,12 @@ async fn fetch_rss_feed(feed: &FeedConfig) -> Vec<NewsItem> {
                         let title = entry.title().to_string();
                         if title.is_empty() { continue; }
                         let url = entry.links().first().map(|l| l.href().to_string()).unwrap_or_default();
+                        // A38: Use empty string for unparseable dates instead of now()
                         let pub_date = entry.published()
                             .and_then(|d| parse_date(&d.to_string()))
                             .or(parse_date(&entry.updated().to_string()))
                             .map(|d| d.to_rfc3339())
-                            .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
+                            .unwrap_or_default();
                         let domain = url_to_domain(&url);
                         items.push(NewsItem {
                             id: format!("atom-{}", format!("{:x}", md5::compute(format!("{}{}", feed.url, title)))),
@@ -458,8 +462,16 @@ async fn fetch_news(handle: AppHandle) -> Result<Vec<NewsItem>, String> {
         let mut failed = 0usize;
         for task in tasks {
             // R8: Log warnings on task panics
+            // A37: Count empty-result fetches as failed too — previously only
+            // JoinError (panics) incremented the counter, so a fetch that
+            // returned Ok(Vec::new()) was counted as success.
             match task.await {
-                Ok(items) => all.extend(items),
+                Ok(items) => {
+                    if items.is_empty() {
+                        failed += 1;
+                    }
+                    all.extend(items);
+                }
                 Err(e) => {
                     log::warn!("[fetch_news] task panicked: {}", e);
                     failed += 1;

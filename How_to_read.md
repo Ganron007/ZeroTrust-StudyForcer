@@ -3,7 +3,7 @@
 A short tour of every `.md` file in this repo so you (or future-you, or anyone who stumbles
 in) can jump straight to the right place instead of opening files at random.
 
-**Last updated:** 2026-06-10 — for app version **2.4.11** (all 64 audit bugs closed, 458 tests passing).
+**Last updated:** 2026-06-10 — for app version **2.4.11** (all 64 audit + 49 A-series bugs closed, 447 tests passing).
 
 ---
 

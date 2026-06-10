@@ -8,6 +8,21 @@ All notable changes to this project are documented here.
 
 ## [2.4.11] — 2026-06-10
 
+### Fixed — A-series audit: 3 remaining bugs closed
+
+Comprehensive code review of the A-series bug list (A31–A84) confirmed that 46 of the
+49 documented bugs were already fixed in prior commits but the documentation was stale.
+The remaining 3 were fixed in this session:
+
+- **A54 (LabDashboard save)**: `save()` now awaits `writeLabsStorage()` before `setData()`. On failure, state is unchanged and user sees error toast.
+- **A37 (Rust failed counter)**: `fetch_news` task collector now increments `failed` when a fetch returns empty results, not just on task panics.
+- **A38 (Rust unparseable dates)**: All 3 occurrences (HN, RSS, Atom) now use `unwrap_or_default()` instead of `chrono::Utc::now()`. Unparseable dates sort to the bottom.
+
+**Deferred to Phase 3** (architectural): A9, A11, A32.
+**Verification**: TypeScript clean. Rust clean. 447 tests passing (27 files).
+
+---
+
 ### Fixed — Audit corrections (mutex pattern, C2 deps, X4 wiring)
 
 The initial v2.4.11 fix pass introduced 3 real bugs that were caught in a second audit:

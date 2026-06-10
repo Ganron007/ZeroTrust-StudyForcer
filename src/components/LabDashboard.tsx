@@ -43,9 +43,16 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
     return () => { cancelled = true }
   }, [])
 
+  // A54: Write to disk first, then update state. If disk write fails,
+  // state is unchanged and the user sees an error toast to retry.
   const save = useCallback(async (next: LabsStorage) => {
-    setData(next)
-    await writeLabsStorage(next)
+    try {
+      await writeLabsStorage(next)
+      setData(next)
+    } catch (e) {
+      console.error("[LabDashboard] save failed:", e)
+      showToast("Failed to save lab data — please retry", "break")
+    }
   }, [])
 
   // A53: Use a state-based today that re-computes at midnight
