@@ -8,6 +8,34 @@ All notable changes to this project are documented here.
 
 ## [2.4.11] — 2026-06-10
 
+### Fixed — Audit corrections (mutex pattern, C2 deps, X4 wiring)
+
+The initial v2.4.11 fix pass introduced 3 real bugs that were caught in a second audit:
+
+- **C2 (useMemo deps)**: `courseIdsKey` was declared but never added to `statsMap` deps. The earlier "fix" was a no-op. Now correctly declared before `statsMap` and added to the dep array.
+- **S16 + S24 (mutex pattern)**: `dbChain.then(op, op)` called `op` as the rejection handler, meaning failed operations would be retried. Fixed to `dbChain.then(op)` in both `plan-storage.ts` `serialize()` and `database.ts` `withDbLock()`.
+- **X4 (error reporting)**: `error-reporting.ts` was created but never imported. Now imported in `database.ts` and used in 2 key catch blocks.
+- **C11 (LabDashboard)**: Quick-log button still used `DEFAULT_EXTERNAL_LABS[0]` as fallback. Changed to `data.labs[0]?.id` so custom labs are respected.
+
+Test count: 447 passing. TypeScript clean. Rust clean.
+
+Portable: `ZTSFv2.4.11.exe` rebuilt with all audit corrections.
+
+---
+
+## [2.4.11] — 2026-06-10
+
+### Fixed — All 64 audit bugs closed
+
+The original "Open Audit Bugs" table listed 64 bugs. 41 were already fixed in code (doc was stale). The remaining 19 were fixed in this release:
+
+**Components (6):** C2, C6, C11, C12, C15, C17
+**Storage (5):** S7, S14, S16, S24, S28
+**Rust (2):** R1, R12
+**Cross-cutting (2):** X3, X4
+
+Test count: 430 → 447 (+17 new regression tests in `bug-fixes.test.ts`).
+
 ### Fixed — Skip-link CSS positioning (third attempt, final)
 
 **Bug**: After the CSS bundling fix, the skip-link was still visible on page load. The `position: absolute` + `translateY(-150%)` combination only moved the element -60px from its parent's top (not the viewport), which was often still in the visible area.

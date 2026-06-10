@@ -1,8 +1,8 @@
 # Testing Architecture
 
-**Current:** 430 tests, 26 files, all passing  
-**Runner:** Vitest v4.1.5  
-**Environment:** jsdom  
+**Current:** 447 unit tests (27 files) + 11 E2E tests (1 file) = 458 total, all passing  
+**Runner:** Vitest v4.1.5 + Playwright 1.60.0  
+**Environment:** jsdom (unit), Chromium (E2E)  
 **Framework:** @testing-library/react + jest-dom + user-event
 
 ---
@@ -41,8 +41,9 @@ src/components/__tests__/
 ├── NotificationSettingsPanel.test.tsx # 5  — notification settings UI (Phase 2.2)
 ├── KeyboardShortcutsCheatsheet.test.tsx # 8  — cheatsheet modal (Phase 2.5)
 └── axe-audit.test.tsx           # 1  — automated WCAG audit (Phase 2.5)
+└── bug-fixes.test.ts            # 17 — regression tests for 64 audit bugs
 ```
-Total: **430 tests / 26 files**, all passing at v2.4.11. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files).
+Total: **447 unit tests / 27 files** + **11 E2E tests / 1 file** = **458 total**, all passing at v2.4.11. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files). E2E tests catch layout/visibility bugs that jsdom cannot detect.
 
 ---
 
