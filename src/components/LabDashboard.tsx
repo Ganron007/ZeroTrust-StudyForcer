@@ -237,7 +237,7 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
           </p>
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => openLog(bestTarget?.id ?? DEFAULT_EXTERNAL_LABS[0].id, 120)}
+              onClick={() => openLog(bestTarget?.id ?? data.labs[0]?.id ?? "", 120)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
             >
               <Plus className="w-4 h-4" />

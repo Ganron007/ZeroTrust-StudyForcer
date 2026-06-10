@@ -1,6 +1,5 @@
 import { readStorage, writeStorage } from "./database"
 import { localToday } from "./date-utils"
-import { reportError } from "./error-reporting"
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -16,8 +15,9 @@ function generateId(): string {
 let mutationChain: Promise<unknown> = Promise.resolve()
 
 function serialize<T>(op: () => Promise<T>): Promise<T> {
-  const next = mutationChain.then(op, op)
-  // Swallow errors in the chain so one failure doesn't break the next op
+  // Only chain on success — on failure, skip to next op so one bad
+  // mutation doesn't block the chain.
+  const next = mutationChain.then(op)
   mutationChain = next.catch(() => undefined)
   return next
 }

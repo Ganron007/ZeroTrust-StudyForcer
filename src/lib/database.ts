@@ -10,6 +10,7 @@
 
 import { IS_TAURI } from "./is-tauri"
 import type { StudyPlan } from "./plan-storage"
+import { reportError } from "./error-reporting"
 
 // S24: Serialize all database reads + writes through a promise chain.
 // Prevents concurrent read/write from seeing torn state.
@@ -18,7 +19,9 @@ import type { StudyPlan } from "./plan-storage"
 // overlapping writes during the read.)
 let dbChain: Promise<unknown> = Promise.resolve()
 function withDbLock<T>(op: () => Promise<T>): Promise<T> {
-  const next = dbChain.then(op, op)
+  // Only chain on success — on failure, skip to next op so one bad
+  // operation doesn't block the chain.
+  const next = dbChain.then(op)
   dbChain = next.catch(() => undefined)
   return next
 }
@@ -61,7 +64,7 @@ function readWeb(): StorageData {
   } catch (e) {
     // v2.4.4: Don't silently return empty — preserve the corrupt blob for recovery.
     const stamp = Date.now()
-    console.error("[database] localStorage parse failed, quarantining:", e)
+    reportError("database.readWeb", e, { context: { stamp } })
     if (plansRaw) {
       try { localStorage.setItem(`${WEB_PLANS_KEY}.corrupt-${stamp}`, plansRaw) } catch { /* ignore */ }
     }
@@ -199,9 +202,8 @@ export async function readStorage(): Promise<StorageData> {
           return { plans, activePlanIds }
         })
       } catch (e) {
-        // S27: Log error before falling back
-        console.error("[database] SQLite read failed:", e)
-        console.warn("[database] Falling back to localStorage")
+        // S27 + X4: Use unified error reporting before falling back
+        reportError("database.readStorage.sqlite", e)
         return readWeb()
       }
     }

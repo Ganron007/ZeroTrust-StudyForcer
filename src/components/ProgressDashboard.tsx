@@ -174,8 +174,18 @@ export default function ProgressDashboard({ selectedCourseIds = [] }: ProgressDa
 
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
 
+  // C2: Derive a stable string key from course IDs so the statsMap memo
+  // invalidates on course identity change, not on object reference change.
+  // Must be declared BEFORE the useMemo that depends on it.
+  const courseIdsKey = useMemo(
+    () => courses.map((c) => c.id).join(","),
+    [courses],
+  )
+
   // A49: For each selected course, pick the active plan (preferring the primary
   // active plan for the course, falling back to any active plan, then any plan).
+  // C2: Use courseIdsKey (stable string) instead of courses (object ref) so
+  // same-length course swaps correctly invalidate this memo.
   const statsMap = useMemo(() => {
     const map: Record<string, CourseStats> = {}
     for (const courseId of selectedCourseIds.length > 0 ? selectedCourseIds : courses.map(c => c.id)) {
@@ -199,14 +209,8 @@ export default function ProgressDashboard({ selectedCourseIds = [] }: ProgressDa
       }
     }
     return map
-  }, [courses, allPlans, activePlanIds, primaryActivePlanId, selectedCourseIds])
-
-  // C2: Depend on course IDs only (not the full courses object) so same-length
-  // course swaps correctly invalidate the memo.
-  const courseIdsKey = useMemo(
-    () => courses.map((c) => c.id).join(","),
-    [courses],
-  )
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- courses is captured via courseIdsKey
+  }, [courseIdsKey, allPlans, activePlanIds, primaryActivePlanId, selectedCourseIds])
   // Only show pills for courses that have stats
   const courseIdsWithStats = useMemo(
     () => Object.keys(statsMap),
