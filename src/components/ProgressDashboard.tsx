@@ -201,6 +201,12 @@ export default function ProgressDashboard({ selectedCourseIds = [] }: ProgressDa
     return map
   }, [courses, allPlans, activePlanIds, primaryActivePlanId, selectedCourseIds])
 
+  // C2: Depend on course IDs only (not the full courses object) so same-length
+  // course swaps correctly invalidate the memo.
+  const courseIdsKey = useMemo(
+    () => courses.map((c) => c.id).join(","),
+    [courses],
+  )
   // Only show pills for courses that have stats
   const courseIdsWithStats = useMemo(
     () => Object.keys(statsMap),

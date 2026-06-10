@@ -186,7 +186,7 @@ export default function SecurityNewsFeed({ onClose }: Props) {
           }`}
         >
           <Filter className="w-3 h-3" />
-          All
+          {label("allFilter")}
         </button>
         {categories.map((cat) => {
           const color = CATEGORY_COLORS[cat] ?? "#888"
@@ -213,9 +213,9 @@ export default function SecurityNewsFeed({ onClose }: Props) {
         {filtered.length === 0 && (
           <div className="rounded-xl border border-dashed border-border bg-muted/30 p-10 text-center">
             <Newspaper className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm font-semibold text-muted-foreground mb-1">No articles yet</p>
+            <p className="text-sm font-semibold text-muted-foreground mb-1">{label("noArticlesYet")}</p>
             <p className="text-xs text-muted-foreground mb-4">
-              Click Refresh to pull the latest security news from all sources.
+              {label("clickRefreshToPull")}
             </p>
             <button
               onClick={handleRefresh}
@@ -223,7 +223,7 @@ export default function SecurityNewsFeed({ onClose }: Props) {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              {loading ? "Fetching..." : "Refresh Feed"}
+              {loading ? label("fetching") : label("refreshFeed")}
             </button>
           </div>
         )}

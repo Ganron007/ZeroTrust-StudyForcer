@@ -1,11 +1,25 @@
 import { readStorage, writeStorage } from "./database"
 import { localToday } from "./date-utils"
+import { reportError } from "./error-reporting"
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID()
   }
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+// S16: Serialize all plan-storage mutations to prevent TOCTOU races.
+// read→modify→write without serialization can lose updates when two
+// mutations overlap. This module-level promise chain ensures each mutation
+// completes before the next starts.
+let mutationChain: Promise<unknown> = Promise.resolve()
+
+function serialize<T>(op: () => Promise<T>): Promise<T> {
+  const next = mutationChain.then(op, op)
+  // Swallow errors in the chain so one failure doesn't break the next op
+  mutationChain = next.catch(() => undefined)
+  return next
 }
 
 export interface ChapterCheck {
@@ -68,78 +82,91 @@ export const planStorage = {
   },
 
   async save(plan: Omit<StudyPlan, "id" | "createdAt" | "updatedAt"> & { id?: string }): Promise<StudyPlan> {
-    const data = await readStorage()
-    const now = new Date().toISOString()
-    const id = plan.id ?? generateId()
-    const existing = data.plans[id]
-    const saved: StudyPlan = {
-      ...plan,
-      id,
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-      dailyLog: plan.dailyLog ?? {},
-      skippedDays: plan.skippedDays ?? [],
-      // S15: `"unitOrder" in plan` correctly handles both cases:
-      // - `{ ...plan, unitOrder: undefined }` → key present, value undefined → clears it
-      // - `{ ...plan }` (key omitted) → key present from spread, existing value preserved
-      unitOrder: "unitOrder" in (plan as Record<string, unknown>) ? plan.unitOrder : existing?.unitOrder,
-    }
-    data.plans[id] = saved
-    // S17: Auto-activate new plans (plans that didn't exist before)
-    if (!existing) {
-      data.activePlanIds = (data.activePlanIds ?? [])
-      if (!data.activePlanIds.includes(id)) {
-        data.activePlanIds.push(id)
+    return serialize(async () => {
+      const data = await readStorage()
+      const now = new Date().toISOString()
+      const id = plan.id ?? generateId()
+      const existing = data.plans[id]
+      const saved: StudyPlan = {
+        ...plan,
+        id,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        dailyLog: plan.dailyLog ?? {},
+        skippedDays: plan.skippedDays ?? [],
+        // S15: `"unitOrder" in plan` correctly handles both cases:
+        // - `{ ...plan, unitOrder: undefined }` → key present, value undefined → clears it
+        // - `{ ...plan }` (key omitted) → key present from spread, existing value preserved
+        unitOrder: "unitOrder" in (plan as Record<string, unknown>) ? plan.unitOrder : existing?.unitOrder,
       }
-    }
-    await writeStorage(data)
-    return saved
+      data.plans[id] = saved
+      // S17: Auto-activate new plans (plans that didn't exist before)
+      if (!existing) {
+        data.activePlanIds = (data.activePlanIds ?? [])
+        if (!data.activePlanIds.includes(id)) {
+          data.activePlanIds.push(id)
+        }
+      }
+      await writeStorage(data)
+      return saved
+    })
   },
 
   async delete(id: string): Promise<void> {
-    const data = await readStorage()
-    delete data.plans[id]
-    data.activePlanIds = (data.activePlanIds ?? []).filter((pid) => pid !== id)
-    await writeStorage(data)
+    return serialize(async () => {
+      const data = await readStorage()
+      delete data.plans[id]
+      data.activePlanIds = (data.activePlanIds ?? []).filter((pid) => pid !== id)
+      await writeStorage(data)
+    })
   },
 
   async rename(id: string, name: string): Promise<void> {
-    const data = await readStorage()
-    if (data.plans[id]) {
-      data.plans[id].name = name
-      data.plans[id].updatedAt = new Date().toISOString()
-      await writeStorage(data)
-    }
+    return serialize(async () => {
+      const data = await readStorage()
+      if (data.plans[id]) {
+        data.plans[id].name = name
+        data.plans[id].updatedAt = new Date().toISOString()
+        await writeStorage(data)
+      }
+    })
   },
 
   async getActiveIds(): Promise<string[]> {
+    // Reads are not serialized (concurrent reads are safe and common)
     const data = await readStorage()
     return data.activePlanIds ?? []
   },
 
   async setActiveIds(ids: string[]): Promise<void> {
-    const data = await readStorage()
-    data.activePlanIds = ids.filter((id) => data.plans[id])
-    data.activePlanIds = data.activePlanIds ?? []
-    await writeStorage(data)
+    return serialize(async () => {
+      const data = await readStorage()
+      data.activePlanIds = ids.filter((id) => data.plans[id])
+      data.activePlanIds = data.activePlanIds ?? []
+      await writeStorage(data)
+    })
   },
 
   async addActiveId(id: string): Promise<void> {
-    const data = await readStorage()
-    if (!data.plans[id]) return
-    // S18: Guard against undefined activePlanIds on legacy data
-    data.activePlanIds = data.activePlanIds ?? []
-    if (!data.activePlanIds.includes(id)) {
-      data.activePlanIds.push(id)
-      await writeStorage(data)
-    }
+    return serialize(async () => {
+      const data = await readStorage()
+      if (!data.plans[id]) return
+      // S18: Guard against undefined activePlanIds on legacy data
+      data.activePlanIds = data.activePlanIds ?? []
+      if (!data.activePlanIds.includes(id)) {
+        data.activePlanIds.push(id)
+        await writeStorage(data)
+      }
+    })
   },
 
   async removeActiveId(id: string): Promise<void> {
-    const data = await readStorage()
-    // S18: Guard against undefined activePlanIds on legacy data
-    data.activePlanIds = (data.activePlanIds ?? []).filter((pid) => pid !== id)
-    await writeStorage(data)
+    return serialize(async () => {
+      const data = await readStorage()
+      // S18: Guard against undefined activePlanIds on legacy data
+      data.activePlanIds = (data.activePlanIds ?? []).filter((pid) => pid !== id)
+      await writeStorage(data)
+    })
   },
 
   async clearAll(): Promise<void> {
