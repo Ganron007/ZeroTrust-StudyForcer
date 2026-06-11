@@ -19,7 +19,7 @@ Phase 3 hardening work is complete. All 6 features from `ROADMAP.md` Phase 3 hav
 - **3.2 — Persist temp Log/Skip state**: New `src/lib/temp-log-storage.ts` provides `readTempLogs` / `writeTempLogs` / `applyTempLog` / `clearTempLog` / `clearAllTempLogs` / `getTempLogsForDate`. Foundation for replacing React useState with storage-backed state. Inviolable Rule 1 preserved. 12 tests.
 - **3.1 — Async storage with in-memory cache**: Added Tauri in-memory cache to `src/lib/database.ts` mirroring the existing webCache pattern. `readStorage()` checks cache first, `writeStorage()` invalidates after successful write. Foundation for future REST/sync swap. 5 tests.
 
-**Test count**: 447 → 499 (+52 new tests). TypeScript clean. Rust clean. All 33 test files pass.
+**Test count**: 447 → 500 (+53 new tests). TypeScript clean. Rust clean. All 33 test files pass.
 
 ### Fixed — A-series audit: 3 remaining bugs closed
 
