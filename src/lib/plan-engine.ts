@@ -1,6 +1,7 @@
 import type { Chapter } from "@/types/course"
 import type { StudyPlan, Anchor } from "@/lib/plan-storage"
-import { getTotalPages, countStudyDays, nthStudyDay } from "./cissp-data"
+import { getTotalPages, countStudyDays, nthStudyDay, generateSchedule, type GeneratedSchedule } from "./cissp-data"
+import { today as todayNow } from "./clock"
 
 export interface ComputedPlanParams {
   /** The actual pagesPerDay to use for schedule generation. */
@@ -142,6 +143,42 @@ export function syncStudyPlan(
     consumed,
     remaining,
   }
+}
+
+// ── Phase 3.5: Single schedule derivation ───────────────────────────────────
+
+export interface PlanSchedule {
+  /** The computed schedule (day-by-day chapter allocations). */
+  schedule: GeneratedSchedule
+  /** Computed plan params (pace, end date, feasibility). */
+  params: ComputedPlanParams
+  /** Today's date used for the computation. */
+  today: string
+}
+
+/**
+ * Single source of truth for plan schedule derivation.
+ *
+ * Use this from the Zustand store selector to avoid recomputing the
+ * schedule in every component. Returns the schedule + params + today
+ * as a single object for easy memoization.
+ *
+ * Pure function: same plan + chapters + today → same output.
+ */
+export function computePlanSchedule(
+  plan: StudyPlan,
+  chapters: Chapter[],
+  today: string = todayNow(),
+): PlanSchedule {
+  const params = syncStudyPlan(plan, chapters, today)
+  const schedule = generateSchedule(
+    plan,
+    chapters,
+    today,
+    params.pagesPerDay,
+    params.endDate,
+  )
+  return { schedule, params, today }
 }
 
 // syncStudyPlan is the sole export — no backward-compatible aliases.
