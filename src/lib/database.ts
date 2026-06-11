@@ -48,6 +48,16 @@ if (typeof window !== 'undefined') {
   })
 }
 
+// ── Phase 3.1: Tauri in-memory cache ────────────────────────────────────────
+// Cache for Tauri SQLite reads. Invalidated on every write.
+// This is the foundation for "future async storage swap" — once a
+// REST/sync backend is added, the cache still works the same way.
+let tauriCache: { plans: Record<string, StudyPlan>; activePlanIds: string[] } | null = null
+
+function invalidateTauriCache() {
+  tauriCache = null
+}
+
 function readWeb(): StorageData {
   if (webCache) return webCache
   const plansRaw = localStorage.getItem(WEB_PLANS_KEY)
@@ -169,6 +179,8 @@ async function initSqlite(): Promise<DbHandle | null> {
 
 export async function readStorage(): Promise<StorageData> {
   if (IS_TAURI) {
+    // Phase 3.1: Check cache first to avoid SQLite roundtrip
+    if (tauriCache) return tauriCache
     const db = await getDb()
     if (db) {
       try {
@@ -199,6 +211,8 @@ export async function readStorage(): Promise<StorageData> {
           const activePlanIds = (activeRows ?? [])
             .map((r: { plan_id: string }) => r.plan_id)
             .filter((id: string) => !!plans[id])
+          // Phase 3.1: Cache the result so subsequent reads are instant
+          tauriCache = { plans, activePlanIds }
           return { plans, activePlanIds }
         })
       } catch (e) {
@@ -208,6 +222,7 @@ export async function readStorage(): Promise<StorageData> {
       }
     }
   }
+  // Web mode already has its own cache (webCache)
   return readWeb()
 }
 
@@ -238,6 +253,9 @@ export async function writeStorage(data: StorageData): Promise<void> {
             )
           }
           await db.execute("COMMIT")
+          // Phase 3.1: Invalidate the Tauri cache after a successful write
+          // so the next read picks up the new data.
+          invalidateTauriCache()
         })
       } catch (e) {
         try { await db.execute("ROLLBACK") } catch { /* ignore */ }
