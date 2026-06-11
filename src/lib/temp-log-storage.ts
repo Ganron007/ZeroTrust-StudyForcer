@@ -1,5 +1,3 @@
-import { IS_TAURI } from "./is-tauri"
-
 /**
  * Phase 3.2: Persisted temp Log/Skip state.
  *
@@ -7,9 +5,8 @@ import { IS_TAURI } from "./is-tauri"
  * currently lives in React useState. If the browser refreshes or
  * the app crashes, the temp state is lost.
  *
- * Solution: persist temp state to localStorage (web/test) or a
- * Tauri-managed file. "Mark Done" still moves it from temp to
- * durable dailyLog (per inviolable Rule 1).
+ * Solution: persist temp state to localStorage. "Mark Done" still
+ * moves it from temp to durable dailyLog (per inviolable Rule 1).
  *
  * Inviolable Rule 1 is preserved: only Mark Done commits to
  * planStorage.save(). Temp state goes to a SEPARATE storage path
@@ -18,6 +15,10 @@ import { IS_TAURI } from "./is-tauri"
  * Shape:
  *   TempLogStore = Record<date, Record<courseId, { pagesRead: number }>>
  *   (same as the React temp state, so consumers can swap easily)
+ *
+ * Note: in Tauri mode, Tauri's webview already uses localStorage
+ * (with persistence to a webview data dir), so the same key works
+ * in both modes. No Tauri-specific branch needed.
  */
 
 const WEB_TEMP_LOGS_KEY = "web:temp_logs"
@@ -30,18 +31,6 @@ export type TempLogStore = Record<string, Record<string, { pagesRead: number }>>
  */
 export async function readTempLogs(): Promise<TempLogStore> {
   try {
-    if (IS_TAURI) {
-      // For Tauri, we use localStorage as a temp cache (Tauri's
-      // app data dir persists across sessions). The "durable" store
-      // is planStorage; temp is ephemeral within a session.
-      // For Tauri, we still persist to localStorage so refresh
-      // doesn't lose data.
-      const raw = localStorage.getItem(WEB_TEMP_LOGS_KEY) ?? ""
-      if (!raw) return {}
-      const parsed = JSON.parse(raw)
-      if (!parsed || typeof parsed !== "object") return {}
-      return parsed as TempLogStore
-    }
     const raw = localStorage.getItem(WEB_TEMP_LOGS_KEY) ?? ""
     if (!raw) return {}
     const parsed = JSON.parse(raw)

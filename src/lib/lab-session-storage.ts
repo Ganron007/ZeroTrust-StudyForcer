@@ -3,6 +3,7 @@ import { IS_TAURI } from "./is-tauri"
 import { DEFAULT_EXTERNAL_LABS, type LabsStorage, type LabSession } from "./lab-sessions"
 import type { LabCategory } from "./lab-data"
 import { localToday } from "./date-utils"
+import { nowDate } from "./clock"
 
 const WEB_LABS_SESSIONS_KEY = "web:labs_sessions"
 
@@ -45,7 +46,7 @@ export async function writeLabsStorage(data: LabsStorage): Promise<void> {
 
 export function getLast14Days(): string[] {
   const days: string[] = []
-  const today = new Date()
+  const today = nowDate()
   for (let i = 13; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
@@ -59,7 +60,7 @@ export function getLast14Days(): string[] {
 
 export function getLast7Days(): string[] {
   const days: string[] = []
-  const today = new Date()
+  const today = nowDate()
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today)
     d.setDate(d.getDate() - i)
@@ -79,7 +80,7 @@ export function getTodayMinutes(sessions: LabSession[]): number {
 }
 
 export function getMonthMinutes(sessions: LabSession[]): number {
-  const today = new Date()
+  const today = nowDate()
   const year = today.getFullYear()
   const month = today.getMonth()
   return sessions
@@ -91,7 +92,7 @@ export function getMonthMinutes(sessions: LabSession[]): number {
 }
 
 export function getDaysInCurrentMonth(): number {
-  const today = new Date()
+  const today = nowDate()
   return new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
 }
 
@@ -108,12 +109,12 @@ export function getStreak(sessions: LabSession[]): number {
   if (completedDates.length === 0) return 0
 
   let streak: number
-  const check = new Date()
+  const check = nowDate()
 
   if (completedDates.includes(today)) {
     streak = 1
   } else {
-    const yesterday = new Date()
+    const yesterday = nowDate()
     yesterday.setDate(yesterday.getDate() - 1)
     const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`
     if (!completedDates.includes(yStr)) return 0
@@ -135,7 +136,7 @@ export function getStreak(sessions: LabSession[]): number {
 }
 
 export function getWeekMinutes(sessions: LabSession[]): number {
-  const today = new Date()
+  const today = nowDate()
   const weekAgo = new Date(today)
   weekAgo.setDate(weekAgo.getDate() - 7)
   return sessions
@@ -221,7 +222,7 @@ export function computeSmartScore(
   const categoryGapBonus = otherLabsWithFocus && focusSessions14.length === 0 ? 10 : 0
 
   // 5. Recent use penalty (−10 if used in last 7 days)
-  const today = new Date()
+  const today = nowDate()
   const weekAgo = new Date(today)
   weekAgo.setDate(weekAgo.getDate() - 7)
   const recentUse = sessions.some(

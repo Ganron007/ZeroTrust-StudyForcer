@@ -5,8 +5,13 @@
  * be injected and mocked. This makes time-dependent logic testable
  * (vi.useFakeTimers / vi.setSystemTime) and debuggable.
  *
- * Inviolable rule: production code should NEVER call new Date() or
- * Date.now() directly. Always go through this module.
+ * Inviolable rule (Phase 3.4): all files in src/lib/ that need the
+ * current time MUST go through this module — never call new Date() or
+ * Date.now() directly. (Naked = no arguments; new Date(arg) for parsing
+ * a date string is still fine.)
+ *
+ * Scope: src/lib/ only. Components/ are not yet migrated.
+ * See src/lib/__tests__/clock.test.ts for the enforcement test.
  *
  * Usage:
  *   import { now, today } from "@/lib/clock"

@@ -49,36 +49,41 @@ describe("clock module", () => {
   })
 })
 
-describe("Inviolable rule: no direct new Date() or Date.now() in production code", () => {
-  // Get all .ts and .tsx files in src/ (excluding tests)
-  const srcFiles = [
-    "src/lib/clock.ts", // the clock module itself is exempt
-  ]
-
-  it("lib/ files use clock module instead of direct Date calls", () => {
-    // For each lib file, verify it doesn't have naked new Date() or Date.now()
-    // (Naked = no arguments, meaning "now". new Date(arg) for parsing is fine.)
+describe("Inviolable rule: lib/ files use clock module instead of direct Date calls", () => {
+  it("all lib/ files use clock module instead of direct Date calls", () => {
+    // Phase 3.4 migration scope: all files in src/lib/ that handle
+    // "now" must go through the clock module so time can be mocked.
+    // (Naked = no arguments, meaning "now". new Date(arg) for parsing
+    // a date string is fine.)
+    // Scope: lib/ only. Components/ are not yet migrated.
     const libFiles = [
+      "src/lib/auto-backup.ts",
+      "src/lib/database.ts",
+      "src/lib/date-utils.ts",
+      "src/lib/lab-session-storage.ts",
       "src/lib/news-storage.ts",
+      "src/lib/notifications.ts",
       "src/lib/plan-storage.ts",
+      "src/lib/temp-log-storage.ts",
+      "src/lib/timer-storage.ts",
     ]
     for (const file of libFiles) {
       const source = readFileSync(
         resolve(__dirname, `../../../${file}`),
         "utf8"
       )
-      // Check for naked new Date() (no args)
-      const nakedNewDate = source.match(/new Date\(\)/g) || []
+      // Check for naked new Date() with optional whitespace
+      const nakedNewDate = source.match(/new Date\(\s*\)/g) || []
       // Check for naked Date.now()
-      const nakedDateNow = source.match(/Date\.now\(\)/g) || []
+      const nakedDateNow = source.match(/Date\.now\(\s*\)/g) || []
       // Each file should have zero naked Date calls (all should go through clock)
       expect(
         nakedNewDate.length,
-        `${file} has ${nakedNewDate.length} naked new Date() call(s)`
+        `${file} has ${nakedNewDate.length} naked new Date() call(s): ${nakedNewDate.join(", ")}`
       ).toBe(0)
       expect(
         nakedDateNow.length,
-        `${file} has ${nakedDateNow.length} naked Date.now() call(s)`
+        `${file} has ${nakedDateNow.length} naked Date.now() call(s): ${nakedDateNow.join(", ")}`
       ).toBe(0)
     }
   })

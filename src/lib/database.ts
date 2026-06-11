@@ -11,6 +11,7 @@
 import { IS_TAURI } from "./is-tauri"
 import type { StudyPlan } from "./plan-storage"
 import { reportError } from "./error-reporting"
+import { nowMs } from "./clock"
 
 // S24: Serialize all database reads + writes through a promise chain.
 // Prevents concurrent read/write from seeing torn state.
@@ -73,7 +74,7 @@ function readWeb(): StorageData {
     }
   } catch (e) {
     // v2.4.4: Don't silently return empty — preserve the corrupt blob for recovery.
-    const stamp = Date.now()
+    const stamp = nowMs()
     reportError("database.readWeb", e, { context: { stamp } })
     if (plansRaw) {
       try { localStorage.setItem(`${WEB_PLANS_KEY}.corrupt-${stamp}`, plansRaw) } catch { /* ignore */ }

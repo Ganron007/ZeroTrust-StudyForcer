@@ -4,6 +4,7 @@
 
 import { invoke } from "@tauri-apps/api/core"
 import { IS_TAURI } from "@/lib/is-tauri"
+import { now } from "@/lib/clock"
 
 const WEB_TIMER_KEY = "web:timer"
 
@@ -30,7 +31,7 @@ const DEFAULT_TIMER: TimerData = {
   targetMs: 8 * 60 * 60 * 1000, // 8 hours
   studyDurationMin: 50,
   breakDurationMin: 10,
-  lastUpdated: new Date().toISOString(),
+  lastUpdated: now(),
   currentPhase: "study",
   phaseElapsedMs: 0,
   autoLog: false,
@@ -51,7 +52,7 @@ export async function readTimerState(): Promise<TimerData> {
 }
 
 export async function writeTimerState(timer: TimerData): Promise<void> {
-  const content = JSON.stringify({ ...timer, lastUpdated: new Date().toISOString() }, null, 2)
+  const content = JSON.stringify({ ...timer, lastUpdated: now() }, null, 2)
   if (IS_TAURI) {
     await invoke("write_timer_file", { content })
     return

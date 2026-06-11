@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 // Phase 3.1: Async storage with in-memory cache.
-// These tests verify the cache pattern works correctly:
-// - First read hits storage and populates cache
-// - Subsequent reads return cached data without hitting storage
-// - Writes invalidate the cache so next read sees fresh data
+// These tests verify the web/localStorage cache pattern (readStorage +
+// writeStorage) round-trips correctly. The Tauri path uses the same
+// API surface but is not testable in jsdom (Tauri plugins require
+// the Tauri runtime). See e2e/ for Tauri runtime coverage.
 
-vi.mock("../is-tauri", () => ({ IS_TAURI: true }))
+vi.mock("../is-tauri", () => ({ IS_TAURI: false }))
 
 import { now } from "../clock"
 import type { StudyPlan } from "../plan-storage"
@@ -27,7 +27,7 @@ const mockPlan = (id: string): StudyPlan => ({
   updatedAt: now(),
 })
 
-describe("Phase 3.1: Tauri storage cache pattern", () => {
+describe("Phase 3.1: storage read/write + cache invalidation", () => {
   beforeEach(() => {
     // Reset module cache between tests
     vi.resetModules()

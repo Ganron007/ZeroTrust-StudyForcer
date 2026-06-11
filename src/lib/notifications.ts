@@ -10,6 +10,7 @@
  */
 
 import { IS_TAURI } from "./is-tauri"
+import { nowDate } from "./clock"
 
 const STORAGE_KEY = "ztsf:notification-settings"
 
@@ -113,7 +114,7 @@ export function scheduleDaily(
 
   function arm() {
     if (cancelled) return
-    const now = new Date()
+    const now = nowDate()
     const [hh, mm] = settings.dailyTime.split(":").map(Number)
     const next = new Date(now)
     next.setHours(hh ?? 18, mm ?? 0, 0, 0)
