@@ -25,6 +25,19 @@ const WEB_TEMP_LOGS_KEY = "web:temp_logs"
 
 export type TempLogStore = Record<string, Record<string, { pagesRead: number }>>
 
+// Serialize all mutations to prevent read-modify-write races.
+// (Mirrors the pattern in plan-storage.ts: serialize() at the module
+// level. localStorage is single-threaded in browsers, but the
+// async/await gap between read and write can still lose data when
+// multiple mutations are in flight.)
+let mutationChain: Promise<unknown> = Promise.resolve()
+
+function serialize<T>(op: () => Promise<T>): Promise<T> {
+  const next = mutationChain.then(op)
+  mutationChain = next.catch(() => undefined)
+  return next
+}
+
 /**
  * Read the temp log store from the underlying storage layer.
  * Returns empty object on error or first read.
@@ -64,11 +77,13 @@ export async function applyTempLog(
   courseId: string,
   pagesRead: number,
 ): Promise<TempLogStore> {
-  const store = await readTempLogs()
-  if (!store[date]) store[date] = {}
-  store[date][courseId] = { pagesRead }
-  await writeTempLogs(store)
-  return store
+  return serialize(async () => {
+    const store = await readTempLogs()
+    if (!store[date]) store[date] = {}
+    store[date][courseId] = { pagesRead }
+    await writeTempLogs(store)
+    return store
+  })
 }
 
 /**
@@ -76,17 +91,21 @@ export async function applyTempLog(
  * or when the user cancels).
  */
 export async function clearTempLog(date: string): Promise<TempLogStore> {
-  const store = await readTempLogs()
-  delete store[date]
-  await writeTempLogs(store)
-  return store
+  return serialize(async () => {
+    const store = await readTempLogs()
+    delete store[date]
+    await writeTempLogs(store)
+    return store
+  })
 }
 
 /**
  * Clear all temp logs. Called when Mark Done commits a batch.
  */
 export async function clearAllTempLogs(): Promise<void> {
-  await writeTempLogs({})
+  return serialize(async () => {
+    await writeTempLogs({})
+  })
 }
 
 /**

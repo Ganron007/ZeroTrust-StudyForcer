@@ -116,4 +116,23 @@ describe("temp-log-storage: Phase 3.2 — persisted temp state", () => {
     const store = await readTempLogs()
     expect(store).toEqual({})
   })
+
+  it("serializes concurrent applyTempLog calls (no lost writes)", async () => {
+    // Fire 5 concurrent applyTempLog calls for different courseIds
+    await Promise.all([
+      applyTempLog("2026-06-10", "cissp", 15),
+      applyTempLog("2026-06-10", "oscp", 20),
+      applyTempLog("2026-06-10", "secp", 25),
+      applyTempLog("2026-06-10", "cbtn", 30),
+      applyTempLog("2026-06-10", "ejpt", 35),
+    ])
+    const after = await readTempLogs()
+    // All 5 should be present — no lost writes due to races
+    expect(Object.keys(after["2026-06-10"])).toEqual(
+      expect.arrayContaining(["cissp", "oscp", "secp", "cbtn", "ejpt"])
+    )
+    expect(Object.keys(after["2026-06-10"])).toHaveLength(5)
+    expect(after["2026-06-10"]["cissp"].pagesRead).toBe(15)
+    expect(after["2026-06-10"]["ejpt"].pagesRead).toBe(35)
+  })
 })
