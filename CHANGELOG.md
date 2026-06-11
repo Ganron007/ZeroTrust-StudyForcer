@@ -41,6 +41,43 @@ A thorough audit of the v2.5.0 ship caught 9 issues. All are fixed in this relea
 
 **Test count**: 500 → 512 (+12 new in `app-temp-log-wiring.test.ts`). TypeScript clean. Rust clean. All 34 test files pass. Portable: `ZTSFv2.5.0.exe` rebuilt.
 
+### Next — Phase 0.5: Identity & Differentiation (in-character features)
+
+v2.5.0 closes Phase 3 hardening (all 6 features shipped, all 3 pending items closed, all 9 audit issues caught and fixed). **Phase 0.5 is now the next action plan.**
+
+Phase 0.5 features turn ZTSF from "another study tracker" into the only one a cybersec person would pick. Each doubles down on the **Zero Trust** framing and the **personality layer**, without touching the queue/anchor/Mark-Done core. Picked à la carte — none depends on another.
+
+| # | Feature | Effort | Notes |
+|---|---|---|---|
+| 0.5.1 | **Exam-day countdown band** | Low | New `ExamCountdownBanner.tsx`; extend `StudyPlan.examDate?: string`; banner in `App.tsx` above tabs. Uses existing `examInfo` per course. Personality-themed copy. |
+| 0.5.2 | **Morning standup card upgrade** | Low | Extend `DailyBriefing.tsx` to a 5-line incident report: today's queue, yesterday's delta, week-to-date pace, at-risk lab streaks, top news headline. Pure derivation — no new storage. |
+| 0.5.3 | **Compliance-style audit report export** | Medium | Markdown + PDF: hours logged, coverage by exam domain, exam-readiness score, gaps. Frame copy as a SOC-2 report. **NOTE: largely already done as 1.6 Compliance Report in v2.4.7** — see what's still missing. |
+| 0.5.4 | **Sprint mode** | Medium | One-click temporary pace boost for N days. Auto-reverts. Engine unchanged — overlay alongside the anchor. |
+| 0.5.5 | **OPSEC mode** | Low | Masks course names, plan names, and page counts for screen-sharing. Fits Zero Trust tagline natively. |
+| 0.5.6 | **Lab → exam-domain credit** | Medium | When a lab matches a course domain, prompt to credit time toward that domain. Off by default. |
+| 0.5.7 | **Reverse burn-down view** | Medium | Horizontal Gantt-style "pages remaining vs days remaining" bar. Third option next to Calendar / List. |
+| 0.5.8 | **Postmortem mode** | Low | One-page template triggered on exam-date pass. Stored as markdown next to the EXE. |
+| 0.5.9 | **Adversary timer (opt-in)** | Low | If today wasn't logged by user-set deadline, tomorrow's pace auto-bumps. |
+| 0.5.10 | **CVE-of-the-day chip** | Low | Filter news feed for freshest *Vulnerabilities* item with CVE ID. Pin it above the rest. |
+
+**Recommended first three (per ROADMAP.md):**
+1. **0.5.5 OPSEC mode** — Low effort, high personality impact, fits the Zero Trust tagline
+2. **0.5.10 CVE-of-the-day chip** — Low effort, extends existing `SidebarNewsHighlights` component
+3. **0.5.1 Exam-day countdown band** — Low effort, fills a UX gap in the Calendar tab
+
+**Prerequisite** (from ROADMAP): verify hardcoded-English strings are routed through the personality layer (A42, A52, A59, A64, A75, A77 in BUGS.md are all closed, so this is unblocked). The new `app-temp-log-wiring.test.ts` regression suite is the template for adding similar wiring tests for new features.
+
+### Test coverage of the v2.5.0 audit fixes
+
+The 12 new tests in `app-temp-log-wiring.test.ts` are a permanent safety net for the P-2 (temp log persistence) wiring. They catch:
+- Removal of the `tempLogsLoaded` gate (Bug #6 regression)
+- Re-introduction of fire-and-forget storage clear (Bug #4 regression)
+- Naked `new Date()` in App.tsx (Bug #1 regression)
+- Broken storage import aliases
+- Broken mount load effect
+
+This is the pattern to follow for future features: **ship the code + ship the wiring test in the same release.** The v2.5.0 ship violated this rule (P-2 shipped without tests); the audit regression tests now close that gap.
+
 ---
 
 ## [2.4.11] — 2026-06-10
