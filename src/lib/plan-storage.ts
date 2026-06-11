@@ -1,11 +1,12 @@
 import { readStorage, writeStorage } from "./database"
 import { localToday } from "./date-utils"
+import { now, nowMs } from "./clock"
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID()
   }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`
+  return `${nowMs().toString(36)}-${Math.random().toString(36).slice(2, 9)}`
 }
 
 // S16: Serialize all plan-storage mutations to prevent TOCTOU races.
@@ -84,14 +85,14 @@ export const planStorage = {
   async save(plan: Omit<StudyPlan, "id" | "createdAt" | "updatedAt"> & { id?: string }): Promise<StudyPlan> {
     return serialize(async () => {
       const data = await readStorage()
-      const now = new Date().toISOString()
+      const timestamp = now()
       const id = plan.id ?? generateId()
       const existing = data.plans[id]
       const saved: StudyPlan = {
         ...plan,
         id,
-        createdAt: existing?.createdAt ?? now,
-        updatedAt: now,
+        createdAt: existing?.createdAt ?? timestamp,
+        updatedAt: timestamp,
         dailyLog: plan.dailyLog ?? {},
         skippedDays: plan.skippedDays ?? [],
         // S15: `"unitOrder" in plan` correctly handles both cases:
@@ -126,7 +127,7 @@ export const planStorage = {
       const data = await readStorage()
       if (data.plans[id]) {
         data.plans[id].name = name
-        data.plans[id].updatedAt = new Date().toISOString()
+        data.plans[id].updatedAt = now()
         await writeStorage(data)
       }
     })

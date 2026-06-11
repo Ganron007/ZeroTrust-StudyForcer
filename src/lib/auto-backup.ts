@@ -13,6 +13,7 @@
 import { IS_TAURI } from "./is-tauri"
 import { planStorage } from "./plan-storage"
 import type { StudyPlan } from "./plan-storage"
+import { now } from "./clock"
 import { localToday } from "./date-utils"
 
 const KEEP_COUNT = 10
@@ -35,7 +36,7 @@ async function snapshotAllPlans(): Promise<string> {
   const byId: Record<string, StudyPlan> = {}
   for (const p of plans) byId[p.id] = p
   const payload: BackupPayload = {
-    generatedAt: new Date().toISOString(),
+    generatedAt: now(),
     plans: byId,
     activePlanIds,
   }

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core"
 import { IS_TAURI } from "./is-tauri"
+import { now, nowMs } from "./clock"
 
 const WEB_NEWS_KEY = "web:news_cache"
 
@@ -239,7 +240,7 @@ export async function fetchNews(): Promise<NewsItem[]> {
   // Cache to localStorage
   const cache: NewsCache = {
     items: result,
-    fetched_at: new Date().toISOString(),
+    fetched_at: now(),
   }
   try {
     localStorage.setItem(WEB_NEWS_KEY, JSON.stringify(cache))
@@ -252,8 +253,8 @@ export function timeAgo(dateStr: string): string {
   if (!dateStr) return ""
   const then = new Date(dateStr)
   if (isNaN(then.getTime())) return dateStr
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - then.getTime()) / 1000)
+  const currentMs = nowMs()
+  const diff = Math.floor((currentMs - then.getTime()) / 1000)
   if (diff < 60) return "just now"
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
