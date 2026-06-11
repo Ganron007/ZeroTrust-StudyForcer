@@ -1,6 +1,6 @@
 # Testing Architecture
 
-**Current:** 447 unit tests (27 files) + 11 E2E tests (1 file) = 458 total, all passing  
+**Current:** 499 unit tests (33 files) + 11 E2E tests (1 file) = 510 total, all passing  
 **Runner:** Vitest v4.1.5 + Playwright 1.60.0  
 **Environment:** jsdom (unit), Chromium (E2E)  
 **Framework:** @testing-library/react + jest-dom + user-event
@@ -42,8 +42,14 @@ src/components/__tests__/
 ├── KeyboardShortcutsCheatsheet.test.tsx # 8  — cheatsheet modal (Phase 2.5)
 └── axe-audit.test.tsx           # 1  — automated WCAG audit (Phase 2.5)
 └── bug-fixes.test.ts            # 17 — regression tests for 64 audit bugs
+└── inviolable-rules.test.ts    # 15 — inviolable rules from ARCHITECTURE.md (Phase 3.6)
+└── clock.test.ts               # 6  — single clock source module (Phase 3.4)
+└── branded-types.test.ts       # 10 — branded domain types (Phase 3.3)
+└── compute-plan-schedule.test.ts # 4  — single schedule derivation (Phase 3.5)
+└── temp-log-storage.test.ts    # 12 — persisted temp Log/Skip state (Phase 3.2)
+└── database-cache.test.ts      # 5  — async storage with cache (Phase 3.1)
 ```
-Total: **447 unit tests / 27 files** + **11 E2E tests / 1 file** = **458 total**, all passing at v2.4.11. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files). E2E tests catch layout/visibility bugs that jsdom cannot detect.
+Total: **499 unit tests / 33 files** + **11 E2E tests / 1 file** = **510 total**, all passing at v2.4.11. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files). E2E tests catch layout/visibility bugs that jsdom cannot detect. Phase 3 inviolable rules tests map 1:1 to ARCHITECTURE.md rules.
 
 ---
 

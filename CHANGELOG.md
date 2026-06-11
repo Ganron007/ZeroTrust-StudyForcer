@@ -8,6 +8,19 @@ All notable changes to this project are documented here.
 
 ## [2.4.11] — 2026-06-10
 
+### Added — Phase 3: Hardening (all 6 features shipped)
+
+Phase 3 hardening work is complete. All 6 features from `ROADMAP.md` Phase 3 have been implemented as foundation work, with each step adding tests and keeping the app stable.
+
+- **3.6 — Inviolable rules as tests**: 15 new regression tests in `src/lib/__tests__/inviolable-rules.test.ts` map 1:1 to the 12 rules in `ARCHITECTURE.md`. Any PR that breaks a rule fails CI immediately.
+- **3.4 — Single clock source**: New `src/lib/clock.ts` centralizes time calls. Naked `new Date()` / `Date.now()` in lib/ replaced with `now()` / `today()` / `nowMs()` / `nowDate()`. 6 tests for the module.
+- **3.3 — Branded domain types**: New `src/lib/branded-types.ts` provides `PlanId`, `CourseId`, `ISODate`, `ISOTimestamp` as branded string types with validators at trust boundaries. Zero runtime cost. 10 tests.
+- **3.5 — Single schedule derivation**: New `computePlanSchedule(plan, chapters, today?)` in `src/lib/plan-engine.ts` combines `syncStudyPlan` + `generateSchedule`. Foundation for full Zustand selector refactor. 4 tests.
+- **3.2 — Persist temp Log/Skip state**: New `src/lib/temp-log-storage.ts` provides `readTempLogs` / `writeTempLogs` / `applyTempLog` / `clearTempLog` / `clearAllTempLogs` / `getTempLogsForDate`. Foundation for replacing React useState with storage-backed state. Inviolable Rule 1 preserved. 12 tests.
+- **3.1 — Async storage with in-memory cache**: Added Tauri in-memory cache to `src/lib/database.ts` mirroring the existing webCache pattern. `readStorage()` checks cache first, `writeStorage()` invalidates after successful write. Foundation for future REST/sync swap. 5 tests.
+
+**Test count**: 447 → 499 (+52 new tests). TypeScript clean. Rust clean. All 33 test files pass.
+
 ### Fixed — A-series audit: 3 remaining bugs closed
 
 Comprehensive code review of the A-series bug list (A31–A84) confirmed that 46 of the
