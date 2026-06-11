@@ -6,6 +6,7 @@ import type { LogGroup } from "./LogDialog"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
 import { localToday } from "@/lib/date-utils"
+import { nowDate } from "@/lib/clock"
 
 interface DailyBriefingProps {
   schedule: StudyDay[]
@@ -17,7 +18,7 @@ interface DailyBriefingProps {
 }
 
 function getGreeting(): string {
-  const hour = new Date().getHours()
+  const hour = nowDate().getHours()
   if (hour < 12) return "Good morning"
   if (hour < 17) return "Good afternoon"
   return "Good evening"
@@ -35,7 +36,7 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
 
   const streak = useMemo(() => {
     let count = 0
-    const d = new Date()
+    const d = nowDate()
     for (let i = 0; i < 365; i++) {
       const y = d.getFullYear()
       const m = String(d.getMonth() + 1).padStart(2, "0")
@@ -62,8 +63,8 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
     <div className="mb-5 p-4 rounded-xl bg-card border border-border">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-lg font-bold text-foreground">{greeting(new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening")}!</p>
-          <p className="text-sm text-muted-foreground">{formatDate(new Date())}</p>
+          <p className="text-lg font-bold text-foreground">{greeting(nowDate().getHours() < 12 ? "morning" : nowDate().getHours() < 17 ? "afternoon" : "evening")}!</p>
+          <p className="text-sm text-muted-foreground">{formatDate(nowDate())}</p>
         </div>
         {streak > 0 && (
           <div className="text-right">

@@ -19,6 +19,7 @@ import { downloadJson, downloadCsv, readJsonFile } from "@/lib/export-utils"
 import { showToast } from "@/components/NotificationToast"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
+import { now, nowDate } from "@/lib/clock"
 
 type FilterMode = "all" | "queue" | "today" | "attention"
 
@@ -58,8 +59,8 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
   // A53: Use a state-based today that re-computes at midnight
   const [today, setToday] = useState(() => localToday())
   useEffect(() => {
-    const now = new Date()
-    const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
+    const current = nowDate()
+    const msUntilMidnight = new Date(current.getFullYear(), current.getMonth(), current.getDate() + 1).getTime() - current.getTime()
     const timer = setTimeout(() => setToday(localToday()), msUntilMidnight + 100)
     return () => clearTimeout(timer)
   }, [today])
@@ -190,7 +191,7 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
       date: localToday(),
       minutes: Math.max(1, logMinutes),
       note: logNote.trim() || undefined,
-      createdAt: new Date().toISOString(),
+      createdAt: now(),
     }
     const next = { ...data, sessions: [...data.sessions, session] }
     save(next)

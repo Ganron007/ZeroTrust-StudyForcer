@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { Clock } from "lucide-react"
+import { nowDate } from "@/lib/clock"
 
 function formatTime(d: Date): { time: string; period: string } {
   const h24 = d.getHours()
@@ -12,10 +13,10 @@ function formatTime(d: Date): { time: string; period: string } {
 }
 
 export default function WallClock() {
-  const [now, setNow] = useState<Date>(() => new Date())
+  const [now, setNow] = useState<Date>(() => nowDate())
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
+    const id = setInterval(() => setNow(nowDate()), 1000)
     return () => clearInterval(id)
   }, [])
 

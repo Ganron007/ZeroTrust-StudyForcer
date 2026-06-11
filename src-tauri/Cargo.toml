@@ -1,6 +1,6 @@
 [package]
 name = "zero-trust-studyforcer"
-version = "2.4.11"
+version = "2.5.0"
 description = "ZeroTrust.StudyForcer Desktop App"
 authors = ["you"]
 license = ""

@@ -17,6 +17,7 @@ import {
   parseISO,
 } from "date-fns"
 import { CalendarDays, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { nowDate } from "@/lib/clock"
 
 interface DatePickerProps {
   value: string | undefined
@@ -35,14 +36,14 @@ export default function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
   // A69: State-based "now" that re-computes at midnight so isToday stays correct
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState(() => nowDate())
   useEffect(() => {
     const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
-    const timer = setTimeout(() => setNow(new Date()), msUntilMidnight + 100)
+    const timer = setTimeout(() => setNow(nowDate()), msUntilMidnight + 100)
     return () => clearTimeout(timer)
   }, [now])
   const [viewDate, setViewDate] = useState(() =>
-    value ? parseISO(value + "T00:00:00") : new Date()
+    value ? parseISO(value + "T00:00:00") : nowDate()
   )
   const ref = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -205,7 +206,7 @@ export default function DatePicker({
                     const inMonth = isSameMonth(date, viewDate)
                     const isSelected = selectedDate ? isSameDay(date, selectedDate) : false
                     const isDisabled = min ? isBefore(date, min) : false
-                    const isToday = isSameDay(date, new Date())
+                    const isToday = isSameDay(date, now)
 
                     return (
                       <button

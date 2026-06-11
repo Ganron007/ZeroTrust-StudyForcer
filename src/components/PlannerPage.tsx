@@ -18,6 +18,7 @@ import DatePicker from "./DatePicker"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
 import { localToday } from "@/lib/date-utils"
+import { now } from "@/lib/clock"
 
 interface PlannerPageProps {
   courses: CourseConfig[]
@@ -307,7 +308,7 @@ export default function PlannerPage({
             )}
             <button
               onClick={() => {
-                const payload = { plans: allPlans, exportedAt: new Date().toISOString() }
+                const payload = { plans: allPlans, exportedAt: now() }
                 downloadJson(`study-plans-${localToday()}.json`, payload)
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium hover:bg-muted transition-all"
@@ -1115,8 +1116,8 @@ export default function PlannerPage({
                           const previewPlan: StudyPlan = {
                             id: "__preview__",
                             courseId: course.id,
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString(),
+                            createdAt: now(),
+                            updatedAt: now(),
                             name: editName.trim() || "New Plan",
                             startDate: editStartDate,
                             pagesPerDay: Math.max(1, editPagesPerDay),

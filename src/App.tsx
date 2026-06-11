@@ -48,6 +48,11 @@ import { formatStr, MODE_OPTIONS, type PersonalityMode } from "./lib/personality
 import { runAutoBackup } from "./lib/auto-backup"
 import { localToday } from "./lib/date-utils"
 import { migrateLegacyKeys } from "./lib/storage-keys"
+import {
+  readTempLogs,
+  applyTempLog as applyTempLogToStorage,
+  clearTempLog as clearTempLogFromStorage,
+} from "./lib/temp-log-storage"
 
 // X2: Migrate legacy bare localStorage keys to ztsf: prefix on first boot
 migrateLegacyKeys()
@@ -118,6 +123,15 @@ function AppContent() {
   )
 
   const [dailyLog, setDailyLog] = useState<Record<string, Record<string, { pagesRead: number }>>>({})
+
+  // Load temp logs from storage on mount
+  useEffect(() => {
+    readTempLogs().then((storedLogs) => {
+      if (Object.keys(storedLogs).length > 0) {
+        setDailyLog(storedLogs)
+      }
+    })
+  }, [])
 
   // Yesterday's total pages — checks temp state first (before Mark Done),
   // falls back to committed plan.dailyLog (after Mark Done clears temp).
@@ -578,6 +592,11 @@ function AppContent() {
       [date]: { ...prev[date], [courseId]: { pagesRead } },
     }))
 
+    // Persist to storage
+    applyTempLogToStorage(date, courseId, pagesRead).catch((e) => {
+      console.error("[applyTempLog] failed to persist to storage:", e)
+    })
+
     if (pageValue > scheduleEnd) {
       showToast(formatStr(tToast("aheadOfSchedule"), { pages: pagesRead }), "info")
     } else {
@@ -597,6 +616,10 @@ function AppContent() {
       ...prev,
       [date]: { ...prev[date], [courseId]: { pagesRead: 0 } },
     }))
+    // Persist to storage
+    applyTempLogToStorage(date, courseId, 0).catch((e) => {
+      console.error("[handleSkipPlan] failed to persist to storage:", e)
+    })
     showToast(formatStr(tToast("skipped"), { label: courseLabel(courseId) }), "info")
   }
 
@@ -684,6 +707,11 @@ function AppContent() {
       const next = { ...prev }
       delete next[date]
       return next
+    })
+    
+    // Clear from storage
+    clearTempLogFromStorage(date).catch((e) => {
+      console.error("[handleMarkDone] failed to clear temp logs from storage:", e)
     })
     
     setRefreshTick(prev => prev + 1)

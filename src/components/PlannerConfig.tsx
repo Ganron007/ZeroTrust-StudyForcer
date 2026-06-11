@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   resolveBookPage, getChapterPageRanges,
 } from "@/lib/cissp-data"
@@ -124,6 +124,14 @@ export default function PlannerConfig({
 
   const [saved, setSaved] = useState(false)
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
+  // Cleanup timer on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current)
+    }
+  }, [])
+  
   const handleSave = () => {
     onSave()
     setSaved(true)

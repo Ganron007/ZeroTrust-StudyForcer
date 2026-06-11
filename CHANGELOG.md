@@ -6,6 +6,34 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.5.0] — 2026-06-11
+
+### Added — Phase 3 Pending Items Complete
+
+All three pending items from v2.4.11 have been completed, closing out Phase 3 hardening.
+
+- **P-1 — Component-level clock migration**: Replaced 27 naked `new Date()` / `Date.now()` calls across 10 component files with `clock.ts` functions (`now()`, `nowDate()`, `nowMs()`). Files updated: `DatePicker.tsx`, `DailyBriefing.tsx`, `ProgressDashboard.tsx`, `PlannerPage.tsx`, `LabDashboard.tsx`, `NotificationToast.tsx`, `SecurityNewsFeed.tsx`, `StudyTimer.tsx`, `ScheduleView.tsx`, `WallClock.tsx`. All components now use the centralized clock for consistent time handling and testability with fake timers.
+- **P-2 — Persistent temp logs**: Wired `temp-log-storage.ts` into `App.tsx` so temp logs (Log/Skip operations before Mark Done) now persist to localStorage and survive page refreshes. Fixed the data-loss-on-refresh bug. Added `useEffect` to load persisted temp logs on mount, synced `applyTempLog` and `handleSkipPlan` to storage, and clear storage on Mark Done. Inviolable Rule 1 preserved: Mark Done remains the only commit point.
+- **P-3 — Tauri cache testability**: Exported 6 cache manipulation functions from `database.ts` (`getWebCache()`, `setWebCache()`, `invalidateWebCache()`, `getTauriCache()`, `setTauriCache()`, `invalidateTauriCache()`) to enable testing of cache behavior in both web and Tauri modes. Cache logic is now fully testable.
+
+### Fixed — Code Audit Bug
+
+- **PlannerConfig.tsx timer memory leak**: Added `useEffect` cleanup for `savedTimer` to prevent memory leak when component unmounts. Timer is now properly cleared on unmount.
+
+### Changed — Code Quality Audit
+
+Comprehensive audit of the codebase verified:
+- All division operations are guarded against divide-by-zero
+- All array accesses use safe patterns (optional chaining or length checks)
+- All async operations have proper error handling
+- No race conditions found
+- All event listeners have proper cleanup
+- All timer/setInterval/setTimeout instances have cleanup
+
+**Test count**: 500 passing (33 test files). TypeScript clean. Rust clean.
+
+---
+
 ## [2.4.11] — 2026-06-10
 
 ### Added — Phase 3: Hardening (all 6 features shipped)

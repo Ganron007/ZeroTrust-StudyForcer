@@ -6,6 +6,7 @@ import { type TimerMode, type TimerState, type TimerData, readTimerState, writeT
 import { showToast } from "./NotificationToast"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
+import { now, nowMs } from "@/lib/clock"
 
 interface StudyTimerProps {
   onLogTime?: (minutes: number) => void
@@ -60,9 +61,9 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
       setTimer((prev) => {
         if (!prev || prev.state !== "running") return prev
 
-        const now = Date.now()
+        const currentMs = nowMs()
         const lastTick = new Date(prev.lastUpdated).getTime()
-        const delta = now - lastTick
+        const delta = currentMs - lastTick
 
         let nextElapsed = prev.elapsedMs + delta
         let nextPhaseElapsed = prev.phaseElapsedMs + delta
@@ -108,13 +109,13 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
           phaseElapsedMs: nextPhaseElapsed,
           currentPhase: nextPhase,
           state: nextState,
-          lastUpdated: new Date().toISOString(),
+          lastUpdated: now(),
         }
 
         // Debounce writes to at most once per 10 seconds while running
-        if (now - lastWriteRef.current >= 10000) {
+        if (currentMs - lastWriteRef.current >= 10000) {
           writeTimerState(updated)
-          lastWriteRef.current = now
+          lastWriteRef.current = currentMs
         }
         return updated
       })
@@ -132,7 +133,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
   const handleStart = useCallback(() => {
     setTimer((prev) => {
       if (!prev) return prev
-      const updated = { ...prev, state: "running" as TimerState, lastUpdated: new Date().toISOString() }
+      const updated = { ...prev, state: "running" as TimerState, lastUpdated: now() }
       writeTimerState(updated)
       return updated
     })
@@ -141,7 +142,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
   const handlePause = useCallback(() => {
     setTimer((prev) => {
       if (!prev) return prev
-      const updated = { ...prev, state: "paused" as TimerState, lastUpdated: new Date().toISOString() }
+      const updated = { ...prev, state: "paused" as TimerState, lastUpdated: now() }
       writeTimerState(updated)
       return updated
     })
@@ -160,7 +161,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
         elapsedMs: 0,
         phaseElapsedMs: 0,
         currentPhase: "study",
-        lastUpdated: new Date().toISOString(),
+        lastUpdated: now(),
       }
       writeTimerState(updated)
       return updated
@@ -178,7 +179,7 @@ export default function StudyTimer({ onLogTime }: StudyTimerProps) {
         phaseElapsedMs: 0,
         currentPhase: "study",
         targetMs: mode === "countdown" ? 8 * 60 * 60 * 1000 : prev.targetMs,
-        lastUpdated: new Date().toISOString(),
+        lastUpdated: now(),
       }
       writeTimerState(updated)
       return updated

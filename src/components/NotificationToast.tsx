@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { X, Clock, Coffee, CheckCircle } from "lucide-react"
+import { nowMs } from "@/lib/clock"
 
 export type ToastType = "info" | "break" | "complete"
 
@@ -19,7 +20,7 @@ let toastListeners = new Set<(toast: Toast) => void>()
 
 let counter = 0
 function generateId(): string {
-  return `t${++counter}-${Date.now().toString(36)}`
+  return `t${++counter}-${nowMs().toString(36)}`
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

@@ -9,6 +9,7 @@ import { Newspaper, RefreshCw, ExternalLink, Filter, ChevronLeft, Globe } from "
 import { showToast } from "./NotificationToast"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
+import { now } from "@/lib/clock"
 
 // v2.4.6 (M-29): Only allow https:// URLs through shell.open to prevent
 // file:// or javascript: injection from RSS feeds.
@@ -62,7 +63,7 @@ export default function SecurityNewsFeed({ onClose }: Props) {
     try {
       const fresh = await fetchNews()
       setItems(fresh)
-      setFetchedAt(new Date().toISOString())
+      setFetchedAt(now())
       showToast(formatStr(tToast("newsLoaded"), { count: fresh.length }), "info")
     // A43: Don't reload cache on error — the existing cache is fine
     } catch (e) {

@@ -15,6 +15,7 @@ import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
 import DomainAnalyzer from "./DomainAnalyzer"
 import { localToday } from "@/lib/date-utils"
+import { nowDate } from "@/lib/clock"
 
 interface CourseStats {
   courseId: string
@@ -72,7 +73,7 @@ function computeCourseStats(cfg: CourseConfig, plan: StudyPlan): CourseStats {
       d.setDate(d.getDate() + totalDays - 1)
       return d
     } catch {
-      return new Date()
+      return nowDate()
     }
   })()
 
@@ -104,7 +105,7 @@ function computeCourseStats(cfg: CourseConfig, plan: StudyPlan): CourseStats {
 
   // A51: Count streak from today backward, not from schedule end
   let streak = 0
-  const today = new Date()
+  const today = nowDate()
   today.setHours(0, 0, 0, 0)
 
   // Check today first

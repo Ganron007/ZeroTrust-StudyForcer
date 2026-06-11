@@ -5,6 +5,7 @@ import { type StudyDay } from "@/lib/cissp-data"
 import { ChevronLeft, ChevronRight, BookOpen, CheckCircle2, Circle, Settings2 } from "lucide-react"
 import type { LogGroup } from "./LogDialog"
 import { usePersonality } from "./PersonalityProvider"
+import { nowDate } from "@/lib/clock"
 
 const MONTHS = [
   "January","February","March","April","May","June",
@@ -27,12 +28,12 @@ export default function ScheduleView({
   plansLoggedForDate, selectedDate, onSelectedDateChange,
 }: ScheduleViewProps) {
   const { label } = usePersonality()
-  const today = new Date()
+  const today = nowDate()
   today.setHours(0, 0, 0, 0)
 
   const [currentMonth, setCurrentMonth] = useState(() => {
-    const now = new Date()
-    return { year: now.getFullYear(), month: now.getMonth() }
+    const currentDate = nowDate()
+    return { year: currentDate.getFullYear(), month: currentDate.getMonth() }
   })
 
   const [showLegend, setShowLegend] = useState(() => {
