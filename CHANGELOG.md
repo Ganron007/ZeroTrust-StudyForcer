@@ -20,17 +20,26 @@ All three pending items from v2.4.11 have been completed, closing out Phase 3 ha
 
 - **PlannerConfig.tsx timer memory leak**: Added `useEffect` cleanup for `savedTimer` to prevent memory leak when component unmounts. Timer is now properly cleared on unmount.
 
-### Changed — Code Quality Audit
+### Fixed — Phase 3 Hardening Audit (v2.5.0 audit caught 9 issues, all closed)
 
-Comprehensive audit of the codebase verified:
-- All division operations are guarded against divide-by-zero
-- All array accesses use safe patterns (optional chaining or length checks)
-- All async operations have proper error handling
-- No race conditions found
-- All event listeners have proper cleanup
-- All timer/setInterval/setTimeout instances have cleanup
+A thorough audit of the v2.5.0 ship caught 9 issues. All are fixed in this release.
 
-**Test count**: 500 passing (33 test files). TypeScript clean. Rust clean.
+**Runtime bugs (4 fixed):**
+
+- **App.tsx had 5 naked `new Date()` calls** (Bug #1). The v2.5.0 release migrated `src/components/*.tsx` to the clock module but missed the top-level `App.tsx` itself. Migrated `yesterdayTotal`, `todayDow`, `todayMidnight`, `updatedAt` (Mark Done), and `exportedAt` (export) to use `now()` / `nowDate()`. New regression test: `app-temp-log-wiring.test.ts` "App.tsx has zero naked new Date() or Date.now() calls".
+- **Mark Done fire-and-forget clear** (Bug #4). `clearTempLogFromStorage` was called with `.catch()` instead of `await`. If the clear failed (e.g., localStorage quota), the user saw a success toast but the next mount would re-load the stale temp log as a "phantom" pending entry. Fixed: `await clearTempLogFromStorage(date)` with try/catch and a `tempLogClearFailed` toast. New regression test verifies the await pattern.
+- **Mount useEffect race** (Bug #6). The `useEffect` on mount reads temp logs from storage asynchronously, but `applyTempLog`/`handleSkipPlan`/`handleMarkDone` were not gated on the load completing. A user clicking Mark Done before the load completed would commit the empty React state (data loss), then have the stale storage overwrite the cleared state. Fixed: added `tempLogsLoaded` flag, set after the storage read resolves (with a `cancelled` guard for unmount), and gated all three mutators on it. New regression test verifies the gate is present.
+- **P-2 wiring had zero test coverage** (Bug #5). The most important user-facing fix in v2.5.0 (data loss on refresh) had no tests — a future refactor could break it without anyone noticing. Added 12 regression tests in `app-temp-log-wiring.test.ts` covering: imports, mount load, mutation gating, persistence on Log/Skip, await on Mark Done, error reporting, App.tsx clock migration.
+
+**Doc / design issues (5 fixed):**
+
+- **Stale "Components/ not migrated" comment in `clock.ts`** (Bug #2). The doc said "Scope: src/lib/ only. Components/ are not yet migrated." but P-1 migrated them. Updated to reflect v2.5.0 reality.
+- **Stale comment in `clock.test.ts`** (Bug #3). Same issue — test comment said "Components/ are not yet migrated" but they now are. Updated.
+- **Unused cache setter exports** (Bug #7). `getWebCache`, `setWebCache`, `getTauriCache`, `setTauriCache` were marked `@internal` but exported. The setters could let a test or buggy code inject stale data into the cache without invalidating the underlying storage. None of them had any callers. Removed. Internal `invalidateTauriCache()` (used by `writeStorage`) is kept as a non-exported helper.
+- **CHANGELOG audit claims were unverified** (Bug #8). The "Code Quality Audit" section claimed "All async operations have proper error handling" and "No race conditions found" but Bugs #4 and #6 contradict those claims. Removed the unverified section and replaced with this honest "audit caught N issues" entry.
+- **AGENTS.md not updated for v2.5.0** (Bug #9). The gitignored local doc still referenced v2.4.11 numbers. Updated to v2.5.0 with 512 tests, 34 files.
+
+**Test count**: 500 → 512 (+12 new in `app-temp-log-wiring.test.ts`). TypeScript clean. Rust clean. All 34 test files pass. Portable: `ZTSFv2.5.0.exe` rebuilt.
 
 ---
 

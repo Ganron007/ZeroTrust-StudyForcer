@@ -5,13 +5,15 @@
  * be injected and mocked. This makes time-dependent logic testable
  * (vi.useFakeTimers / vi.setSystemTime) and debuggable.
  *
- * Inviolable rule (Phase 3.4): all files in src/lib/ that need the
- * current time MUST go through this module — never call new Date() or
+ * Inviolable rule (Phase 3.4 + v2.5.0): all production code that needs
+ * the current time MUST go through this module — never call new Date() or
  * Date.now() directly. (Naked = no arguments; new Date(arg) for parsing
  * a date string is still fine.)
  *
- * Scope: src/lib/ only. Components/ are not yet migrated.
- * See src/lib/__tests__/clock.test.ts for the enforcement test.
+ * Scope: src/lib/ AND src/components/ AND App.tsx. v2.5.0 audit
+ * confirmed all production code is migrated (enforced by
+ * src/lib/__tests__/clock.test.ts for lib/ and
+ * src/lib/__tests__/app-temp-log-wiring.test.ts for App.tsx).
  *
  * Usage:
  *   import { now, today } from "@/lib/clock"

@@ -5,6 +5,7 @@ import { usePlanStore } from "./lib/plan-store"
 import { syncStudyPlan } from "./lib/plan-engine"
 import { CourseProvider, useCourse } from "./components/CourseProvider"
 import { sanitizeSvg } from "./lib/sanitize-svg"
+import { now, nowDate } from "./lib/clock"
 import ScheduleView from "./components/ScheduleView"
 import ExamCountdownBand from "./components/ExamCountdownBand"
 import ScheduleList from "./components/ScheduleList"
@@ -124,19 +125,42 @@ function AppContent() {
 
   const [dailyLog, setDailyLog] = useState<Record<string, Record<string, { pagesRead: number }>>>({})
 
-  // Load temp logs from storage on mount
+  // P-2 (v2.5.0): Load temp logs from storage on mount.
+  // v2.5.0 bug fix: we must wait for the storage read to complete before
+  // allowing any Mark Done / Skip / Log operations, otherwise:
+  //   1. Mount: React state = {} (empty)
+  //   2. User clicks "Mark Done" before useEffect callback runs
+  //   3. Mark Done commits empty state to planStorage (data loss!)
+  //   4. useEffect callback overwrites React state with stale storage data
+  //      (phantom pending log)
+  // The `tempLogsLoaded` flag gates handleMarkDone and the storage write
+  // paths to prevent this race.
+  const [tempLogsLoaded, setTempLogsLoaded] = useState(false)
   useEffect(() => {
-    readTempLogs().then((storedLogs) => {
-      if (Object.keys(storedLogs).length > 0) {
-        setDailyLog(storedLogs)
-      }
-    })
+    let cancelled = false
+    readTempLogs()
+      .then((storedLogs) => {
+        if (cancelled) return
+        if (Object.keys(storedLogs).length > 0) {
+          setDailyLog(storedLogs)
+        }
+      })
+      .catch((e) => {
+        if (cancelled) return
+        console.error("[App] failed to load temp logs from storage:", e)
+      })
+      .finally(() => {
+        if (!cancelled) setTempLogsLoaded(true)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Yesterday's total pages — checks temp state first (before Mark Done),
   // falls back to committed plan.dailyLog (after Mark Done clears temp).
   const yesterdayTotal = useMemo(() => {
-    const d = new Date()
+    const d = nowDate()
     d.setDate(d.getDate() - 1)
     const y = d.getFullYear()
     const m = String(d.getMonth() + 1).padStart(2, "0")
@@ -287,7 +311,7 @@ function AppContent() {
   useEffect(() => {
     if (isLoading || courseLoading) return
     const todayStr = localToday()
-    const todayDow = new Date().getDay()
+    const todayDow = nowDate().getDay()
 
     // Study day reminder: if today is a study day but nothing logged or completed
     if (studyDays.includes(todayDow)) {
@@ -454,7 +478,7 @@ function AppContent() {
       const endDateLabel = endDate
         ? endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
         : "\u2014"
-      const todayMidnight = new Date()
+      const todayMidnight = nowDate()
       todayMidnight.setHours(0, 0, 0, 0)
       const daysFromToday = endDate && endDate >= todayMidnight
         ? Math.round((endDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24))
@@ -565,6 +589,11 @@ function AppContent() {
 
   // Apply a validated temp log entry
   const applyTempLog = (date: string, courseId: string, pageValue: number) => {
+    // v2.5.0 bug fix: gate on tempLogsLoaded to prevent the mount race.
+    if (!tempLogsLoaded) {
+      showToast(tToast("loadingLogs"), "info")
+      return
+    }
     // v2.4.4: Replaced `!` with a real guard.
     const daySchedule = schedule.find(d => d.date === date)
     if (!daySchedule) {
@@ -612,6 +641,11 @@ function AppContent() {
 
   // 2. Plan-level skip (before Mark Done)
   const handleSkipPlan = (date: string, courseId: string) => {
+    // v2.5.0 bug fix: gate on tempLogsLoaded to prevent the mount race.
+    if (!tempLogsLoaded) {
+      showToast(tToast("loadingLogs"), "info")
+      return
+    }
     setDailyLog((prev) => ({
       ...prev,
       [date]: { ...prev[date], [courseId]: { pagesRead: 0 } },
@@ -619,6 +653,7 @@ function AppContent() {
     // Persist to storage
     applyTempLogToStorage(date, courseId, 0).catch((e) => {
       console.error("[handleSkipPlan] failed to persist to storage:", e)
+      showToast(formatStr(tToast("tempLogClearFailed"), { date }), "break")
     })
     showToast(formatStr(tToast("skipped"), { label: courseLabel(courseId) }), "info")
   }
@@ -648,6 +683,14 @@ function AppContent() {
 
   // 4. Mark Done — commits the pending log for a date to plan storage
   const handleMarkDone = async (date: string) => {
+    // v2.5.0 bug fix: gate on tempLogsLoaded. If we don't, a user clicking
+    // Mark Done before the useEffect's storage read completes could
+    // (a) commit the empty React state to planStorage (data loss), and
+    // (b) then have the stale storage data overwrite the cleared React state.
+    if (!tempLogsLoaded) {
+      showToast(tToast("loadingLogs"), "info")
+      return
+    }
     if (!plansLoggedForDate(date)) {
       showToast(tToast("logOrSkipFirst"), "info")
       return
@@ -678,7 +721,7 @@ function AppContent() {
             ...plan.dailyLog,
             [date]: { pagesRead: log.pagesRead },
           },
-          updatedAt: new Date().toISOString(),
+          updatedAt: now(),
         }
         
         try {
@@ -702,18 +745,28 @@ function AppContent() {
       }
     }
     
-    // Clear pending log for this date
+    // Clear pending log for this date (React state)
     setDailyLog((prev) => {
       const next = { ...prev }
       delete next[date]
       return next
     })
-    
-    // Clear from storage
-    clearTempLogFromStorage(date).catch((e) => {
+
+    // v2.5.0 bug fix: await the storage clear instead of fire-and-forget.
+    // If the clear fails (quota, etc.), the user must be told — otherwise
+    // on next mount, the useEffect will re-load the stale temp log and
+    // the user will see a "phantom" pending log for a date they already
+    // marked done.
+    try {
+      await clearTempLogFromStorage(date)
+    } catch (e) {
       console.error("[handleMarkDone] failed to clear temp logs from storage:", e)
-    })
-    
+      showToast(formatStr(tToast("tempLogClearFailed"), { date }), "break")
+      // Don't return — the planStorage write succeeded, the toast just
+      // warns about the local cache. The user can re-attempt Mark Done
+      // to re-trigger the clear, or refresh the page to re-sync.
+    }
+
     setRefreshTick(prev => prev + 1)
     showToast(formatStr(tToast("markDoneConfirm"), { pages: totalPages, date }), totalPages > 0 ? "complete" : "info")
   }
@@ -1059,7 +1112,7 @@ function AppContent() {
                 const timer = await import("@/lib/timer-storage").then((m) => m.readTimerState())
                 downloadJson(`study-planner-backup-${localToday()}.json`, {
                   version: 1,
-                  exportedAt: new Date().toISOString(),
+                  exportedAt: now(),
                   plans: all,
                   courses: courseList,
                   labs,

@@ -51,11 +51,11 @@ describe("clock module", () => {
 
 describe("Inviolable rule: lib/ files use clock module instead of direct Date calls", () => {
   it("all lib/ files use clock module instead of direct Date calls", () => {
-    // Phase 3.4 migration scope: all files in src/lib/ that handle
-    // "now" must go through the clock module so time can be mocked.
+    // Phase 3.4 + v2.5.0 migration scope: all files in src/lib/ AND
+    // App.tsx that handle "now" must go through the clock module.
     // (Naked = no arguments, meaning "now". new Date(arg) for parsing
     // a date string is fine.)
-    // Scope: lib/ only. Components/ are not yet migrated.
+    // App.tsx is covered by src/lib/__tests__/app-temp-log-wiring.test.ts.
     const libFiles = [
       "src/lib/auto-backup.ts",
       "src/lib/database.ts",

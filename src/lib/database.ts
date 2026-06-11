@@ -40,30 +40,6 @@ const WEB_ACTIVE_KEY = "web:activePlanIds"
 /** In-memory write-through cache for web mode (avoids JSON parse on every read). */
 let webCache: { plans: Record<string, StudyPlan>; activePlanIds: string[] } | null = null
 
-/**
- * Get the current web cache state (exported for testing).
- * @internal
- */
-export function getWebCache() {
-  return webCache
-}
-
-/**
- * Set the web cache state (exported for testing).
- * @internal
- */
-export function setWebCache(cache: { plans: Record<string, StudyPlan>; activePlanIds: string[] } | null) {
-  webCache = cache
-}
-
-/**
- * Invalidate the web cache (exported for testing).
- * @internal
- */
-export function invalidateWebCache() {
-  webCache = null
-}
-
 // S25: Listen for cross-tab localStorage changes and invalidate cache
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
@@ -79,27 +55,7 @@ if (typeof window !== 'undefined') {
 // REST/sync backend is added, the cache still works the same way.
 let tauriCache: { plans: Record<string, StudyPlan>; activePlanIds: string[] } | null = null
 
-/**
- * Get the current Tauri cache state (exported for testing).
- * @internal
- */
-export function getTauriCache() {
-  return tauriCache
-}
-
-/**
- * Set the Tauri cache state (exported for testing).
- * @internal
- */
-export function setTauriCache(cache: { plans: Record<string, StudyPlan>; activePlanIds: string[] } | null) {
-  tauriCache = cache
-}
-
-/**
- * Invalidate the Tauri cache (exported for testing).
- * @internal
- */
-export function invalidateTauriCache() {
+function invalidateTauriCache() {
   tauriCache = null
 }
 

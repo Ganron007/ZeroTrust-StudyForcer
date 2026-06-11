@@ -2802,6 +2802,14 @@ const standardToasts: ToastMap = {
   noPendingLog: "No pending log for this date.",
   failedToSave: "{label} — failed to save. Please try again.",
   markDoneConfirm: "Mark Done: {pages} pages logged for {date}.",
+  // v2.5.0: Toast shown when user clicks Mark Done before temp-log
+  // storage has finished loading. Prevents a race condition where the
+  // empty React state is committed before stale storage is read.
+  loadingLogs: "Loading pending logs… please try again in a moment.",
+  // v2.5.0: Toast shown when storage clear fails after Mark Done. The
+  // planStorage write succeeded, but the local temp cache couldn't be
+  // cleared. User can refresh or re-Mark-Done to re-sync.
+  tempLogClearFailed: "Marked done, but local cache clear failed for {date}. Refresh to re-sync.",
   allDataCleared: "All data cleared.",
   backupRestored: "Backup restored successfully",
   backupFailed: "Failed to restore backup",
