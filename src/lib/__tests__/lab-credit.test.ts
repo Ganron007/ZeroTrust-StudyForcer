@@ -130,8 +130,79 @@ describe("parseCreditKey", () => {
     expect(parseCreditKey("")).toBeNull()
   })
 
+  it("returns null for empty courseId (colon at start)", () => {
+    expect(parseCreditKey(":d1")).toBeNull()
+  })
+
+  it("returns null for empty domainId (colon at end)", () => {
+    expect(parseCreditKey("c1:")).toBeNull()
+  })
+
   it("roundtrips with buildCreditKey", () => {
     const key = buildCreditKey("course-123", "domain-456")
     expect(parseCreditKey(key)).toEqual({ courseId: "course-123", domainId: "domain-456" })
+  })
+})
+
+describe("findDomainMatches: v2.6.0 audit fixes", () => {
+  const baseCourse: CourseConfig = {
+    id: "c1",
+    name: "Test",
+    subtitle: "",
+    edition: "1st",
+    publisher: "Test",
+    units: [],
+    defaultSettings: { pagesPerDay: 20, studyDays: [1, 2, 3, 4, 5], startingChapterId: 1 },
+    examDomains: [
+      { id: "d1", name: "DFIR", weight: 25 },
+    ],
+  }
+
+  it("REGRESSION: empty lab focus does NOT match every domain", () => {
+    const labEmpty = { ...labDFIR, focus: "" }
+    expect(findDomainMatches(labEmpty, [baseCourse])).toEqual([])
+  })
+
+  it("REGRESSION: whitespace-only lab focus does NOT match", () => {
+    const labWS = { ...labDFIR, focus: "   " }
+    expect(findDomainMatches(labWS, [baseCourse])).toEqual([])
+  })
+
+  it("REGRESSION: too-short focus (1-2 chars) does NOT match", () => {
+    // 1 char
+    const lab1 = { ...labDFIR, focus: "A" }
+    expect(findDomainMatches(lab1, [baseCourse])).toEqual([])
+    // 2 chars
+    const lab2 = { ...labDFIR, focus: "AI" }
+    expect(findDomainMatches(lab2, [baseCourse])).toEqual([])
+  })
+
+  it("REGRESSION: empty domain name does NOT match every lab", () => {
+    const courseWithEmptyDomain: CourseConfig = {
+      ...baseCourse,
+      examDomains: [
+        { id: "d1", name: "", weight: 25 },  // empty!
+      ],
+    }
+    expect(findDomainMatches(labDFIR, [courseWithEmptyDomain])).toEqual([])
+  })
+
+  it("REGRESSION: too-short domain name (< 3 chars) does NOT match", () => {
+    const courseWithShortDomain: CourseConfig = {
+      ...baseCourse,
+      examDomains: [
+        { id: "d1", name: "AI", weight: 25 },  // 2 chars
+      ],
+    }
+    expect(findDomainMatches(labDFIR, [courseWithShortDomain])).toEqual([])
+  })
+
+  it("REGRESSION: doesn't match a 2-char common word (e.g. 'OS')", () => {
+    const labOS = { ...labDFIR, focus: "OS" }
+    const courseOS: CourseConfig = {
+      ...baseCourse,
+      examDomains: [{ id: "d-os", name: "OS Hardening", weight: 25 }],
+    }
+    expect(findDomainMatches(labOS, [courseOS])).toEqual([])
   })
 })

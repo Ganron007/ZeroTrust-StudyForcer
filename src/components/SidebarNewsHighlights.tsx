@@ -40,6 +40,11 @@ export default function SidebarNewsHighlights({ onOpenNews }: SidebarNewsHighlig
 
   // Phase 0.5.10: CVE-of-the-day chip
   const cveOfTheDay = useMemo(() => findCveOfTheDay(articles), [articles])
+  // v2.6.0 audit fix: extract CVE ID once (was being called twice in JSX).
+  const cveId = useMemo(
+    () => (cveOfTheDay ? extractCveId(cveOfTheDay.title) : null),
+    [cveOfTheDay],
+  )
   // Articles excluding the CVE (which is shown separately)
   const otherArticles = useMemo(
     () => (cveOfTheDay ? articles.filter((a) => a.id !== cveOfTheDay.id) : articles).slice(0, 5),
@@ -61,9 +66,9 @@ export default function SidebarNewsHighlights({ onOpenNews }: SidebarNewsHighlig
             <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
               {label("cveOfTheDay")}
             </span>
-            {extractCveId(cveOfTheDay.title) && (
+            {cveId && (
               <span className="text-[10px] font-mono font-semibold text-red-700 dark:text-red-300">
-                {extractCveId(cveOfTheDay.title)}
+                {cveId}
               </span>
             )}
           </div>
@@ -81,7 +86,16 @@ export default function SidebarNewsHighlights({ onOpenNews }: SidebarNewsHighlig
             }}
             className="block text-xs text-foreground hover:text-red-600 dark:hover:text-red-300 transition-colors leading-snug font-medium"
           >
-            {cveOfTheDay.title.replace(/CVE-\d{4}-\d{4,7}/i, "").trim() || cveOfTheDay.title}
+            {/* v2.6.0 audit fix: only strip the CVE ID if there's OTHER
+                text in the title. If the title is just a CVE ID (e.g.,
+                "CVE-2026-1234"), fall back to "CVE-XXXX-NNNN" rather
+                than re-showing the full title (which would duplicate
+                the badge). */}
+            {(() => {
+              const stripped = cveOfTheDay.title.replace(/CVE-\d{4}-\d{4,7}/i, "").trim()
+              if (stripped) return stripped
+              return cveId ?? cveOfTheDay.title
+            })()}
           </a>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {cveOfTheDay.source} · {timeAgo(cveOfTheDay.published_at)}
@@ -129,7 +143,9 @@ export default function SidebarNewsHighlights({ onOpenNews }: SidebarNewsHighlig
           ))}
         </ul>
       )}
-      {loaded && otherArticles.length > 0 && (
+      {/* v2.6.0 audit fix: show "Open News Feed" button if there's ANY
+          content to open (CVE or other articles), not just other articles. */}
+      {loaded && (otherArticles.length > 0 || cveOfTheDay) && (
         <button
           onClick={onOpenNews}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"

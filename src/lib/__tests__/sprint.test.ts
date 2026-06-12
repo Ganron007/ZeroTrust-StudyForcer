@@ -96,3 +96,37 @@ describe("applySprintPace", () => {
     expect(applySprintPace(20, sprint({ paceBoost: 33 }), "2026-06-12")).toBe(27)
   })
 })
+
+describe("v2.6.0 audit fixes", () => {
+  it("REGRESSION: zero/negative days makes sprint inactive", () => {
+    expect(isSprintActive(sprint({ days: 0 }), "2026-06-10")).toBe(false)
+    expect(isSprintActive(sprint({ days: -5 }), "2026-06-10")).toBe(false)
+  })
+
+  it("REGRESSION: negative paceBoost is treated as no boost (safety)", () => {
+    // 20 * (1 + -50/100) = 10, but we guard against negative
+    expect(applySprintPace(20, sprint({ paceBoost: -50 }), "2026-06-12")).toBe(20)
+  })
+
+  it("REGRESSION: sprintDaysRemaining uses Math.round (not ceil) for stable count", () => {
+    // On start date: should be exactly 7
+    expect(sprintDaysRemaining(sprint({ days: 7 }), "2026-06-10")).toBe(7)
+    // 1 day after start: 6
+    expect(sprintDaysRemaining(sprint({ days: 7 }), "2026-06-11")).toBe(6)
+    // 7 days after start (June 17): 0, not negative
+    expect(sprintDaysRemaining(sprint({ days: 7 }), "2026-06-17")).toBe(0)
+  })
+
+  it("REGRESSION: DST-safe — sprint end uses calendar date addition (not ms math)", () => {
+    // March 8 → 9 → 10 → ... is 2026 US DST start (spring forward).
+    // March 8 has 23 hours, March 9 has 23 hours, March 10 has 24 hours.
+    // A 3-day sprint starting March 8 should end on March 11 (DST-safe),
+    // not 3*86400000 ms later (which would land on March 10 at 23:00 PST).
+    const dstSprint = sprint({ startDate: "2026-03-08", days: 3 })
+    // Active: March 8, 9, 10. Inactive: March 11.
+    expect(isSprintActive(dstSprint, "2026-03-08")).toBe(true)
+    expect(isSprintActive(dstSprint, "2026-03-09")).toBe(true)
+    expect(isSprintActive(dstSprint, "2026-03-10")).toBe(true)
+    expect(isSprintActive(dstSprint, "2026-03-11")).toBe(false)
+  })
+})

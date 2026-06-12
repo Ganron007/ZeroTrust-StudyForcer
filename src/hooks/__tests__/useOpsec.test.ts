@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect, beforeEach, vi } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { useOpsec, isOpsecOn, maskText } from "../useOpsec"
 
@@ -50,6 +50,41 @@ describe("useOpsec hook", () => {
       result.current.setOpsec(false)
     })
     expect(localStorage.getItem("ztsf:opsec")).toBeNull()
+  })
+
+  it("REGRESSION: setOpsec dispatches a window event for cross-instance sync", () => {
+    const { result } = renderHook(() => useOpsec())
+    const handler = vi.fn()
+    window.addEventListener("ztsf:opsec-change", handler)
+    act(() => {
+      result.current.setOpsec(true)
+    })
+    expect(handler).toHaveBeenCalled()
+    window.removeEventListener("ztsf:opsec-change", handler)
+  })
+
+  it("REGRESSION: setOpsec does NOT dispatch event if value unchanged", () => {
+    const { result } = renderHook(() => useOpsec())
+    const handler = vi.fn()
+    window.addEventListener("ztsf:opsec-change", handler)
+    // Initially opsec is false, setOpsec(false) again should not dispatch
+    act(() => {
+      result.current.setOpsec(false)
+    })
+    expect(handler).not.toHaveBeenCalled()
+    window.removeEventListener("ztsf:opsec-change", handler)
+  })
+
+  it("REGRESSION: window event listener syncs other instances", () => {
+    const { result: a } = renderHook(() => useOpsec())
+    const { result: b } = renderHook(() => useOpsec())
+    expect(a.current.opsec).toBe(false)
+    expect(b.current.opsec).toBe(false)
+    act(() => {
+      a.current.setOpsec(true)
+    })
+    expect(a.current.opsec).toBe(true)
+    expect(b.current.opsec).toBe(true)  // synced via event
   })
 
   it("reads from localStorage on init", () => {

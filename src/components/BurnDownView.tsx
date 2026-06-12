@@ -31,26 +31,35 @@ interface PlanBurnDown {
   status: "on-pace" | "behind" | "no-deadline"
 }
 
-function summarizePlan(plan: StudyPlan, today: string) {
-  return null as never
-}
+// v2.6.0 audit fix: removed dead `summarizePlan` function (returned null as
+// never, never called). deriveBurnDown now takes courseName and courseColor
+// directly instead of using placeholder values that the caller had to
+// override (fragile).
 
 function deriveBurnDown(
   plan: StudyPlan,
   chapters: ReturnType<typeof getOrderedChapters>,
+  courseName: string,
+  courseColor: string,
   today: string,
 ): PlanBurnDown {
-  const daysRemaining = plan.targetEndDate
-    ? Math.round(
-        (new Date(plan.targetEndDate + "T00:00:00").getTime() - new Date(today + "T00:00:00").getTime()) /
-          86400000,
-      )
-    : null
+  // v2.6.0 audit fix: use sprint-aware PPD so the "behind" threshold
+  // reflects what the user is actually expected to do.
+  const effectivePPD = applySprintPace(plan.pagesPerDay, plan.sprint, today)
+  // v2.6.0 audit fix: DST-safe days-remaining via Date arithmetic.
+  let daysRemaining: number | null = null
+  if (plan.targetEndDate) {
+    const target = new Date(plan.targetEndDate + "T00:00:00")
+    const now = new Date(today + "T00:00:00")
+    if (!isNaN(target.getTime()) && !isNaN(now.getTime())) {
+      const diffMs = target.getTime() - now.getTime()
+      daysRemaining = Math.round(diffMs / 86400000)
+    }
+  }
 
   const params = syncStudyPlan(plan, chapters, today)
   const totalPages = chapters.reduce((s, c) => s + c.pages, 0)
   const pagesRemaining = Math.max(0, totalPages - params.consumed)
-  const effectivePPD = applySprintPace(plan.pagesPerDay, plan.sprint, today)
   const loggedDays = Object.values(plan.dailyLog).filter((l) => l.pagesRead > 0)
   const actualPace = loggedDays.length > 0
     ? loggedDays.reduce((s, l) => s + l.pagesRead, 0) / loggedDays.length
@@ -60,14 +69,15 @@ function deriveBurnDown(
   let status: PlanBurnDown["status"] = "no-deadline"
   if (daysRemaining !== null) {
     const requiredPace = pagesRemaining / Math.max(1, daysRemaining)
+    // v2.6.0 audit fix: use effectivePPD (sprint-aware), not plan.pagesPerDay.
     status = requiredPace > effectivePPD * 1.2 ? "behind" : "on-pace"
   }
 
   return {
     planId: plan.id,
     planName: plan.name,
-    courseName: "course", // overridden by caller
-    courseColor: "#2563EB",
+    courseName,
+    courseColor,
     pagesRemaining,
     daysRemaining,
     paceRatio,
@@ -89,9 +99,8 @@ export default function BurnDownView({ className = "" }: BurnDownViewProps) {
       const course = courses.find((c) => c.id === plan.courseId)
       if (!course) continue
       const chapters = getOrderedChapters(course, plan.unitOrder)
-      const bd = deriveBurnDown(plan, chapters, today)
-      bd.courseName = course.name
-      bd.courseColor = course.units[0]?.color ?? "#2563EB"
+      const courseColor = course.units[0]?.color ?? "#2563EB"
+      const bd = deriveBurnDown(plan, chapters, course.name, courseColor, today)
       result.push(bd)
     }
     return result.sort((a, b) => {
@@ -103,12 +112,10 @@ export default function BurnDownView({ className = "" }: BurnDownViewProps) {
 
   if (summaries.length === 0) return null
 
-  // Find max for normalization
-  const maxPages = Math.max(...summaries.map((s) => s.pagesRemaining), 1)
-  const maxDays = Math.max(
-    ...summaries.map((s) => s.daysRemaining ?? 0),
-    1,
-  )
+  // v2.6.0 audit fix: use reduce instead of spread to avoid V8 arg limit
+  // when there are many plans.
+  const maxPages = summaries.reduce((m, s) => Math.max(m, s.pagesRemaining), 1)
+  const maxDays = summaries.reduce((m, s) => Math.max(m, s.daysRemaining ?? 0), 1)
 
   return (
     <div
@@ -122,7 +129,6 @@ export default function BurnDownView({ className = "" }: BurnDownViewProps) {
 
       <div className="space-y-3">
         {summaries.map((s) => {
-          // Bar widths as % of max
           const pagesBarWidth = (s.pagesRemaining / maxPages) * 100
           const daysBarWidth = s.daysRemaining !== null
             ? (s.daysRemaining / maxDays) * 100
@@ -174,6 +180,8 @@ export default function BurnDownView({ className = "" }: BurnDownViewProps) {
                     <span>
                       {label("burndownDaysRemaining").replace("{n}", String(s.daysRemaining))}
                     </span>
+                    {/* v2.6.0 audit fix: no-deadline plans show a status
+                        text instead of an empty cell. */}
                     <span>
                       {s.status === "on-pace"
                         ? label("burndownOnPace")

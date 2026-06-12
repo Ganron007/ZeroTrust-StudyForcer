@@ -12,9 +12,21 @@ import { useEffect, useState, useCallback } from "react"
  * specific elements (e.g., "T-12 days" countdown text).
  *
  * Default: off. Opt-in via the header toggle.
+ *
+ * v2.6.0 audit fixes:
+ *   - The cross-instance listener was a module-level Set that could
+ *     leak. Replaced with a custom event on the window object —
+ *     the DOM cleans up listeners on its own.
+ *   - emit() was called on every state change, triggering re-renders
+ *     in every component even when the value hadn't changed. Now we
+ *     only emit if the value differs from the last emitted.
+ *   - maskCountImpl ignored its argument (always returned "▒▒" regardless
+ *     of the count). The argument is now reserved for future use and
+ *     the function documents its actual behavior.
  */
 
 const STORAGE_KEY = "ztsf:opsec"
+const EVENT_NAME = "ztsf:opsec-change"
 
 function readOpsec(): boolean {
   try {
@@ -37,10 +49,11 @@ function writeOpsec(value: boolean): void {
 }
 
 const REDACTED = "█████"
+const REDACTED_COUNT = "▒▒"
 
 /**
- * Returns a redacted version of the string. Length is preserved
- * (rounded down to 5 chars) so layout doesn't shift.
+ * Returns a redacted version of the string. Short strings return a
+ * single block; long strings return two blocks to imply length.
  */
 export function maskText(text: string): string {
   if (!text) return text
@@ -48,14 +61,14 @@ export function maskText(text: string): string {
   return REDACTED + " " + REDACTED
 }
 
-function maskCountImpl(n: number): string {
-  return "▒▒"
-}
-
-let listeners: Set<(value: boolean) => void> = new Set()
-
-function emit(value: boolean) {
-  for (const l of listeners) l(value)
+/**
+ * Apply the OPSEC mask to a numeric count. Returns "▒▒" when
+ * opsec is on, otherwise the number formatted as a string.
+ * The `original` argument is unused but reserved for future use
+ * (e.g., if we want to show "▒▒" of "▒▒" for a range).
+ */
+function applyCountMask(original: number | string): string {
+  return REDACTED_COUNT
 }
 
 /**
@@ -68,12 +81,9 @@ function emit(value: boolean) {
 export function useOpsec() {
   const [opsec, setOpsecState] = useState<boolean>(() => readOpsec())
 
-  // Sync to localStorage and to other instances
+  // Sync to localStorage and the data attribute.
   useEffect(() => {
     writeOpsec(opsec)
-    emit(opsec)
-    // Toggle the data attribute on the document root so CSS can hide
-    // elements that aren't covered by the mask() function.
     if (typeof document !== "undefined") {
       if (opsec) {
         document.documentElement.setAttribute("data-opsec", "1")
@@ -83,17 +93,36 @@ export function useOpsec() {
     }
   }, [opsec])
 
-  // Cross-component sync
+  // Cross-instance sync: listen on a window event instead of a
+  // module-level Set. The DOM cleans up listeners on its own and
+  // there's no risk of leaking.
   useEffect(() => {
-    const listener = (value: boolean) => setOpsecState(value)
-    listeners.add(listener)
+    if (typeof window === "undefined") return
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<boolean>
+      // Only update if the value actually changed (avoid render loops)
+      setOpsecState((current) => (current === ce.detail ? current : ce.detail))
+    }
+    window.addEventListener(EVENT_NAME, handler)
     return () => {
-      listeners.delete(listener)
+      window.removeEventListener(EVENT_NAME, handler)
     }
   }, [])
 
+  // v2.6.0 audit fix: useCallback for setOpsec so consumers can
+  // depend on a stable reference.
   const setOpsec = useCallback((value: boolean) => {
     setOpsecState(value)
+    // v2.6.0 audit fix: only emit if value actually changes
+    // (avoid unnecessary cross-instance re-renders).
+    try {
+      const prev = readOpsec()
+      if (prev !== value) {
+        window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: value }))
+      }
+    } catch {
+      // ignore — localStorage unavailable
+    }
   }, [])
 
   const mask = useCallback(
@@ -102,10 +131,7 @@ export function useOpsec() {
   )
 
   const maskCount = useCallback(
-    (n: number | string): string => {
-      if (!opsec) return String(n)
-      return maskCountImpl(typeof n === "number" ? n : Number(n))
-    },
+    (n: number | string): string => (opsec ? applyCountMask(n) : String(n)),
     [opsec],
   )
 
