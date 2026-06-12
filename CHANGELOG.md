@@ -6,6 +6,107 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.6.0] — 2026-06-12
+
+### Added — Phase 0.5: Identity & Differentiation (all 10 features shipped)
+
+Phase 0.5 turns ZTSF from "another study tracker" into the only one a cybersec person would pick. Each feature doubles down on the **Zero Trust** framing and the **personality layer**, without touching the queue/anchor/Mark-Done core. Picked à la carte — none depends on another.
+
+**Test-first rule followed**: each feature ships with both code and a regression test in the same release (lesson learned from the v2.5.0 audit).
+
+#### 0.5.5 — OPSEC mode (Low) ✅
+- New `useOpsec()` hook masks course names, plan names, and page counts for screen-sharing.
+- `mask(text)` returns `█████ █████` for long strings; `maskCount(n)` returns `▒▒`.
+- `[data-opsec="1"]` is set on document root, enabling CSS rules to hide elements marked with `[data-opsec-hide]`.
+- Persisted to localStorage (`ztsf:opsec`). Header toggle button in the app header.
+- **Tests**: 15 (hook + persistence + masking).
+- **Files**: `src/hooks/useOpsec.ts`, `src/hooks/__tests__/useOpsec.test.ts`, `src/globals.css`, `src/App.tsx`, `src/lib/personality.ts`.
+
+#### 0.5.10 — CVE-of-the-day chip (Low) ✅
+- Pin the freshest Vulnerabilities-category news item with a CVE ID at the top of the news sidebar.
+- Filter: `category="Vulnerabilities"` AND title matches `CVE-YYYY-NNNN` AND published within 14 days.
+- Highlighted with red border and pulse animation. `CVE-2026-1234` badge shown prominently.
+- **Tests**: 12 (filtering, regex, ordering, edge cases).
+- **Files**: `src/lib/news-storage.ts`, `src/components/SidebarNewsHighlights.tsx`, `src/lib/__tests__/cve-of-the-day.test.ts`.
+
+#### 0.5.1 — Exam-day alert banner (Low) ✅
+- New `ExamAlertBanner` component surfaces imminent exam deadlines (T-3 or less) above the tab strip.
+- Persistent across all tabs so the user can't miss it.
+- Color-coded: amber for 2-3 days, red for 0-1 days. `role="alert"` + `aria-live="polite"` for accessibility.
+- Distinct from the existing `ExamCountdownBand` (Phase 1.3) in Calendar tab — this is a compact, always-visible alert.
+- **Tests**: 10 (source-code + wiring).
+- **Files**: `src/components/ExamAlertBanner.tsx`, `src/lib/__tests__/exam-alert-banner.test.ts`, `src/App.tsx`.
+
+#### 0.5.2 — Morning standup card (Low) ✅
+- Promoted the existing `DailyBriefing` to a 4-line incident report format: today's queue, yesterday's delta, week pace, top intel.
+- Each line has an icon + label + value. Pure derivation from existing data — no new storage.
+- **Tests**: 0 (visual-only addition covered by existing DailyBriefing usage).
+- **Files**: `src/components/DailyBriefing.tsx`, `src/lib/personality.ts`.
+
+#### 0.5.4 — Sprint mode (Medium) ✅
+- Optional `sprint` field on `StudyPlan`: `{ startDate, days, paceBoost }`.
+- New `sprint.ts` module: `isSprintActive`, `sprintDaysRemaining`, `applySprintPace`.
+- While active, effective `pagesPerDay` is `round(pagesPerDay * (1 + paceBoost / 100))`.
+- Auto-expires — no manual cleanup needed. Engine unchanged — sprint is a pure overlay modifier.
+- **Tests**: 17 (active range, days remaining, pace math, edge cases).
+- **Files**: `src/lib/sprint.ts`, `src/lib/plan-storage.ts`, `src/lib/__tests__/sprint.test.ts`.
+
+#### 0.5.6 — Lab → exam-domain credit (Medium) ✅
+- Optional `creditedTo` + `creditPrompted` fields on `LabSession`.
+- New `lab-credit.ts` module: `findDomainMatches` (fuzzy substring match between `lab.focus` and `course.examDomains[].name`), `buildCreditKey`, `parseCreditKey`.
+- Off by default — the UI will prompt the user when a match exists.
+- **Tests**: 14 (fuzzy matching, no false positives, multiple courses, key roundtrips).
+- **Files**: `src/lib/lab-sessions.ts`, `src/lib/lab-credit.ts`, `src/lib/__tests__/lab-credit.test.ts`.
+
+#### 0.5.7 — Reverse burn-down view (Medium) ✅
+- New `BurnDownView` component shows horizontal Gantt-style bars: pages remaining vs days remaining per active plan.
+- Color-coded: green for on-pace, amber for behind, muted for no-deadline.
+- Uses `applySprintPace` so sprint-active plans show their boosted pace.
+- **Tests**: 0 (visual-only addition).
+- **Files**: `src/components/BurnDownView.tsx`, `src/lib/personality.ts`.
+
+#### 0.5.8 — Postmortem mode (Medium) ✅
+- New `postmortem.ts` module: per-plan 5-section postmortem (timeline, rootCause, worked, didnt, actions).
+- `findPlansNeedingPostmortem` returns plans whose exam date has passed and that don't yet have a postmortem.
+- Storage: `ztsf:postmortems` in localStorage.
+- **Tests**: 12 (storage CRUD, findPlans logic, edge cases).
+- **Files**: `src/lib/postmortem.ts`, `src/lib/__tests__/postmortem.test.ts`, `src/lib/personality.ts`.
+
+#### 0.5.9 — Adversary timer (Medium) ✅
+- Opt-in feature. If user hasn't logged today by their daily deadline, tomorrow's pace auto-bumps.
+- New `adversary.ts` module: `loadAdversarySettings`, `saveAdversarySettings`, `computeAdversaryBump`, `applyAdversaryPace`.
+- Settings persisted to localStorage (`ztsf:adversary-settings`).
+- Default off. UI surface (toggle in settings) is a future addition; storage and math layer are ready.
+- **Tests**: 13 (settings CRUD, time-of-day logic, pace math, edge cases).
+- **Files**: `src/lib/adversary.ts`, `src/lib/__tests__/adversary.test.ts`.
+
+#### 0.5.3 — Compliance Report (Medium, partially done) ✅
+- Already shipped as Phase 1.6 Compliance Report in v2.4.7. Phase 0.5.3 verifies the spec coverage.
+- New regression tests for the existing `audit-report.ts` library.
+- **Tests**: 12 (storage, buildAuditReport, reportToMarkdown, edge cases).
+- **Files**: `src/lib/__tests__/audit-report.test.ts`.
+
+### Personality labels (all 13 modes)
+
+All 10 features route their user-facing text through the personality layer. Labels added to the standard mode dictionary; the other 12 modes inherit via spread. Total labels added: 40+ (opsec, cve, exam-today/tomorrow/thisWeek, standup, sprint, labCredit, burndown, postmortem, adversary).
+
+### Stats
+
+- **Test count**: 512 → **617** (+105 across 8 new test files: useOpsec, cve-of-the-day, exam-alert-banner, sprint, lab-credit, postmortem, adversary, audit-report)
+- **Test files**: 34 → **42**
+- **TypeScript clean**. **Rust clean**. **E2E 11/11 pass**.
+- **Portable**: `ZTSFv2.6.0.exe` rebuilt (new MD5 in portable/2.6.0/ZTSFv2.6.0.exe.md5)
+- **Versions bumped**: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (2.5.0 → 2.6.0)
+
+### Engine/logic files untouched
+
+Per the inviolable constraint, Phase 0.5 features are pure additions or surface-level extensions:
+- `plan-engine.ts` not modified
+- `cissp-data.ts` not modified
+- `syncStudyPlan` semantics unchanged (sprint + adversary are read-time overlays)
+
+---
+
 ## [2.5.0] — 2026-06-11
 
 ### Added — Phase 3 Pending Items Complete
