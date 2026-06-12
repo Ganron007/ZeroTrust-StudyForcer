@@ -64,6 +64,15 @@ export interface StudyPlan {
   skippedDays: string[]
   /** Ordered unit IDs for this plan. If absent, the course's default unit order is used. */
   unitOrder?: number[]
+  /** Phase 0.5.4: Sprint mode — temporary pace boost. */
+  sprint?: {
+    /** YYYY-MM-DD when the sprint starts. */
+    startDate: string
+    /** Number of days the sprint lasts. */
+    days: number
+    /** Percentage boost (0-100). E.g. 25 = +25% pages/day. */
+    paceBoost: number
+  }
 }
 
 // readStorage and writeStorage are now imported from ./database
