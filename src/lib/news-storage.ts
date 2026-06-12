@@ -291,3 +291,43 @@ export const SOURCE_COLORS: Record<string, string> = {
   "USOM Notices": "#B45309",
   "USOM Threats": "#B45309",
 }
+
+/**
+ * Phase 0.5.10: CVE-of-the-day chip.
+ *
+ * Finds the freshest news item that's:
+ *   1. In the "Vulnerabilities" category, AND
+ *   2. Has a CVE ID in its title (CVE-YYYY-NNNN format)
+ *
+ * Returns null if no fresh CVE exists in the cache. "Fresh" means
+ * published in the last 14 days — anything older is considered stale.
+ */
+export function findCveOfTheDay(items: NewsItem[]): NewsItem | null {
+  const cvePattern = /CVE-\d{4}-\d{4,7}/i
+  const fourteenDaysAgo = nowMs() - 14 * 24 * 60 * 60 * 1000
+
+  const cves = items
+    .filter((item) => {
+      if (item.category !== "Vulnerabilities") return false
+      if (!cvePattern.test(item.title)) return false
+      const pubMs = new Date(item.published_at).getTime()
+      if (isNaN(pubMs) || pubMs < fourteenDaysAgo) return false
+      return true
+    })
+    .sort((a, b) => {
+      const da = new Date(a.published_at).getTime() || 0
+      const db = new Date(b.published_at).getTime() || 0
+      return db - da
+    })
+
+  return cves[0] ?? null
+}
+
+/**
+ * Extract the CVE ID from a news item title. Returns null if not found.
+ * Used to display the "CVE-2026-1234" badge prominently.
+ */
+export function extractCveId(title: string): string | null {
+  const match = title.match(/CVE-\d{4}-\d{4,7}/i)
+  return match ? match[0].toUpperCase() : null
+}
