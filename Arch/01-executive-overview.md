@@ -106,6 +106,7 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 | **Single clock source** | `src/lib/clock.ts` — all time calls centralized, mockable |
 | **Branded domain types** | `PlanId`, `CourseId`, `ISODate`, `ISOTimestamp` — compile-time type safety |
 | **Inviolable rules tests** | 15 regression tests mapping 1:1 to `ARCHITECTURE.md` rules |
+| **Test determinism (TZ=UTC)** | `vitest.config.ts` sets `env.TZ = 'UTC'` — tests run in a fixed timezone so local-time-dependent tests are caught on every host, not just non-IST |
 
 ---
 

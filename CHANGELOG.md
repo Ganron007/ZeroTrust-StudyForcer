@@ -162,7 +162,21 @@ Remaining minor audit findings from the Phase 0.5 audit:
 
 - **`Esc closes cheatsheet from any state`** (`e2e/app.spec.ts`): This E2E test was flaky — it called `page.goto('/')` (redundant with `beforeEach` hook) then immediately pressed `?` before React hydrated. On CI's ubuntu-latest (slower than dev machines), the keypress hit before the event listener was attached. Fixed: removed redundant `page.goto('/')` from all tests that didn't need them. The `beforeEach` hook already loads the page and waits for `.skip-link` to be visible. All 11 E2E tests now pass consistently (verified multiple consecutive runs).
 
+### Fixed — v2.6.0 follow-up: CI timezone-dependent unit test
+
+- **`adversary.test.ts` "REGRESSION: explicit nowLocalDate is used to avoid UTC/local mismatch"** (line 203): Test hardcoded `"2026-06-10T13:30:00.000Z"` assuming the host's timezone was IST (UTC+5:30) where 13:30Z = 19:00 local. Passed on the dev Windows machine (IST) but failed on CI Ubuntu (UTC) where 13:30Z = 13:30 local — before the 18:00 deadline. The 17 other tests in the file already use the `localIsoString` helper (timezone-independent) — this one was missed in the v2.6.0 audit because the audit ran locally in IST. Fixed by replacing the hardcoded UTC with `localIsoString("2026-06-10", "19:00")` (the same pattern as the rest of the file).
+- **Latent fix**: the "returns 0 when current time is before deadline" test at line 73 had the same flaw — hardcoded UTC that happened to pass on CI/IST but would break in UTC+1+ timezones. Replaced with `localIsoString("2026-06-10", "12:00")` (noon local is always before the 21:00 deadline).
+- **`vitest.config.ts`**: Added `env: { TZ: 'UTC' }` so any future timezone-dependent test is caught immediately on CI (and on any local dev machine, not just IST). This is the structural fix that prevents recurrence of this class of bug.
+
+**Root cause lesson:** the v2.6.0 audit (9 issues) and v2.6.0 polish (14 issues) caught all the *code* issues in the Phase 0.5 features, but neither audit ran the test suite under a non-IST timezone, so the timezone dependence slipped through. Adding `TZ=UTC` to vitest config closes that gap permanently.
+
+**Test count**: 642 → 642 (no new test files; the fixed tests stay at 19 in `adversary.test.ts`). All 42 unit-test files + 11 E2E tests pass under `TZ=UTC`.
+
+**CI status**: Run #46 (commit `20402a5`) failed on `adversary.test.ts:203` in 46s. Run #47 (commit `219245f`) passed in 90s on the same code with the timezone fix and `TZ=UTC` lock.
+
 ---
+
+## [2.6.0] — 2026-06-12 (final, post-audit)
 
 ## [2.5.0] — 2026-06-11
 

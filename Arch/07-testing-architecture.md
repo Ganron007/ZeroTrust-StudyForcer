@@ -118,6 +118,8 @@ beforeEach(() => {
 })
 ```
 
+**Timezone (v2.6.0+):** `vitest.config.ts` sets `env: { TZ: 'UTC' }` for the entire test run. This locks the timezone so any test that depends on local time (e.g., `new Date(iso).getHours()`) is deterministic regardless of the host's timezone. Tests that need a specific local time use the `localIsoString(date, hhmm)` helper pattern (see `adversary.test.ts`, `sprint.test.ts`) — they construct an ISO that, when parsed by `new Date()` in the host's timezone, yields the desired local hour. **The post-v2.6.0 audit lesson:** the v2.6.0 audit pipeline (9 + 14 issues caught in 2 passes) ran locally in IST, so one timezone-dependent test slipped through and was caught by CI instead. `TZ=UTC` in vitest config prevents this class of bug permanently.
+
 ---
 
 ## 4. Test Commands
