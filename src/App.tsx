@@ -8,6 +8,7 @@ import { sanitizeSvg } from "./lib/sanitize-svg"
 import { now, nowDate } from "./lib/clock"
 import ScheduleView from "./components/ScheduleView"
 import ExamCountdownBand from "./components/ExamCountdownBand"
+import ExamAlertBanner from "./components/ExamAlertBanner"
 import ScheduleList from "./components/ScheduleList"
 import ProgressDashboard from "./components/ProgressDashboard"
 import CertPathView from "./components/CertPathView"
@@ -1500,6 +1501,10 @@ function AppContent() {
                 </div>
               </div>
             </div>
+
+            {/* Phase 0.5.1: Top-of-app exam-day alert banner.
+                Surfaces imminent deadlines (T-3 or less) above the tab strip. */}
+            <ExamAlertBanner />
 
             <div
               role="tablist"
