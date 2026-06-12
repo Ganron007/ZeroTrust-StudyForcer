@@ -92,10 +92,10 @@ All 10 features route their user-facing text through the personality layer. Labe
 
 ### Stats
 
-- **Test count**: 512 → **617** (+105 across 8 new test files: useOpsec, cve-of-the-day, exam-alert-banner, sprint, lab-credit, postmortem, adversary, audit-report)
+- **Test count**: 512 → **642** (+130 across 8 new test files + audit regression tests)
 - **Test files**: 34 → **42**
 - **TypeScript clean**. **Rust clean**. **E2E 11/11 pass**.
-- **Portable**: `ZTSFv2.6.0.exe` rebuilt (new MD5 in portable/2.6.0/ZTSFv2.6.0.exe.md5)
+- **Portable**: `ZTSFv2.6.0.exe` rebuilt (MD5: `ad0571058068b74b380764ea17954295`)
 - **Versions bumped**: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (2.5.0 → 2.6.0)
 
 ### Engine/logic files untouched
@@ -140,6 +140,27 @@ Rigorous code audit of all Phase 0.5 features found 14 real bugs. All fixed.
 - **Standup "Today" shows queue even when done** (`DailyBriefing.tsx`): When today is completed, the standup still showed "N pages". Fixed: show `todayDone` label when logged.
 
 **Test count**: 642 → 642 (no new test files; fixes are to existing code, all tests still pass).
+
+### Fixed — v2.6.0 polish (14 minor findings, all closed)
+
+Remaining minor audit findings from the Phase 0.5 audit:
+
+**Components (4 fixed):**
+
+- **Standup "Top News" always placeholder** (`DailyBriefing.tsx`): The standup's "Top News" line always showed "No News". Fixed: reads from news cache + fetch, shows actual top headline.
+- **Standup "Today" shows queue even when done** (`DailyBriefing.tsx`): When today is completed, the standup still showed "N pages". Fixed: show `todayDone` label when logged.
+- **BurnDownView .replace** (`BurnDownView.tsx`): Used `label().replace("{n}", ...)` instead of `formatStr()`. Fixed.
+- **BurnDownView no-deadline status** (`BurnDownView.tsx`): Status text was empty for no-deadline plans. Fixed: show `countdownNoDeadline` label.
+- **ExamAlertBanner sort** (`ExamAlertBanner.tsx`): Unsorted list of imminent plans. Fixed: sort by `daysLeft` ascending (most urgent first).
+
+**Lib (2 fixed):**
+
+- **Postmortem corruption guard** (`postmortem.ts`): On corrupt JSON, silently returned empty. Fixed: quarantining corrupt data (same pattern as `database.ts`).
+- **maskText comment** (`useOpsec.ts`): Comment claimed "length is preserved" which was false. Updated to describe actual behavior.
+
+### Fixed — CI: E2E flaky test
+
+- **`Esc closes cheatsheet from any state`** (`e2e/app.spec.ts`): This E2E test was flaky — it called `page.goto('/')` (redundant with `beforeEach` hook) then immediately pressed `?` before React hydrated. On CI's ubuntu-latest (slower than dev machines), the keypress hit before the event listener was attached. Fixed: removed redundant `page.goto('/')` from all tests that didn't need them. The `beforeEach` hook already loads the page and waits for `.skip-link` to be visible. All 11 E2E tests now pass consistently (verified multiple consecutive runs).
 
 ---
 
