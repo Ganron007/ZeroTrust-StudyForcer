@@ -63,7 +63,7 @@ test.describe('App shell', () => {
 
 test.describe('Skip-link accessibility (the bug we just fixed)', () => {
   test('skip-link is outside the viewport on page load', async ({ page }) => {
-    await page.goto('/')
+    // beforeEach already loaded the page
     const skipLink = page.getByRole('link', { name: /skip to/i })
     // Must be off-screen until focused. This is the exact bug that shipped twice.
     // The link uses position:fixed + transform:translateY(-200%) to hide,
@@ -98,7 +98,9 @@ test.describe('Skip-link accessibility (the bug we just fixed)', () => {
 
 test.describe('Keyboard navigation', () => {
   test('? opens keyboard cheatsheet', async ({ page }) => {
-    await page.goto('/')
+    // beforeEach already loaded the page — no need to goto again.
+    // Just wait for app to be fully hydrated before pressing keys.
+    await page.waitForSelector('.skip-link', { state: 'visible' })
     await page.keyboard.press('?')
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
@@ -107,7 +109,8 @@ test.describe('Keyboard navigation', () => {
   })
 
   test('Esc closes cheatsheet from any state', async ({ page }) => {
-    await page.goto('/')
+    // beforeEach already loaded the page — no need to goto again.
+    await page.waitForSelector('.skip-link', { state: 'visible' })
     await page.keyboard.press('?')
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.keyboard.press('Escape')
@@ -124,7 +127,7 @@ test.describe('Keyboard navigation', () => {
 
 test.describe('Tab switching', () => {
   test('all 4 tabs are clickable', async ({ page }) => {
-    await page.goto('/')
+    // beforeEach already loaded the page
     const tabs = ['Calendar', 'Schedule', 'Progress', 'Cert Path']
     for (const name of tabs) {
       await page.getByRole('tab', { name: new RegExp(name, 'i') }).click()
@@ -136,7 +139,7 @@ test.describe('Tab switching', () => {
 
 test.describe('Personality modes', () => {
   test('mode picker is accessible', async ({ page }) => {
-    await page.goto('/')
+    // beforeEach already loaded the page
     // The mode picker is in the header. Look for any button that opens it.
     // We test that it exists, not the full flow (covered by component tests).
     const header = page.locator('header')
@@ -144,7 +147,7 @@ test.describe('Personality modes', () => {
   })
 
   test('no [missing-key] text appears in default mode', async ({ page }) => {
-    await page.goto('/')
+    // beforeEach already loaded the page
     const body = await page.locator('body').textContent()
     // The fallback chain should never show the raw key
     expect(body).not.toMatch(/\[missing-key\]/)
