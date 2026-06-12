@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { BookOpen } from "lucide-react"
+import { BookOpen, Activity, TrendingUp, AlertCircle, Newspaper } from "lucide-react"
 import { type StudyDay } from "@/lib/cissp-data"
 import type { CourseConfig } from "@/types/course"
 import type { LogGroup } from "./LogDialog"
@@ -48,6 +48,27 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
     }
     return count
   }, [completedDays])
+
+  // Phase 0.5.2: standup metrics
+  const weekPace = useMemo(() => {
+    // Sum pages read in last 7 days
+    const d = nowDate()
+    let pages = 0
+    let days = 0
+    for (let i = 0; i < 7; i++) {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, "0")
+      const day = String(d.getDate()).padStart(2, "0")
+      const key = `${y}-${m}-${day}`
+      const log = dailyLog[key]
+      if (log) {
+        days++
+        for (const v of Object.values(log)) pages += v.pagesRead
+      }
+      d.setDate(d.getDate() - 1)
+    }
+    return { pages, days, avg: days > 0 ? Math.round(pages / days) : 0 }
+  }, [dailyLog])
 
   const isTodayDone = useMemo(
     () => todayDay ? Object.keys(dailyLog[today] ?? {}).length > 0 : false,
@@ -125,6 +146,41 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
           {label("yesterday")} {yesterdayTotal} {yesterdayTotal !== 1 ? label("pages") : label("page")} {label("read")}
         </p>
       )}
+
+      {/* Phase 0.5.2: Morning standup — 4-line incident report */}
+      <div className="mt-4 pt-3 border-t border-border/50 space-y-1.5">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+          {label("standupTitle")}
+        </p>
+        <div className="flex items-center gap-2 text-xs">
+          <BookOpen className="w-3 h-3 text-primary flex-shrink-0" />
+          <span className="font-semibold text-foreground">{label("standupToday")}:</span>
+          <span className="text-muted-foreground">
+            {todayDay ? `${todayDay.totalPages} pages` : label("standupNoCourse")}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <Activity className="w-3 h-3 text-primary flex-shrink-0" />
+          <span className="font-semibold text-foreground">{label("standupYesterday")}:</span>
+          <span className="text-muted-foreground">
+            {yesterdayTotal > 0 ? `${yesterdayTotal} pages` : "—"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <TrendingUp className="w-3 h-3 text-primary flex-shrink-0" />
+          <span className="font-semibold text-foreground">{label("standupWeekPace")}:</span>
+          <span className="text-muted-foreground">
+            {weekPace.avg > 0 ? `${weekPace.avg} pages/day (${weekPace.pages} total)` : "—"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <Newspaper className="w-3 h-3 text-primary flex-shrink-0" />
+          <span className="font-semibold text-foreground">{label("standupTopNews")}:</span>
+          <span className="text-muted-foreground truncate">
+            {label("standupNoNews")}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }
