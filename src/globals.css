@@ -199,3 +199,50 @@ select:focus-visible {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* Phase 0.5.5: OPSEC mode.
+   When [data-opsec="1"] is set on <html> (by useOpsec hook), hide
+   elements marked with [data-opsec-hide] (e.g., countdown days, page
+   counts that aren't already redacted via the mask() function). */
+html[data-opsec="1"] [data-opsec-hide] {
+  visibility: hidden;
+}
+
+/* Phase 0.5.10: CVE-of-the-day chip.
+   Highlighted badge to draw attention to freshest vuln. */
+.cve-chip-highlight {
+  animation: cve-pulse 2s ease-in-out infinite;
+}
+@keyframes cve-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0); }
+}
+
+/* Phase 0.5.8: Postmortem mode — exam-passed banner. */
+.exam-passed-banner {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%);
+  border: 2px solid rgba(220, 38, 38, 0.3);
+}
+
+/* Phase 0.5.4: Sprint mode active indicator. */
+.sprint-active {
+  position: relative;
+}
+.sprint-active::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: inherit;
+  background: linear-gradient(45deg, #f59e0b, #ef4444, #f59e0b);
+  background-size: 200% 200%;
+  animation: sprint-border 3s linear infinite;
+  z-index: -1;
+  opacity: 0.4;
+}
+@keyframes sprint-border {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}

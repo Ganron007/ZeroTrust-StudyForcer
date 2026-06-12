@@ -24,6 +24,7 @@ import NotificationSettingsPanel from "./components/NotificationSettingsPanel"
 import KeyboardShortcutsCheatsheet from "./components/KeyboardShortcutsCheatsheet"
 import { scheduleDaily, loadSettings as loadNotificationSettings, sendNotification } from "./lib/notifications"
 import { useFocusTrap } from "./hooks/useFocusTrap"
+import { useOpsec } from "./hooks/useOpsec"
 import { ThemeProvider, useTheme } from "./components/ThemeProvider"
 import StudyTimer from "./components/StudyTimer"
 import WallClock from "./components/WallClock"
@@ -36,7 +37,7 @@ import {
   Sun, Moon, CalendarCheck, Bell,
   Maximize, Minimize, GraduationCap, Award,
   FlaskConical, Check, Palette, RefreshCw,
-  Download, Upload, Newspaper, Trash2,
+  Download, Upload, Newspaper, Trash2, EyeOff,
 } from "lucide-react"
 import { downloadJson, readJsonFile } from "@/lib/export-utils"
 import type { Theme } from "./components/ThemeProvider"
@@ -74,6 +75,8 @@ function AppContent() {
   const [showModePicker, setShowModePicker] = useState(false)
   const [showNotificationSettings, setShowNotificationSettings] = useState(false)
   const [showCheatsheet, setShowCheatsheet] = useState(false)
+  // Phase 0.5.5: OPSEC mode hook
+  const { opsec, setOpsec, mask, maskCount } = useOpsec()
 
   // Phase 2.5: Focus traps for popovers
   const themePopoverRef = useFocusTrap<HTMLDivElement>({
@@ -1346,6 +1349,21 @@ function AppContent() {
                 </>
               )}
             </div>
+
+            {/* Phase 0.5.5: OPSEC mode toggle. */}
+            <button
+              onClick={() => setOpsec(!opsec)}
+              aria-label={label("opsecToggle")}
+              aria-pressed={opsec}
+              title={label("opsecToggle")}
+              className={
+                opsec
+                  ? "w-9 h-9 flex items-center justify-center rounded-lg border border-red-500/50 bg-red-500/10 text-red-600 dark:text-red-400 transition-all"
+                  : "w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+              }
+            >
+              <EyeOff className="w-4 h-4" />
+            </button>
 
             <button
               onClick={toggleFullscreen}

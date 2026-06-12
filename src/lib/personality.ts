@@ -352,7 +352,67 @@ const standardLabels: LabelMap = {
   confirmResetAll: "Reset all data? This clears plans, logs, and course selections. Course configs are preserved.",
   shortcutToast: "Shortcuts: 1/2/3=tabs, P=planner, L=labs, N=news, F=fullscreen, R=refresh, T=theme, ?=help, Esc=close",
   unitOrderFrozenCreateNew: "Unit order is frozen after logging begins. Create a new plan to change the order.",
-  modeLabel: "Mode",
+  // Phase 0.5.5: OPSEC mode
+  opsecToggle: "OPSEC mode (mask sensitive info for screen-share)",
+  opsecOn: "OPSEC ON",
+  opsecOff: "OPSEC OFF",
+  opsecEnabled: "OPSEC mode enabled — sensitive info is masked.",
+  opsecDisabled: "OPSEC mode disabled — info is visible.",
+  // Phase 0.5.10: CVE-of-the-day chip
+  cveOfTheDay: "CVE of the day",
+  noCveToday: "No fresh CVE in today's headlines.",
+  cveBadge: "CVE",
+  // Phase 0.5.1: Exam-day countdown (extends existing countdown)
+  examToday: "Exam TODAY",
+  examTomorrow: "Exam TOMORROW",
+  examThisWeek: "Exam this week",
+  // Phase 0.5.2: Morning standup card
+  standupTitle: "Morning Standup",
+  standupToday: "Today's queue",
+  standupYesterday: "Yesterday",
+  standupWeekPace: "Week pace",
+  standupTopNews: "Top intel",
+  standupAtRisk: "At-risk labs",
+  standupReadiness: "Readiness",
+  standupNoCourse: "No active course",
+  standupNoNews: "No news",
+  // Phase 0.5.4: Sprint mode
+  sprintTitle: "Sprint",
+  sprintStart: "Start sprint",
+  sprintEnd: "End sprint",
+  sprintDays: "{n} day sprint",
+  sprintActive: "Sprint active — pace boost +{pct}%",
+  sprintExpired: "Sprint ended",
+  sprintConfirmStart: "Start a {n}-day pace boost? Pages per day will increase by {pct}%.",
+  // Phase 0.5.6: Lab credit
+  labCreditPrompt: "This lab covers {domain}. Credit time to that domain?",
+  labCreditYes: "Yes, credit",
+  labCreditNo: "No, just log",
+  labCreditSuccess: "Credited {minutes}m to {domain}.",
+  // Phase 0.5.7: Burn-down view
+  burndownTitle: "Burn-Down",
+  burndownPagesRemaining: "{n} pages left",
+  burndownDaysRemaining: "{n} days left",
+  burndownOnPace: "On pace",
+  burndownBehind: "Behind",
+  // Phase 0.5.8: Postmortem mode
+  postmortemTitle: "Postmortem",
+  postmortemExamPassed: "Your exam date has passed.",
+  postmortemPrompt: "Take 5 minutes to log a postmortem: what worked, what didn't, what's next.",
+  postmortemTimeline: "Timeline",
+  postmortemRootCause: "Root cause analysis",
+  postmortemWorked: "What worked",
+  postmortemDidnt: "What didn't",
+  postmortemActions: "Action items",
+  postmortemSave: "Save postmortem",
+  postmortemSkip: "Skip for now",
+  postmortemSaved: "Postmortem saved.",
+  // Phase 0.5.9: Adversary timer
+  adversaryTitle: "Adversary mode",
+  adversaryDesc: "If today isn't logged by your deadline, tomorrow's pace auto-bumps.",
+  adversaryEnabled: "Adversary mode on",
+  adversaryDisabled: "Adversary mode off",
+  adversaryBump: "Missed deadline — pace auto-bumped by {pct}% for tomorrow.",
 }
 
 const drillSergeantLabels: LabelMap = {
