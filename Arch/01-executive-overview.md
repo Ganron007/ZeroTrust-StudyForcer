@@ -4,7 +4,7 @@
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State Management:** Zustand 5 (single source of truth) + SQLite (Tauri) / localStorage (Web)  
 **Personality Layer:** 13 text themes via `PersonalityProvider` React context — pure string overlay  
-**Version:** 2.4.11
+**Version:** 2.6.0 (Phase 0.5 complete, 642 tests)
 
 ---
 
@@ -95,8 +95,17 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 | **Personality layer** | 13 text themes via `PersonalityProvider` context — `label(key)`/`toast(key)`/`empty(key)`/`greeting(key)`/`loading(key)`/`tips()`. Pure string overlay, no engine/logic changes |
 | **Course Builder** | Built-in course config creator with JSON preview, validation, drag-to-reorder |
 | **StudyTimer** | Pomodoro/stopwatch/countdown with 10s disk-write debounce |
-| **Security News** | RSS/Atom feed reader (Rust backend, 13 feeds + HN Algolia) |
+| **Security News** | RSS/Atom feed reader (Rust backend, 13 feeds + HN Algolia) + CVE-of-the-day chip |
 | **Lab Tracker** | Session logging with streaks, at-risk alerts, smart scoring |
+| **OPSEC mode** | Masks sensitive info for screen-sharing — persisted to localStorage |
+| **Sprint mode** | Temporary pace boost overlay on `pagesPerDay` — auto-expires |
+| **Lab credit** | Lab → exam-domain fuzzy matching — optional credit prompt |
+| **Postmortem** | 5-section exam-passed reflection template — persisted per-plan |
+| **Adversary timer** | Opt-in pace auto-bump when deadline missed — settings layer |
+| **Temp log persistence** | Log/Skip state survives refresh via `temp-log-storage.ts` |
+| **Single clock source** | `src/lib/clock.ts` — all time calls centralized, mockable |
+| **Branded domain types** | `PlanId`, `CourseId`, `ISODate`, `ISOTimestamp` — compile-time type safety |
+| **Inviolable rules tests** | 15 regression tests mapping 1:1 to `ARCHITECTURE.md` rules |
 
 ---
 

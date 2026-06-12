@@ -117,9 +117,13 @@ Mark Done iterates each courseId and finds the owning plan for each.
 
 ## Persistence Rules
 
-| Operation | React State | Zustand Store | SQLite |
-|---|---|---|---|
-| Log/Skip | ✅ Updated | ❌ | ❌ |
-| Mark Done | ✅ Cleared | ✅ Updated | ✅ Saved |
-| Create/Edit Plan | ❌ | ✅ Updated | ✅ Saved |
-| Load at boot | ❌ | ✅ Populated | ✅ Read |
+| Operation | React State | Temp Storage | Zustand Store | SQLite |
+|---|---|---|---|---|
+| Log/Skip | ✅ Updated | ✅ Updated | ❌ | ❌ |
+| Mark Done | ✅ Cleared | ✅ Cleared | ✅ Updated | ✅ Saved |
+| Create/Edit Plan | ❌ | ❌ | ✅ Updated | ✅ Saved |
+| Load at boot | ✅ Populated from Temp Storage | ✅ Read | ✅ Populated | ✅ Read |
+
+**Temp Storage** (v2.5.0+): Log/Skip state is persisted to `temp-log-storage.ts` (localStorage) in addition to React state. This survives page refreshes. Mark Done clears both React state and temp storage.
+
+**Sprint overlay** (v2.6.0+): If `plan.sprint` is set and active, `applySprintPace()` modifies the effective `pagesPerDay` for schedule generation. Sprint is a read-time overlay — not persisted to `dailyLog`.

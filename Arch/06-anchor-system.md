@@ -169,6 +169,25 @@ No phantom consumption for unlogged days.
 | Page value > scheduleEnd | Allowed (ahead of schedule), schedule recalculates |
 | All pages sequenced exhausted | Schedule stops generating new days |
 
+## 8. Sprint Mode Overlay (Phase 0.5.4)
+
+Sprint is a **read-time overlay** on `pagesPerDay`. It does NOT modify the stored `pagesPerDay` value.
+
+```typescript
+// sprint.ts
+function isSprintActive(sprint, today): boolean
+function sprintDaysRemaining(sprint, today): number
+function applySprintPace(pagesPerDay, sprint, today): number
+  // Returns pagesPerDay * (1 + sprint.paceBoost / 100) when active
+```
+
+**Key properties:**
+- Sprint field on `StudyPlan` is optional
+- Auto-expires when `today >= startDate + days`
+- `Date.setDate()` for DST-safe calendar arithmetic (not ms math)
+- `Math.round` for stable days-remaining count
+- Engine unchanged — sprint is applied at the read-site
+
 ---
 
 ## 8. Recomputation Triggers

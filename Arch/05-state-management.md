@@ -99,12 +99,30 @@ App.tsx (handler)
   │
   ├─ storeUpdatePlan(updatedPlan)   // Zustand
   │   └─ planStorage.save(plan)     // → database.ts
-  │       ├─ IS_TAURI → SQLite (tauri-plugin-sql)
-  │       └─ !IS_TAURI → localStorage
+  │       ├─ IS_TAURI → SQLite (tauri-plugin-sql) + in-memory cache
+  │       └─ !IS_TAURI → localStorage + in-memory cache
+  │
+  ├─ temp-log-storage.ts            // Phase 0.5.2: persisted temp state
+  │   ├─ applyTempLog(date, courseId, pagesRead)
+  │   ├─ clearTempLog(date)         // On Mark Done
+  │   └─ readTempLogs()             // On mount
   │
   └─ loadPlans()                    // Reload from disk
       └─ planStorage.getAll()       // → database.ts.getAll()
 ```
+
+### Additional Storage Modules (Phase 0.5)
+
+| Module | Storage Key | Purpose |
+|---|---|---|
+| `temp-log-storage.ts` | `web:temp_logs` | Persisted temp Log/Skip state (survives refresh) |
+| `postmortem.ts` | `ztsf:postmortems` | Per-plan 5-section postmortem templates |
+| `adversary.ts` | `ztsf:adversary-settings` | Adversary timer settings (enabled, paceBoostPct, deadline) |
+| `notifications.ts` | `ztsf:notification-settings` | Notification settings (enabled, dailyTime, labsAlert) |
+| `useOpsec.ts` | `ztsf:opsec` | OPSEC mode state (boolean) |
+| `auto-backup.ts` | `ztsf:backup-index` | Backup index (one-per-day) |
+| `lab-session-storage.ts` | `web:labs_sessions` | Lab sessions (via Tauri file or localStorage) |
+| `course-storage.ts` | `data/courses/*.json` | Course configs (via Tauri FS or localStorage) |
 
 ### SQLite Schema (Tauri mode)
 ```sql
@@ -152,6 +170,11 @@ interface StudyPlan {
   skippedDays: string[]        // YYYY-MM-DD dates explicitly skipped
   // NO completedDays field — dailyLog presence is the indicator
   // NO chapterChecks or chapterProgress fields
+  sprint?: {                   // Phase 0.5.4: optional sprint mode overlay
+    startDate: string          // YYYY-MM-DD when sprint starts
+    days: number               // Number of days sprint lasts
+    paceBoost: number          // Percentage boost (0-100)
+  }
 }
 
 interface DailyLog {

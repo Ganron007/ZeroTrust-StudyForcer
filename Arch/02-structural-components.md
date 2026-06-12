@@ -77,7 +77,7 @@
 
 ### 2.6 Other Components
 - **CourseBuilder**: Built-in course config creator with live JSON preview, drag-to-reorder, validation
-- **DailyBriefing**: Personality-driven greeting + empty state messages
+- **DailyBriefing**: Personality-driven greeting + empty state messages + 4-line standup card
 - **CourseSelector**: Switch between courses with pill toggles
 - **ThemeProvider**: Light/dark/grey theme toggle
 - **PersonalityProvider**: React context — wraps `label()`, `toast()`, `empty()`, `greeting()`, `loading()`, `tips()` for current mode
@@ -87,9 +87,13 @@
 - **LabDashboard**: Lab session tracker with streaks, at-risk alerts, smart scoring
 - **SecurityNewsFeed**: RSS news feed (Tauri backend) with category filtering
 - **SidebarLabsStatus**: Compact labs status widget in sidebar
-- **SidebarNewsHighlights**: Compact news headline widget in sidebar
+- **SidebarNewsHighlights**: Compact news headline widget with CVE-of-the-day chip
 - **LogDialog**: Modal for per-plan page input across all plans on a day
 - **NotificationToast**: Single-slot toast renderer with "complete"/"break"/"info" types
+- **ExamAlertBanner**: T-3 or less exam deadline alert above tab strip
+- **ExamCountdownBand**: Full countdown + pace status in Calendar tab
+- **BurnDownView**: Gantt-style pages/days remaining per plan
+- **KeyboardShortcutsCheatsheet**: Modal cheatsheet triggered by `?`
 
 ---
 

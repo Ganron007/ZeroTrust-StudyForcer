@@ -120,11 +120,14 @@ After Mark Done commits:
 
 ## 7. When State Changes
 
-| Action | Temp State | Zustand Store | SQLite | Schedule Recalc |
-|---|---|---|---|---|
-| Log page | ✅ updated | ❌ | ❌ | ❌ |
-| Skip plan | ✅ updated | ❌ | ❌ | ❌ |
-| Mark Done | ✅ cleared | ✅ updated | ✅ saved | ✅ triggered |
-| Create plan | ❌ | ✅ updated | ✅ saved | ✅ triggered |
-| Edit plan | ❌ | ✅ updated | ✅ saved | ✅ triggered |
-| Delete plan | ❌ | ✅ updated | ✅ saved | ✅ triggered |
+| Action | React State | Temp Storage | Zustand Store | SQLite | Schedule Recalc |
+|---|---|---|---|---|---|
+| Log page | ✅ updated | ✅ updated | ❌ | ❌ | ❌ |
+| Skip plan | ✅ updated | ✅ updated | ❌ | ❌ | ❌ |
+| Mark Done | ✅ cleared | ✅ cleared | ✅ updated | ✅ saved | ✅ triggered |
+| Create plan | ❌ | ❌ | ✅ updated | ✅ saved | ✅ triggered |
+| Edit plan | ❌ | ❌ | ✅ updated | ✅ saved | ✅ triggered |
+| Delete plan | ❌ | ❌ | ✅ updated | ✅ saved | ✅ triggered |
+| Refresh page | ✅ restored from Temp Storage | ✅ read | ✅ populated | ✅ read | ✅ triggered |
+
+**Temp Storage** (v2.5.0+): `temp-log-storage.ts` persists Log/Skip state to localStorage. Survives page refreshes. Mark Done clears both React state and temp storage.

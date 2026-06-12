@@ -29,26 +29,37 @@ src/lib/__tests__/
 ├── auto-backup.test.ts          # 5  — auto-backup write/prune (Phase 2.4)
 ├── notifications.test.ts        # 9  — notification settings + scheduler (Phase 2.2)
 ├── shortcuts.test.ts            # 8  — keyboard shortcuts catalog (Phase 2.5)
-└── css-entry-point.test.ts      # 9  — CSS entry point + Phase 2.5 rules (v2.4.11)
+├── css-entry-point.test.ts      # 9  — CSS entry point + Phase 2.5 rules (v2.4.11)
+├── bug-fixes.test.ts            # 17 — regression tests for 64 audit bugs
+├── inviolable-rules.test.ts     # 15 — inviolable rules from ARCHITECTURE.md (Phase 3.6)
+├── clock.test.ts                # 6  — single clock source module (Phase 3.4)
+├── branded-types.test.ts        # 10 — branded domain types (Phase 3.3)
+├── compute-plan-schedule.test.ts # 4  — single schedule derivation (Phase 3.5)
+├── temp-log-storage.test.ts     # 13 — persisted temp Log/Skip state (Phase 3.2)
+├── database-cache.test.ts       # 5  — async storage with cache (Phase 3.1)
+├── app-temp-log-wiring.test.ts  # 12 — P-2 wiring regression (v2.5.0 audit fix)
+├── cve-of-the-day.test.ts       # 12 — CVE chip filtering + regex (Phase 0.5.10)
+├── exam-alert-banner.test.ts    # 10 — exam alert banner source tests (Phase 0.5.1)
+├── sprint.test.ts               # 21 — sprint mode (active range, DST, pace math) (Phase 0.5.4)
+├── lab-credit.test.ts           # 22 — lab credit fuzzy matching + parseCreditKey (Phase 0.5.6)
+├── postmortem.test.ts           # 16 — postmortem CRUD + findPlans (Phase 0.5.8)
+├── adversary.test.ts            # 19 — adversary timer (TZ, clamp, pace math) (Phase 0.5.9)
+├── audit-report.test.ts         # 12 — compliance report (Phase 0.5.3)
 
 src/hooks/__tests__/
-└── useFocusTrap.test.tsx        # 6  — focus management hook (Phase 2.5)
+├── useFocusTrap.test.tsx        # 6  — focus management hook (Phase 2.5)
+├── useOpsec.test.ts             # 18 — OPSEC mode hook (Phase 0.5.5)
 
 src/components/__tests__/
 ├── StreakChip.test.tsx          # 9  — header streak chip (Phase 2.3)
 ├── CourseBuilderExport.test.tsx # 3  — Course Builder JSON export (Phase 2.6)
-├── ReportGenerator.test.tsx      # 6  — CSV/JSON/PDF report export (Phase 2.1)
+├── ReportGenerator.test.tsx     # 6  — CSV/JSON/PDF report export (Phase 2.1)
 ├── NotificationSettingsPanel.test.tsx # 5  — notification settings UI (Phase 2.2)
 ├── KeyboardShortcutsCheatsheet.test.tsx # 8  — cheatsheet modal (Phase 2.5)
-└── axe-audit.test.tsx           # 1  — automated WCAG audit (Phase 2.5)
-└── bug-fixes.test.ts            # 17 — regression tests for 64 audit bugs
-└── inviolable-rules.test.ts    # 15 — inviolable rules from ARCHITECTURE.md (Phase 3.6)
-└── clock.test.ts               # 6  — single clock source module (Phase 3.4)
-└── branded-types.test.ts       # 10 — branded domain types (Phase 3.3)
-└── compute-plan-schedule.test.ts # 4  — single schedule derivation (Phase 3.5)
-└── temp-log-storage.test.ts    # 12 — persisted temp Log/Skip state (Phase 3.2)
-└── database-cache.test.ts      # 5  — async storage with cache (Phase 3.1)
-└── app-temp-log-wiring.test.ts # 12 — P-2 wiring regression (v2.5.0 audit fix)
+├── axe-audit.test.tsx           # 1  — automated WCAG audit (Phase 2.5)
+
+e2e/
+└── app.spec.ts                  # 11 — Playwright E2E (skip-link, keyboard, tabs, personality)
 ```
 Total: **642 unit tests / 42 files** + **11 E2E tests / 1 file** = **653 total**, all passing at v2.6.0. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files) and integration bugs (e.g., App.tsx wiring). E2E tests catch layout/visibility bugs that jsdom cannot detect. Phase 3 inviolable rules tests map 1:1 to ARCHITECTURE.md rules. v2.5.0 audit regression tests in `app-temp-log-wiring.test.ts` cover the P-2 (temp log persistence) integration. v2.6.0 added 8 new test files for Phase 0.5 features (useOpsec, cve-of-the-day, exam-alert-banner, sprint, lab-credit, postmortem, adversary, audit-report).
 
@@ -70,9 +81,10 @@ Total: **642 unit tests / 42 files** + **11 E2E tests / 1 file** = **653 total**
 ```
 
 **Current distribution:**
-- **Unit tests:** Core math, schedule generation, storage CRUD
-- **Integration tests:** Full user flows (create plan → log → mark done → verify stats)
-- **Component tests:** PlannerPage, UI components
+- **Unit tests:** Core math, schedule generation, storage CRUD, personality labels, all 13 modes
+- **Integration tests:** Full user flows (create plan → log → mark done → verify stats), temp log wiring, clock source, branded types
+- **Component tests:** PlannerPage, UI components, StreakChip, KeyboardShortcutsCheatsheet, ReportGenerator, axe-audit
+- **E2E tests:** Skip-link, keyboard navigation, tab switching, personality mode picker (Playwright, Chromium)
 
 ---
 
@@ -166,6 +178,31 @@ npx tsc -b --noEmit
 - `buildPageSequence()` starts from correct chapter in reordered list
 - Mid-stream order changes (visual only, consumption math stays correct)
 
+### Phase 0.5 Feature Tests
+- **OPSEC mode**: `useOpsec` hook persistence, masking, cross-instance sync, `CustomEvent` pattern
+- **CVE chip**: `findCveOfTheDay` filtering, `extractCveId` regex, 14-day window, ordering
+- **Exam alert banner**: Source-code tests for component wiring, daysLeft ≤ 3 threshold
+- **Sprint mode**: `isSprintActive` range, DST-safe arithmetic, `Math.round` days-remaining, negative days/boost
+- **Lab credit**: `findDomainMatches` fuzzy matching, empty-string rejection, min 3 chars, `parseCreditKey` roundtrips
+- **Postmortem**: `findPlansNeedingPostmortem` sort, N+1 fix (single `readAll()`), RMW race protection
+- **Adversary timer**: Timezone-aware `nowLocalDate`, `paceBoostPct` clamp [0,200], malformed deadline handling
+- **Audit report**: `buildAuditReport` + `reportToMarkdown` — coverage, readiness score, empty plans, gaps
+- **App wiring**: `app-temp-log-wiring.test.ts` — import aliases, mount load, mutation gating, persistence, await pattern
+
+### Inviolable Rules Tests (Phase 3.6)
+Each rule in `ARCHITECTURE.md` maps 1:1 to a regression test in `inviolable-rules.test.ts`:
+1. Log/Skip never writes to disk (Rule 1+2)
+2. dailyLog presence = day is "logged" (Rule 3)
+3. dailyLog entries have only pagesRead and optional note (Rule 4)
+4. Queue is stable once plan has progress (Rule 5)
+5. One action per plan per day (Rule 6)
+6. Pointer does NOT advance for unlogged past days (Rule 7)
+7. Skip consumes 0 pages (Rule 8)
+8. Past completed days use actual pagesRead (Rule 9)
+9. Only 3 toast types exist (Rule 10)
+10. Personality layer is pure string overlay (Rule 12)
+11. Queue-based model (Rule 11)
+
 ### Known Bug Regressions
 | Bug | Fix | Test Guard |
 |-----|-----|------------|
@@ -183,6 +220,11 @@ npx tsc -b --noEmit
 | #12 stats blank after course switch | 3-part fix + reconciliation effect | Multi-course e2e test |
 | #13 `empty("noReadingToday")` interpolation | Use `formatStr()` | Formatting assertion |
 | #14 `tToast("courseValidation")` interpolation | Use `formatStr()` | Formatting assertion |
+| v2.5.0 P-2 temp log race | `tempLogsLoaded` gate + await | `app-temp-log-wiring.test.ts` (12 tests) |
+| v2.5.0 audit: lab credit empty match | Min 3 chars + reject empty | `lab-credit.test.ts` REGRESSION tests |
+| v2.5.0 audit: postmortem RMW race | `serialize()` chain | `postmortem.test.ts` concurrent save test |
+| v2.5.0 audit: sprint DST | `Date.setDate()` not ms math | `sprint.test.ts` DST test |
+| v2.5.0 audit: OPSEC listener leak | `CustomEvent` on window | `useOpsec.test.ts` cross-instance sync |
 
 ---
 
