@@ -110,7 +110,7 @@ consumption math via `dailyLog.pagesRead` is always correct).
 
 ## Constraints & Inviolable Rules
 
-1. **Log/Skip never writes to disk.** Only Mark Done commits to storage.
+1. **Log/Skip never writes to planStorage.** Only Mark Done commits to the durable plan storage. Log/Skip writes to temp storage (`temp-log-storage.ts`) for persistence across refreshes — this is a separate storage path, not the durable `dailyLog`.
 2. **Schedule recalculation only happens on Mark Done.** Never on Log/Skip.
 3. **`dailyLog` presence = day is "logged".** No separate `completedDays` field.
 4. **`dailyLog` (storage) = `{ pagesRead, note? }`.** No `chapterChecks`, no `chapterProgress`.
@@ -129,8 +129,9 @@ consumption math via `dailyLog.pagesRead` is always correct).
 ## Testing
 
 ```sh
-npx vitest run          # Run all tests (430 tests, 26 files)
+npx vitest run          # Run all tests (642 tests, 42 files)
 npx tsc -b --noEmit     # TypeScript type checking
+npm run e2e             # Playwright E2E tests (11 tests)
 ```
 
 ---

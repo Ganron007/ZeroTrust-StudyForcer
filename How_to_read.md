@@ -3,7 +3,7 @@
 A short tour of every `.md` file in this repo so you (or future-you, or anyone who stumbles
 in) can jump straight to the right place instead of opening files at random.
 
-**Last updated:** 2026-06-10 — for app version **2.4.11** (all 64 audit + 49 A-series bugs closed, 447 tests passing).
+**Last updated:** 2026-06-12 — for app version **2.6.0** (Phase 0.5 complete, 642 tests passing).
 
 ---
 
@@ -37,9 +37,9 @@ These are the human-facing project docs. Read these first.
 
 | File | Purpose | Last refresh |
 |---|---|---|
-| `README.md` | What the app does, project layout, dev commands. | Updated for v2.4.11 |
-| `ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.4.11 |
-| `CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through v2.4.11 — 2026-06-10 |
+| `README.md` | What the app does, project layout, dev commands. | Updated for v2.6.0 |
+| `ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.6.0 |
+| `CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through v2.6.0 — 2026-06-12 |
 
 Internal docs (kept in `Docs/Internal/`, not committed): `BUGS.md`, `ROADMAP.md`, `VISION.md`, `TESTING-REPORT.md`, `ZTSF_PERSONALITY_LAYER.md`, `SUGGESTIONS.md`.
 
@@ -74,7 +74,7 @@ For the current testing picture, see `Arch/07-testing-architecture.md`.
 
 ## Quick sanity checks before you trust a doc
 
-1. **Version at the top.** Anything saying < `2.4.10` may be stale.
+1. **Version at the top.** Anything saying < `2.6.0` may be stale.
 2. **Cross-check with `CHANGELOG.md`** — entries dated after the doc's "Updated" line
    probably superseded what you're reading.
 3. **Verify code claims.** If a doc names a function/file, run a quick `Grep` before

@@ -23,6 +23,12 @@ Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 - **Course Builder** — Built-in tool to create custom course configs (find it in Planner → Build Course → Export JSON)
 - **Personality modes** — Switch between 13 text themes (Standard, Drill Sergeant, Cyberpunk, Script Kiddie, Zero Trust Audit, Influencer, Politician, LinkedIn Lunatic, True Crime, Weather Anchor, Passive-Aggressive Mom, Conspiracy Theorist, Elderly Reluctant) from the app header
 - **Certification Roadmap** — Explore 68 certifications across 5 career tracks (Blue Team, Red Team, Pentest, Management, AI Security). Auto-detects progress from your study plans. Includes Gap Analysis, Career Mode sequencer, Compliance Report export, and Exam Countdown banner. Keyboard shortcut `4` to open.
+- **OPSEC mode** — Mask course names, plan names, and page counts for screen-sharing. Toggle via the eye-off icon in the header. Persisted across sessions.
+- **Sprint mode** — Temporary pace boost overlay. Set a start date, duration, and boost percentage. Auto-expires when the sprint ends. Engine unchanged.
+- **CVE-of-the-day** — Pin the freshest security vulnerability (CVE) from your news feed at the top of the sidebar. Highlighted with a red badge.
+- **Exam-day alert** — Surfaces imminent exam deadlines (T-3 or less) above the tab strip. Color-coded by urgency.
+- **Morning standup** — 4-line incident report: today's queue, yesterday's progress, week pace, top news headline.
+- **Temp log persistence** — Log/Skip state survives page refreshes. Your in-progress logs are saved to localStorage and restored on next visit.
 - **No install required** — Download the portable EXE from [Releases](https://github.com/Ganron007/Study-Planner-app/releases) and run
 
 ## Quick Start
