@@ -6,6 +6,12 @@ export interface LabSession {
   minutes: number
   note?: string
   createdAt: string
+  /** Phase 0.5.6: If set, this lab session's minutes can be credited
+   *  to the matching exam domain. Format: "courseId:domainId". */
+  creditedTo?: string
+  /** True if the user has been prompted about credit for this session
+   *  (so we don't re-prompt on every render). */
+  creditPrompted?: boolean
 }
 
 export interface LabDefinition {
