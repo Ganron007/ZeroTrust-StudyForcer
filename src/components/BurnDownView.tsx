@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { TrendingDown } from "lucide-react"
 import { usePersonality } from "./PersonalityProvider"
+import { formatStr } from "@/lib/personality"
 import { usePlanStore } from "@/lib/plan-store"
 import { useCourse } from "./CourseProvider"
 import { syncStudyPlan } from "@/lib/plan-engine"
@@ -163,7 +164,7 @@ export default function BurnDownView({ className = "" }: BurnDownViewProps) {
               {/* Pages remaining bar */}
               <div className="space-y-0.5">
                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>{label("burndownPagesRemaining").replace("{n}", String(s.pagesRemaining))}</span>
+                  <span>{formatStr(label("burndownPagesRemaining"), { n: s.pagesRemaining })}</span>
                 </div>
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <div
@@ -178,7 +179,7 @@ export default function BurnDownView({ className = "" }: BurnDownViewProps) {
                 <div className="space-y-0.5">
                   <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>
-                      {label("burndownDaysRemaining").replace("{n}", String(s.daysRemaining))}
+                      {formatStr(label("burndownDaysRemaining"), { n: s.daysRemaining })}
                     </span>
                     {/* v2.6.0 audit fix: no-deadline plans show a status
                         text instead of an empty cell. */}
@@ -187,7 +188,7 @@ export default function BurnDownView({ className = "" }: BurnDownViewProps) {
                         ? label("burndownOnPace")
                         : s.status === "behind"
                         ? label("burndownBehind")
-                        : ""}
+                        : label("countdownNoDeadline")}
                     </span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden">

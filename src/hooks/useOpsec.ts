@@ -52,8 +52,11 @@ const REDACTED = "█████"
 const REDACTED_COUNT = "▒▒"
 
 /**
- * Returns a redacted version of the string. Short strings return a
- * single block; long strings return two blocks to imply length.
+ * Returns a redacted version of the string. Short strings (<=5 chars)
+ * return a single block; longer strings return two blocks. The output
+ * length does NOT match the input length — this is intentional to
+ * prevent layout shifts (short names stay compact, long names
+ * expand to imply "something was redacted here").
  */
 export function maskText(text: string): string {
   if (!text) return text

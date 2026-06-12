@@ -51,6 +51,13 @@ function readAll(): Record<string, Postmortem> {
     if (!parsed || typeof parsed !== "object") return {}
     return parsed as Record<string, Postmortem>
   } catch {
+    // Quarantine corrupt data for manual recovery (same pattern as database.ts)
+    try {
+      const corruptKey = `${STORAGE_KEY}.corrupt-${Date.now()}`
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) localStorage.setItem(corruptKey, raw)
+      localStorage.removeItem(STORAGE_KEY)
+    } catch { /* ignore */ }
     return {}
   }
 }

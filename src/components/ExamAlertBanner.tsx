@@ -40,7 +40,7 @@ export default function ExamAlertBanner() {
         })
       }
     }
-    return result
+    return result.sort((a, b) => a.daysLeft - b.daysLeft)
   }, [allPlans, activePlanIds, courses])
 
   if (imminent.length === 0) return null

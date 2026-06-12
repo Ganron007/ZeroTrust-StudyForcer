@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { BookOpen, Activity, TrendingUp, AlertCircle, Newspaper } from "lucide-react"
 import { type StudyDay } from "@/lib/cissp-data"
 import type { CourseConfig } from "@/types/course"
@@ -7,6 +7,7 @@ import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
 import { localToday } from "@/lib/date-utils"
 import { nowDate } from "@/lib/clock"
+import { readNewsCache, fetchNews } from "@/lib/news-storage"
 
 interface DailyBriefingProps {
   schedule: StudyDay[]
@@ -48,6 +49,21 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
     }
     return count
   }, [completedDays])
+
+  // Phase 0.5.2: top news headline for standup
+  const [topNewsTitle, setTopNewsTitle] = useState<string>("")
+  useEffect(() => {
+    let cancelled = false
+    readNewsCache().then((cache) => {
+      if (cancelled || !cache.items[0]) return
+      setTopNewsTitle(cache.items[0].title)
+    }).catch(() => {})
+    fetchNews().then((fresh) => {
+      if (cancelled || !fresh[0]) return
+      setTopNewsTitle(fresh[0].title)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   // Phase 0.5.2: standup metrics
   const weekPace = useMemo(() => {
@@ -156,7 +172,11 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
           <BookOpen className="w-3 h-3 text-primary flex-shrink-0" />
           <span className="font-semibold text-foreground">{label("standupToday")}:</span>
           <span className="text-muted-foreground">
-            {todayDay ? `${todayDay.totalPages} pages` : label("standupNoCourse")}
+            {isTodayDone
+              ? label("todayDone")
+              : todayDay
+              ? `${todayDay.totalPages} pages`
+              : label("standupNoCourse")}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs">
@@ -177,7 +197,7 @@ export default function DailyBriefing({ schedule, dailyLog, activeCourse, comple
           <Newspaper className="w-3 h-3 text-primary flex-shrink-0" />
           <span className="font-semibold text-foreground">{label("standupTopNews")}:</span>
           <span className="text-muted-foreground truncate">
-            {label("standupNoNews")}
+            {topNewsTitle || label("standupNoNews")}
           </span>
         </div>
       </div>

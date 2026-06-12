@@ -105,6 +105,42 @@ Per the inviolable constraint, Phase 0.5 features are pure additions or surface-
 - `cissp-data.ts` not modified
 - `syncStudyPlan` semantics unchanged (sprint + adversary are read-time overlays)
 
+### Fixed — v2.6.0 code audit (14 issues, all closed)
+
+Rigorous code audit of all Phase 0.5 features found 14 real bugs. All fixed.
+
+**Critical (3 fixed):**
+
+- **Lab credit false positives** (`lab-credit.ts`): `findDomainMatches` matched empty strings — every lab matched every domain with an empty name, and every domain matched every lab with empty focus. Fixed: require min 3 chars on both sides, reject empty/whitespace-only strings.
+- **Postmortem RMW race** (`postmortem.ts`): `savePostmortem` and `deletePostmortem` were unprotected read-modify-write operations. Concurrent calls could clobber each other. Fixed: module-level `serialize()` chain (same pattern as `plan-storage.ts` S16). Both now return `Promise<void>`.
+- **Postmortem N+1 JSON parse** (`postmortem.ts`): `findPlansNeedingPostmortem` called `getPostmortem()` per plan, each calling `readAll()` which parses JSON. For N plans, this was N JSON parses. Fixed: `readAll()` once, then filter. Also added sort by date (oldest first).
+
+**High (9 fixed):**
+
+- **Sprint DST bug** (`sprint.ts`): Used `+ days * 86400000` ms arithmetic which is wrong on DST boundaries (23h/25h days). Fixed: use `Date.setDate()` for calendar-day arithmetic.
+- **Sprint off-by-one** (`sprint.ts`): The `t < end` condition excluded the last day. Fixed: `t < endDate` where endDate is computed via `setDate(getDate() + days)`, so days=7 means 7 full days active (start through start+6).
+- **Sprint daysRemaining cliff** (`sprint.ts`): `Math.ceil` gave 0 then 1 with no in-between. Fixed: `Math.round` + clamp to >= 0.
+- **OPSEC listener leak + re-render storm** (`useOpsec.ts`): Module-level `Set<listener>` was a memory leak and `emit()` triggered re-renders even when value unchanged. Fixed: replaced with `CustomEvent` on window; only emit when value actually differs.
+- **CVE chip shows CVE ID twice** (`SidebarNewsHighlights.tsx`): When title is just "CVE-2026-1234", `strip + badge` showed the ID twice. Fixed: fall back to just the badge when strip is empty.
+- **CVE chip hides "Open News Feed"** (`SidebarNewsHighlights.tsx`): Button only shown when `otherArticles.length > 0`. If only the CVE article existed, no button. Fixed: show button when any content exists (CVE or other).
+- **BurnDownView dead code** (`BurnDownView.tsx`): `summarizePlan()` function returned `null as never`, never called. Removed.
+- **BurnDownView sprint not used in pace** (`BurnDownView.tsx`): "behind" threshold used `plan.pagesPerDay` instead of `effectivePPD` (sprint-boosted). Sprint-boosted plans were misclassified. Fixed: use `effectivePPD` in threshold.
+- **BurnDownView no-deadline status** (`BurnDownView.tsx`): Status text was empty for no-deadline plans. Fixed: show `countdownNoDeadline` label.
+
+**Medium (2 fixed):**
+
+- **BurnDownView .replace** (`BurnDownView.tsx`): Used `label().replace("{n}", ...)` instead of `formatStr()`. Fixed.
+- **Postmortem corruption guard** (`postmortem.ts`): On corrupt JSON, silently returned empty. Fixed: quarantining corrupt data (same pattern as `database.ts`).
+
+**Low (2 fixed):**
+
+- **maskText comment** (`useOpsec.ts`): Comment claimed "length is preserved" which was false. Updated to describe actual behavior.
+- **ExamAlertBanner sort** (`ExamAlertBanner.tsx`): Unsorted list of imminent plans. Fixed: sort by `daysLeft` ascending (most urgent first).
+- **Standup "No News" always shown** (`DailyBriefing.tsx`): The standup's "Top News" line always showed placeholder. Fixed: reads from news cache + fetch, shows actual top headline.
+- **Standup "Today" shows queue even when done** (`DailyBriefing.tsx`): When today is completed, the standup still showed "N pages". Fixed: show `todayDone` label when logged.
+
+**Test count**: 642 → 642 (no new test files; fixes are to existing code, all tests still pass).
+
 ---
 
 ## [2.5.0] — 2026-06-11
