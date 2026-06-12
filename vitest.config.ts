@@ -13,6 +13,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test-setup.ts'],
+    env: {
+      TZ: 'UTC',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

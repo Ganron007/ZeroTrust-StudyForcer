@@ -67,10 +67,13 @@ describe("computeAdversaryBump", () => {
   })
 
   it("returns 0 when current time is before deadline", () => {
+    // Use 12:00 local on 2026-06-10, with deadline 21:00. No bump.
+    // Uses localIsoString so the test is timezone-independent.
+    const noonIso = localIsoString("2026-06-10", "12:00")
     expect(computeAdversaryBump(
       { enabled: true, paceBoostPct: 25, deadline: "21:00" },
       "2026-06-10",
-      "2026-06-10T20:30:00.000Z",
+      noonIso,
     )).toBe(0)
   })
 
@@ -183,22 +186,19 @@ describe("v2.6.0 audit fixes", () => {
   })
 
   it("REGRESSION: explicit nowLocalDate is used to avoid UTC/local mismatch", () => {
-    // 2026-06-11T20:00:00Z in Asia/Calcutta (UTC+5:30) is
-    // 2026-06-12T01:30 local. This is past the 18:00 deadline.
-    // Without the fix: function substrings "2026-06-12" from nowIso and
-    // compares to today="2026-06-11" -> mismatch -> returns 0.
-    // With the fix: caller passes nowLocalDate="2026-06-11" (the
-    // user's actual local date), and local hour 01:30 < 18:00 -> 0.
+    // Use 19:00 local on 2026-06-10, with deadline 18:00. Bump triggers.
+    // The function compares `today` against the caller-supplied
+    // `nowLocalDate` (not the UTC date from nowIso). This avoids the
+    // pre-fix bug where the function substr'd "2026-06-XX" from the
+    // UTC ISO and got a different date than the user's local date.
     //
-    // Wait, the user's local hour here is 01:30 of the NEXT day, which
-    // is BEFORE 18:00. So no bump triggers. The bump only fires when
-    // local hour >= deadline. To test the timezone fix specifically,
-    // we need local hour AFTER 18:00. Use a time late in local day:
-    const lateUtc = "2026-06-10T13:30:00.000Z"  // = 2026-06-10 19:00 IST (after 18:00)
+    // Uses localIsoString so the test is timezone-independent (was
+    // hardcoded to IST and broke on CI/UTC). See v2.6.0 follow-up fix.
+    const lateIso = localIsoString("2026-06-10", "19:00")
     expect(computeAdversaryBump(
       { enabled: true, paceBoostPct: 25, deadline: "18:00" },
       "2026-06-10",  // user expects to bump today
-      lateUtc,
+      lateIso,
       "2026-06-10",  // local date passed by caller
     )).toBe(25)
   })
