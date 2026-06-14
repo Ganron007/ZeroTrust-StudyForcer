@@ -174,6 +174,26 @@ Remaining minor audit findings from the Phase 0.5 audit:
 
 **CI status**: Run #46 (commit `20402a5`) failed on `adversary.test.ts:203` in 46s. Run #47 (commit `219245f`) passed in 90s on the same code with the timezone fix and `TZ=UTC` lock.
 
+### Fixed — Post-v2.6.0 code review: 5 bugs + 3 test gaps (commit `c23df24`)
+
+Comprehensive code review of v2.6.0 found 5 bugs and 3 test coverage gaps. All fixed.
+
+**Bugs fixed:**
+
+- **B1: `selectedCourseIds` not persisted** (`App.tsx`): The multi-course selector set was initialized to `new Set()` on every mount and never written to localStorage, so refreshing the page silently discarded the selection. Fixed: lazy initializer reads from `KEYS.SELECTED_COURSES`, `useEffect` persists on change, reset handler uses the correct key.
+- **B2: `aria-labelledby` on tabpanels referenced non-existent IDs** (`App.tsx`): `aria-labelledby="Calendar"` etc. pointed to text labels, not element IDs. Fixed: added `id="tab-{id}"` to each tab button, changed `aria-labelledby` to match.
+- **B3: `Box::leak` memory leak in Rust feed fetcher** (`main.rs`): Every `fetch_news` call leaked 14 × 3 = 42 string allocations via `Box::leak(feed_url.into_boxed_str())`. Fixed: `FeedConfig` now derives `Clone, Copy` (all fields are `&'static str`); the spawn loop copies the struct directly — zero allocation.
+- **B4: `runAutoBackup()` fire-and-forget** (`App.tsx`): Async function called without `.catch()`. Backup failure = unhandled rejection + zero user feedback. Fixed: `.catch()` with `console.warn` on both call sites.
+- **B5: Lab reminder dynamic import had no `.catch`** (`App.tsx`): Nested promise chain (`import(...).then(m => m.readLabsStorage().then(...))`) had no error handler on either promise. Fixed: `.catch()` on both.
+
+**Test gaps filled (+64 new tests, 2 new files):**
+
+- **`news-storage.test.ts`** (24 tests, new): `parseRss` (RSS 2.0, Atom, parsererror, guid isPermaLink fallback, S14 unparseable date), `urlToDomain`, `timeAgo` (all 6 branches), `readNewsCache` (valid, empty, corrupt, S9 item-shape filter).
+- **`lab-session-storage.test.ts`** (35 tests, new): `readLabsStorage` S4/S5/S6 session validators, `getStreak` (7 patterns), `computeSmartScore` (all 5 factors + clamping), `getAtRiskCount` (boundary), `getLabCategory`, date utils (DST-safe verification).
+- **`export-utils.test.ts`** (+5 tests): Exported `escapeCsv` for direct testing. Previous CSV escape tests only checked `blob.type` — removing the escape function entirely would have passed. Now asserts actual escaped output.
+
+**Test count**: 642 → **706** (+64 new, 44 files). TypeScript clean. Rust clean. Build succeeds. E2E 11/11 pass.
+
 ---
 
 ## [2.6.0] — 2026-06-12 (final, post-audit)

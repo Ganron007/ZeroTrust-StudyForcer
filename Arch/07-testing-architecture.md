@@ -1,6 +1,6 @@
 # Testing Architecture
 
-**Current:** 642 unit tests (42 files) + 11 E2E tests (1 file) = 653 total, all passing  
+**Current:** 706 unit tests (44 files) + 11 E2E tests (1 file) = 717 total, all passing  
 **Runner:** Vitest v4.1.5 + Playwright 1.60.0  
 **Environment:** jsdom (unit), Chromium (E2E)  
 **Framework:** @testing-library/react + jest-dom + user-event
@@ -45,6 +45,8 @@ src/lib/__tests__/
 ├── postmortem.test.ts           # 16 — postmortem CRUD + findPlans (Phase 0.5.8)
 ├── adversary.test.ts            # 19 — adversary timer (TZ, clamp, pace math) (Phase 0.5.9)
 ├── audit-report.test.ts         # 12 — compliance report (Phase 0.5.3)
+├── news-storage.test.ts         # 24 — parseRss, urlToDomain, timeAgo, readNewsCache (post-v2.6.0)
+├── lab-session-storage.test.ts  # 35 — S4/S5/S6 validators, getStreak, computeSmartScore (post-v2.6.0)
 
 src/hooks/__tests__/
 ├── useFocusTrap.test.tsx        # 6  — focus management hook (Phase 2.5)
@@ -61,7 +63,7 @@ src/components/__tests__/
 e2e/
 └── app.spec.ts                  # 11 — Playwright E2E (skip-link, keyboard, tabs, personality)
 ```
-Total: **642 unit tests / 42 files** + **11 E2E tests / 1 file** = **653 total**, all passing at v2.6.0. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files) and integration bugs (e.g., App.tsx wiring). E2E tests catch layout/visibility bugs that jsdom cannot detect. Phase 3 inviolable rules tests map 1:1 to ARCHITECTURE.md rules. v2.5.0 audit regression tests in `app-temp-log-wiring.test.ts` cover the P-2 (temp log persistence) integration. v2.6.0 added 8 new test files for Phase 0.5 features (useOpsec, cve-of-the-day, exam-alert-banner, sprint, lab-credit, postmortem, adversary, audit-report).
+Total: **706 unit tests / 44 files** + **11 E2E tests / 1 file** = **717 total**, all passing at v2.6.0. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files) and integration bugs (e.g., App.tsx wiring). E2E tests catch layout/visibility bugs that jsdom cannot detect. Phase 3 inviolable rules tests map 1:1 to ARCHITECTURE.md rules. v2.5.0 audit regression tests in `app-temp-log-wiring.test.ts` cover the P-2 (temp log persistence) integration. v2.6.0 added 8 new test files for Phase 0.5 features (useOpsec, cve-of-the-day, exam-alert-banner, sprint, lab-credit, postmortem, adversary, audit-report). Post-v2.6.0 code review added 2 more test files (news-storage, lab-session-storage) covering previously untested storage modules.
 
 ---
 
