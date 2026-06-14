@@ -50,7 +50,7 @@ import { usePersonality } from "./components/PersonalityProvider"
 import { formatStr, MODE_OPTIONS, type PersonalityMode } from "./lib/personality"
 import { runAutoBackup } from "./lib/auto-backup"
 import { localToday } from "./lib/date-utils"
-import { migrateLegacyKeys } from "./lib/storage-keys"
+import { migrateLegacyKeys, KEYS } from "./lib/storage-keys"
 import {
   readTempLogs,
   applyTempLog as applyTempLogToStorage,
@@ -245,7 +245,25 @@ function AppContent() {
   // Multi-course selector. The set always includes activeCourseId (the editable
   // primary). When .size > 1 the calendar/list show a merged view of every
   // selected course; when .size === 1 the view is single-course.
-  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set())
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(KEYS.SELECTED_COURSES)
+      if (!raw) return new Set()
+      const arr = JSON.parse(raw)
+      return Array.isArray(arr) ? new Set(arr.filter((v) => typeof v === "string")) : new Set()
+    } catch {
+      return new Set()
+    }
+  })
+
+  // Persist selectedCourseIds so the multi-course selection survives refreshes.
+  useEffect(() => {
+    try {
+      localStorage.setItem(KEYS.SELECTED_COURSES, JSON.stringify(Array.from(selectedCourseIds)))
+    } catch {
+      // Non-critical — silently ignore quota errors.
+    }
+  }, [selectedCourseIds])
 
   // Other (non-active) selected course ids in stable order.
   const otherSelectedIds = useMemo(
@@ -288,11 +306,11 @@ function AppContent() {
     if (!initialBackupRanRef.current) {
       // First valid run — back up immediately.
       initialBackupRanRef.current = true
-      runAutoBackup()
+      runAutoBackup().catch((e) => console.warn("[auto-backup] initial run failed:", e))
       return
     }
     // Subsequent runs are throttled inside runAutoBackup (one-per-day).
-    runAutoBackup()
+    runAutoBackup().catch((e) => console.warn("[auto-backup] throttled run failed:", e))
   }, [allPlans, activePlanIds])
 
   // Reconcile primaryActivePlanId when the active course changes. switchCourse
@@ -334,8 +352,8 @@ function AppContent() {
           if (atRisk > 0) {
             showToast(formatStr(tToast("labsReminder"), { count: atRisk, plural: atRisk > 1 ? "s" : "" }), "info")
           }
-        })
-      })
+        }).catch((e) => console.warn("[reminder] lab storage read failed:", e))
+      }).catch((e) => console.warn("[reminder] lab-session-storage module load failed:", e))
       remindedRef.current.add("labs-today")
     }
   }, [isLoading, courseLoading, studyDays, completedDays])
@@ -1133,7 +1151,7 @@ function AppContent() {
                 if (!window.confirm(label("confirmResetAll"))) return
                 await planStorage.clearAll()
                 localStorage.removeItem("activeCourseId")
-                localStorage.removeItem("selectedCourseIds")
+                localStorage.removeItem(KEYS.SELECTED_COURSES)
                 switchCourse(null)
                 setSelectedCourseIds(new Set())
                 setRefreshTick((t) => t + 1)
@@ -1514,6 +1532,7 @@ function AppContent() {
               {tabs.map(({ id, label, Icon }) => (
                 <button
                   key={id}
+                  id={`tab-${id}`}
                   role="tab"
                   aria-selected={activeTab === id}
                   aria-controls={`tabpanel-${id}`}
@@ -1531,7 +1550,7 @@ function AppContent() {
             </div>
 
             {activeTab === "calendar" && (
-              <div id="tabpanel-calendar" role="tabpanel" aria-labelledby="Calendar" className="space-y-4 focus:outline-none" tabIndex={-1}>
+              <div id="tabpanel-calendar" role="tabpanel" aria-labelledby="tab-calendar" className="space-y-4 focus:outline-none" tabIndex={-1}>
                 <ExamCountdownBand />
                 <ScheduleView
                   schedule={schedule}
@@ -1545,7 +1564,7 @@ function AppContent() {
               </div>
             )}
             {activeTab === "list" && (
-              <div id="tabpanel-list" role="tabpanel" aria-labelledby="Schedule" className="focus:outline-none" tabIndex={-1}>
+              <div id="tabpanel-list" role="tabpanel" aria-labelledby="tab-list" className="focus:outline-none" tabIndex={-1}>
                 <ScheduleList
                   schedule={schedule}
                   dailyLog={dailyLog}
@@ -1553,12 +1572,12 @@ function AppContent() {
               </div>
             )}
             {activeTab === "progress" && (
-              <div id="tabpanel-progress" role="tabpanel" aria-labelledby="Progress" className="focus:outline-none" tabIndex={-1}>
+              <div id="tabpanel-progress" role="tabpanel" aria-labelledby="tab-progress" className="focus:outline-none" tabIndex={-1}>
                 <ProgressDashboard selectedCourseIds={Array.from(selectedCourseIds)} />
               </div>
             )}
             {activeTab === "cert-path" && (
-              <div id="tabpanel-cert-path" role="tabpanel" aria-labelledby="Cert Path" className="focus:outline-none" tabIndex={-1}>
+              <div id="tabpanel-cert-path" role="tabpanel" aria-labelledby="tab-cert-path" className="focus:outline-none" tabIndex={-1}>
                 <CertPathView />
               </div>
             )}

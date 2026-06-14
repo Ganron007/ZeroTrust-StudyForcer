@@ -185,6 +185,7 @@ struct NewsCache {
     fetched_at: String,
 }
 
+#[derive(Clone, Copy)]
 struct FeedConfig {
     url: &'static str,
     label: &'static str,
@@ -438,17 +439,12 @@ async fn fetch_news(handle: AppHandle) -> Result<Vec<NewsItem>, String> {
         // Spawn RSS feed fetches with semaphore and per-task timeout
         for feed in FEEDS.iter() {
             let sem = semaphore.clone();
-            let feed_url = feed.url.to_string();
-            let feed_label = feed.label.to_string();
-            let feed_category = feed.category.to_string();
+            // &'static str fields are Copy — capture them directly instead of
+            // cloning to String + Box::leak (which leaked 42 allocations per fetch).
+            let feed_config = *feed;
             tasks.push(tokio::spawn(async move {
                 let _permit = sem.acquire().await.ok();
                 // R2: Per-task 20-second timeout
-                let feed_config = FeedConfig {
-                    url: Box::leak(feed_url.into_boxed_str()),
-                    label: Box::leak(feed_label.into_boxed_str()),
-                    category: Box::leak(feed_category.into_boxed_str()),
-                };
                 match tokio::time::timeout(Duration::from_secs(20), fetch_rss_feed(&feed_config)).await {
                     Ok(items) => items,
                     Err(_) => {

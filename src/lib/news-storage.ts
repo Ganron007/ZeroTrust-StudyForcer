@@ -42,7 +42,7 @@ const PROXY_URLS = [
   (url: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
 ]
 
-function urlToDomain(url: string): string {
+export function urlToDomain(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "")
   } catch {
@@ -50,7 +50,7 @@ function urlToDomain(url: string): string {
   }
 }
 
-function parseRss(xml: string): { title: string; link: string; isoDate: string }[] {
+export function parseRss(xml: string): { title: string; link: string; isoDate: string }[] {
   const parser = new DOMParser()
   const doc = parser.parseFromString(xml, "application/xml")
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { downloadJson, downloadCsv, readJsonFile } from "../export-utils"
+import { downloadJson, downloadCsv, readJsonFile, escapeCsv } from "../export-utils"
 
 describe("export-utils", () => {
   let createObjectURLSpy: ReturnType<typeof vi.spyOn>
@@ -98,9 +98,33 @@ describe("export-utils", () => {
     })
 
     it("handles numeric values", () => {
-      const rows = [["Count", 42]]
+      const rows = [["Count", "42"]]
       downloadCsv("test.csv", rows)
       expect(createObjectURLSpy).toHaveBeenCalled()
+    })
+  })
+
+  describe("escapeCsv (direct unit tests)", () => {
+    it("does not escape simple values", () => {
+      expect(escapeCsv("hello")).toBe("hello")
+      expect(escapeCsv("42")).toBe("42")
+    })
+
+    it("wraps values with commas in double quotes", () => {
+      expect(escapeCsv("a,b")).toBe('"a,b"')
+    })
+
+    it("wraps values with double quotes and escapes inner quotes", () => {
+      expect(escapeCsv('say "hello"')).toBe('"say ""hello"""')
+    })
+
+    it("wraps values with newlines in double quotes", () => {
+      expect(escapeCsv("line1\nline2")).toBe('"line1\nline2"')
+    })
+
+    it("handles numbers", () => {
+      expect(escapeCsv(42)).toBe("42")
+      expect(escapeCsv(0)).toBe("0")
     })
   })
 

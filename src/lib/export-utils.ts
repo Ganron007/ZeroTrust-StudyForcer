@@ -42,7 +42,7 @@ function downloadBlob(filename: string, blob: Blob) {
   }
 }
 
-function escapeCsv(val: string | number): string {
+export function escapeCsv(val: string | number): string {
   const s = String(val)
   if (s.includes(",") || s.includes('"') || s.includes("\n")) {
     return `"${s.replace(/"/g, '""')}"`
