@@ -8,6 +8,7 @@
 | **Zustand Store** | In-memory + synced to disk | Load at boot, update on mutation | allPlans, activePlanIds |
 | **React Temp State** | Component memory | Lost on page reload | dailyLog (temp), UI state |
 | **Derived (useMemo)** | Computed | Recalculated on deps change | schedule, stats |
+| **Custom Hooks (v2.7.0)** | Encapsulated React state | Lifetime = consuming component | useStudyLogging, useSchedule, useKeyboardShortcuts |
 
 ---
 
@@ -44,19 +45,55 @@ interface PlanStore {
 
 ## 3. React State (Temp / Ephemeral)
 
-### In App.tsx
+### In useStudyLogging hook (v2.7.0, extracted from App.tsx)
 ```typescript
 // Temp logging state (NOT persisted until Mark Done)
 const [dailyLog, setDailyLog] = useState<Record<string, Record<string, { pagesRead: number }>>>({})
 
+// Race-guard against mount-time storage load
+const [tempLogsLoaded, setTempLogsLoaded] = useState(false)
+
 // Log dialog
 const [logDialogDay, setLogDialogDay] = useState<StudyDay | null>(null)
 const [logDialogGroups, setLogDialogGroups] = useState<LogGroup[]>([])
+```
 
+### In useAppViewState hook (v2.8.0, extracted from App.tsx)
+```typescript
 // UI state
 const [activeTab, setActiveTab] = useState<Tab>("calendar")
 const [isFullscreen, setIsFullscreen] = useState(false)
-const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set())
+const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null)
+const [statsViewCourseId, setStatsViewCourseId] = useState<string | null>(null)
+const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(() => loadSelectedCourseIds())
+```
+
+### In 5 useOverlayState hooks (v2.8.0, extracted from App.tsx)
+```typescript
+const onlineLabs = useOverlayState<null>(null)
+const news = useOverlayState<null>(null)
+const courseBuilder = useOverlayState<null>(null)
+const planner = useOverlayState<{ initialCourseId: string | null }>({ initialCourseId: null })
+const timerLog = useOverlayState<{ minutes: number }>({ minutes: 0 })
+```
+
+### In useTipState hook (v2.8.0)
+```typescript
+const tip = useTipState(mode)
+// tip.showTip, tip.currentTip, tip.tipNumber, tip.totalTips, tip.nextTip
+```
+
+### In useRefreshController hook (v2.8.0)
+```typescript
+const refresh = useRefreshController()
+// refresh.tick, refresh.isRefreshing, refresh.trigger, refresh.triggerWithToast
+```
+
+### In App.tsx (v2.8.0 — only the cheatsheet state remains here)
+```typescript
+// The cheatsheet is the only remaining useState in AppContent.
+// 8 overlay open/close flags are gone. 4 early-returns are gone.
+const [showCheatsheet, setShowCheatsheet] = useState(false)
 ```
 
 ### In ScheduleView
@@ -68,26 +105,24 @@ const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
 ---
 
-## 4. Derived State (useMemo)
+## 4. Derived State (v2.7.0 — encapsulated in `useSchedule`)
 
 ```typescript
-// Schedule (computed, never stored)
-const schedule = useMemo(() => {
-  for (const plan of activePlans) {
-    const chapters = getOrderedChapters(course, plan.unitOrder)
-    const params = syncStudyPlan(plan, chapters, today)
-    const result = generateSchedule(plan, chapters, today, params.pagesPerDay, params.endDate)
-    // ...
-  }
-}, [plans, activeCourseId, activePlanIds, activeCourse])
+// In useSchedule({ allPlans, activePlanIds, activeCourse, courses, ... })
+const baseSchedule = useMemo(() => {
+  // For each active plan: getOrderedChapters, syncStudyPlan (with Sprint + Adversary overlays),
+  // generateSchedule, tagChaptersWithCourseId
+}, [plans, activeCourseId, activePlanIds, activeCourse, courseLabel])
 
-// Stats
+const mergedSchedule = useMemo(() => {
+  // mergeSchedules across base + other selected courses
+}, [showMerged, baseSchedule, otherCoursesInfo, activeCourseId, courseLabel])
+
 const selectedCoursesStats = useMemo(() => {
-  for (const plan of selectedPlans) {
-    const params = syncStudyPlan(plan, chapters, today)
-    // Compute pctDone, endDate, etc.
-  }
-}, [plans, activeCourseId, ...])
+  // per-course: pagesRead, pctDone, endDate, weeksAway
+}, [activeCourseId, activeCourse, primaryActivePlanId, plans, baseSchedule, otherCoursesInfo, courses, allPlans, activePlanIds])
+
+return { baseSchedule, otherCoursesInfo, mergedSchedule, schedule, selectedCoursesStats, showMerged }
 ```
 
 ---
@@ -95,20 +130,23 @@ const selectedCoursesStats = useMemo(() => {
 ## 5. Persistence Architecture
 
 ```
-App.tsx (handler)
+useStudyLogging.handleMarkDone(date) (v2.7.0)
   │
-  ├─ storeUpdatePlan(updatedPlan)   // Zustand
-  │   └─ planStorage.save(plan)     // → database.ts
-  │       ├─ IS_TAURI → SQLite (tauri-plugin-sql) + in-memory cache
-  │       └─ !IS_TAURI → localStorage + in-memory cache
+  ├─ storeUpdatePlan(updatedPlan)             // Zustand
+  │   └─ planStorage.save(plan)               // → database.writeStorage
+  │       └─ IS_TAURI: per-row upsert (v2.7.0)
+  │           ├─ Read prior snapshot from tauriCache
+  │           ├─ Diff against new data
+  │           └─ Issue per-row INSERT/UPDATE/DELETE
+  │       └─ !IS_TAURI: writeWeb (localStorage, full blob)
   │
-  ├─ temp-log-storage.ts            // Phase 0.5.2: persisted temp state
+  ├─ temp-log-storage.ts                      // persisted temp state
   │   ├─ applyTempLog(date, courseId, pagesRead)
-  │   ├─ clearTempLog(date)         // On Mark Done
-  │   └─ readTempLogs()             // On mount
+  │   ├─ clearTempLog(date)                   // On Mark Done
+  │   └─ readTempLogs()                       // On mount
   │
-  └─ loadPlans()                    // Reload from disk
-      └─ planStorage.getAll()       // → database.ts.getAll()
+  └─ onAfterMarkDone()                        // App.tsx setRefreshTick
+      └─ triggers loadPlans() → planStorage.getAll() (on next tick)
 ```
 
 ### Additional Storage Modules (Phase 0.5)
@@ -170,7 +208,7 @@ interface StudyPlan {
   skippedDays: string[]        // YYYY-MM-DD dates explicitly skipped
   // NO completedDays field — dailyLog presence is the indicator
   // NO chapterChecks or chapterProgress fields
-  sprint?: {                   // Phase 0.5.4: optional sprint mode overlay
+  sprint?: {                   // Phase 0.5.4 (lib v2.6.0, UI v2.7.0)
     startDate: string          // YYYY-MM-DD when sprint starts
     days: number               // Number of days sprint lasts
     paceBoost: number          // Percentage boost (0-100)

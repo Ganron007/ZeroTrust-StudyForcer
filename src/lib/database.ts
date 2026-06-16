@@ -232,34 +232,85 @@ export async function writeStorage(data: StorageData): Promise<void> {
     const db = await getDb()
     if (db) {
       try {
-        // S24: Use the same lock as readStorage to prevent torn reads.
+        // v2.7.0: Per-row upsert instead of full-table rewrite.
+        // Compute the diff: rows to insert, update, or delete.
+        // This is dramatically faster for large plan sets (the old
+        // approach re-serialized every plan on every save).
         await withDbLock(async () => {
+          // Use the Tauri cache as the prior snapshot to compute the
+          // diff. If cache is empty (cold start), fall back to a full
+          // table replace.
+          const prior: StorageData = tauriCache
+            ?? await readPlansFromDb(db)
+
           await db.execute("BEGIN TRANSACTION")
-          // C6 fix: DELETE plans first, then INSERT OR REPLACE the new set.
-          // Previously only INSERT OR REPLACE was used per row, so plans
-          // removed from in-memory state would linger as orphaned SQLite rows
-          // and silently resurrect after restart. Mirrors writeWeb's full-replace.
-          await db.execute("DELETE FROM plans")
-          for (const [id, plan] of Object.entries(data.plans)) {
-            await db.execute(
-              "INSERT INTO plans (id, data) VALUES ($1, $2)",
-              [id, JSON.stringify(plan)],
-            )
+          try {
+            // ── plans: insert/update/delete per row ───────────────────────
+            const incomingIds = new Set(Object.keys(data.plans))
+            for (const [id, plan] of Object.entries(data.plans)) {
+              const newJson = JSON.stringify(plan)
+              const priorPlan = prior.plans[id]
+              if (!priorPlan) {
+                // Insert
+                await db.execute(
+                  "INSERT INTO plans (id, data) VALUES ($1, $2)",
+                  [id, newJson],
+                )
+              } else if (JSON.stringify(priorPlan) !== newJson) {
+                // Update (only if data actually changed)
+                await db.execute(
+                  "UPDATE plans SET data = $1 WHERE id = $2",
+                  [newJson, id],
+                )
+              }
+              // else: unchanged — skip the write
+            }
+            // Delete plans that are no longer in the incoming set
+            for (const id of Object.keys(prior.plans)) {
+              if (!incomingIds.has(id)) {
+                await db.execute("DELETE FROM plans WHERE id = $1", [id])
+              }
+            }
+            // Also remove plans from active_plan_ids that were deleted
+            for (const id of Object.keys(prior.plans)) {
+              if (!incomingIds.has(id)) {
+                await db.execute(
+                  "DELETE FROM active_plan_ids WHERE plan_id = $1",
+                  [id],
+                )
+              }
+            }
+
+            // ── active_plan_ids: insert/delete per row ────────────────────
+            const priorActiveSet = new Set(prior.activePlanIds)
+            const incomingActiveSet = new Set(data.activePlanIds)
+            for (const id of data.activePlanIds) {
+              if (!priorActiveSet.has(id)) {
+                await db.execute(
+                  "INSERT INTO active_plan_ids (plan_id) VALUES ($1)",
+                  [id],
+                )
+              }
+            }
+            for (const id of prior.activePlanIds) {
+              if (!incomingActiveSet.has(id)) {
+                await db.execute(
+                  "DELETE FROM active_plan_ids WHERE plan_id = $1",
+                  [id],
+                )
+              }
+            }
+
+            await db.execute("COMMIT")
+          } catch (e) {
+            await db.execute("ROLLBACK").catch(() => undefined)
+            throw e
           }
-          await db.execute("DELETE FROM active_plan_ids")
-          for (const id of data.activePlanIds) {
-            await db.execute(
-              "INSERT INTO active_plan_ids (plan_id) VALUES ($1)",
-              [id],
-            )
-          }
-          await db.execute("COMMIT")
           // Phase 3.1: Invalidate the Tauri cache after a successful write
           // so the next read picks up the new data.
           invalidateTauriCache()
         })
       } catch (e) {
-        try { await db.execute("ROLLBACK") } catch { /* ignore */ }
         throw e
       }
       return
@@ -267,4 +318,26 @@ export async function writeStorage(data: StorageData): Promise<void> {
     // Fall through to localStorage
   }
   writeWeb(data)
+}
+
+/**
+ * Read raw rows from the plans + active_plan_ids tables. Used by
+ * writeStorage to compute a diff when the Tauri cache is cold. Does
+ * NOT update tauriCache — that's the caller's job after COMMIT.
+ */
+async function readPlansFromDb(db: DbHandle): Promise<StorageData> {
+  const planRows: { id: string; data: string }[] = await db.select("SELECT id, data FROM plans")
+  const activeRows: { plan_id: string }[] = await db.select("SELECT plan_id FROM active_plan_ids")
+  const plans: Record<string, StudyPlan> = {}
+  for (const row of planRows) {
+    try {
+      plans[row.id] = JSON.parse(row.data)
+    } catch (e) {
+      console.warn(`[database] skipping corrupt plan row ${row.id}:`, e)
+    }
+  }
+  const activePlanIds = (activeRows ?? [])
+    .map((r: { plan_id: string }) => r.plan_id)
+    .filter((id: string) => !!plans[id])
+  return { plans, activePlanIds }
 }

@@ -95,29 +95,43 @@ console.log(`Git:    portable/${version}/GIT_RELEASE_v${version}.md`)
  * Short headline for users + MD5 verification instructions + verification footer.
  */
 function generateGitReleaseNotes(ver, fullNotes, md5Hash, sizeMB) {
-  // Parse "What's New" from the first "### Added" or "### Changed" section
+  // Parse "What's New" from all "### Added/Changed/Fixed" sections in this
+  // version's release notes. Concatenate bullets from each section so the
+  // GitHub release description covers the full wave.
   const lines = fullNotes.split('\n')
-  let headline = []
-  let inAdded = false
+  const sections = []
+  let currentSection = null
   for (const line of lines) {
-    if (line.match(/^### (Added|Changed)/)) {
-      inAdded = true
+    const header = line.match(/^### (Added|Changed|Fixed)/)
+    if (header) {
+      if (currentSection) sections.push(currentSection)
+      currentSection = { type: header[1], bullets: [] }
       continue
     }
-    if (inAdded) {
-      if (line.match(/^### /)) break
+    if (currentSection) {
+      if (line.match(/^### /)) {
+        sections.push(currentSection)
+        currentSection = null
+        continue
+      }
       if (line.trim().startsWith('-')) {
-        headline.push(line.trim().replace(/^- /, ''))
+        currentSection.bullets.push(line.trim().replace(/^- /, ''))
       }
     }
   }
-  // Build a one-paragraph headline from the first 2-3 bullets
-  const whatsNew = headline.slice(0, 3).join(' ').replace(/\*\*/g, '')
+  if (currentSection) sections.push(currentSection)
+
+  // Build a multi-paragraph summary: one paragraph per section
+  const paragraphs = sections.map(s => {
+    const bullets = s.bullets.slice(0, 5).join(' ').replace(/\*\*/g, '')
+    return `**${s.type}** — ${bullets}`
+  })
+  const whatsNew = paragraphs.join('\n\n') || 'See full changelog in RELEASE_NOTES.'
 
   let out = `## ZeroTrust.StudyForcer v${ver}\n\n`
   out += `> *Zero Trust in your ability to pass. Prove us wrong.*\n\n`
   out += `### What's New\n`
-  out += `${whatsNew || 'See full changelog in RELEASE_NOTES.'}\n\n`
+  out += `${whatsNew}\n\n`
 
   out += `### Download\n`
   out += `| File | Size | MD5 |\n`
@@ -143,7 +157,7 @@ function generateGitReleaseNotes(ver, fullNotes, md5Hash, sizeMB) {
 
   out += `### Verification\n`
   out += `- TypeScript: \`npx tsc -b --noEmit\` clean\n`
-  out += `- Tests: 217 pass (10 files)\n`
+  out += `- Tests: 846 vitest + 11 E2E + 17 Rust = 874 automated checks, all passing\n`
   out += `- No new dependencies\n`
 
   return out

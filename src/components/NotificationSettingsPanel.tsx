@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Bell, BellOff, Clock } from "lucide-react"
+import { Bell, BellOff, Clock, AlertOctagon } from "lucide-react"
 import { usePersonality } from "./PersonalityProvider"
 import {
   loadSettings,
@@ -8,6 +8,11 @@ import {
   isNativeAvailable,
   type NotificationSettings,
 } from "@/lib/notifications"
+import {
+  loadAdversarySettings,
+  saveAdversarySettings,
+  type AdversarySettings,
+} from "@/lib/adversary"
 import { showToast } from "./NotificationToast"
 
 interface NotificationSettingsPanelProps {
@@ -27,6 +32,7 @@ interface NotificationSettingsPanelProps {
 export default function NotificationSettingsPanel({ className = "" }: NotificationSettingsPanelProps) {
   const { label, toast: tToast } = usePersonality()
   const [settings, setSettings] = useState<NotificationSettings>(() => loadSettings())
+  const [adversary, setAdversary] = useState<AdversarySettings>(() => loadAdversarySettings())
   const native = isNativeAvailable()
 
   const handleToggle = async (next: NotificationSettings) => {
@@ -133,6 +139,81 @@ export default function NotificationSettingsPanel({ className = "" }: Notificati
             />
           </button>
         </label>
+      </div>
+
+      {/* Phase 0.5.9: Adversary timer settings */}
+      <div className="mt-5 pt-4 border-t border-border">
+        <div className="flex items-center gap-2 mb-1">
+          <AlertOctagon className="w-4 h-4 text-destructive" />
+          <h3 className="text-sm font-semibold text-foreground">{label("adversaryTitle")}</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          {label("adversarySubtitle")}
+        </p>
+        <div className="space-y-3">
+          <label className="flex items-center justify-between cursor-pointer">
+            <span className="text-sm font-medium text-foreground">{label("adversaryEnable")}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={adversary.enabled}
+              onClick={() => {
+                const next = { ...adversary, enabled: !adversary.enabled }
+                setAdversary(next)
+                saveAdversarySettings(next)
+              }}
+              data-testid="adversary-toggle"
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                adversary.enabled ? "bg-destructive" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  adversary.enabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </label>
+          <label className={`flex items-center justify-between ${adversary.enabled ? "" : "opacity-50"}`}>
+            <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              {label("adversaryDeadline")}
+            </span>
+            <input
+              type="time"
+              value={adversary.deadline}
+              disabled={!adversary.enabled}
+              onChange={(e) => {
+                const next = { ...adversary, deadline: e.target.value }
+                setAdversary(next)
+                saveAdversarySettings(next)
+              }}
+              data-testid="adversary-deadline"
+              className="px-2 py-1 rounded border border-border bg-background text-foreground text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </label>
+          <label className={`flex items-center justify-between ${adversary.enabled ? "" : "opacity-50"}`}>
+            <span className="text-sm font-medium text-foreground">{label("adversaryBoost")}</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={5}
+                max={100}
+                step={5}
+                value={adversary.paceBoostPct}
+                disabled={!adversary.enabled}
+                onChange={(e) => {
+                  const next = { ...adversary, paceBoostPct: Number(e.target.value) }
+                  setAdversary(next)
+                  saveAdversarySettings(next)
+                }}
+                data-testid="adversary-boost"
+                className="w-24"
+              />
+              <span className="text-xs text-muted-foreground w-8">+{adversary.paceBoostPct}%</span>
+            </div>
+          </label>
+        </div>
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import {
   getDaysSince, getLabCategory, computeSmartScore,
   getTodayMinutes, getMonthMinutes, getDaysInCurrentMonth,
 } from "@/lib/lab-session-storage"
+import { dayLabel, dayNumber, formatRelative, formatDateRelative } from "@/lib/lab-dashboard-helpers"
 import { localToday } from "@/lib/date-utils"
 import { DEFAULT_EXTERNAL_LABS, type LabsStorage, type LabSession } from "@/lib/lab-sessions"
 import type { LabCategory } from "@/lib/lab-data"
@@ -20,6 +21,8 @@ import { showToast } from "@/components/NotificationToast"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
 import { now, nowDate } from "@/lib/clock"
+import { findDomainMatches } from "@/lib/lab-credit"
+import { LabCreditPrompt } from "./LabCreditPrompt"
 
 type FilterMode = "all" | "queue" | "today" | "attention"
 
@@ -35,6 +38,8 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
   const [logLabId, setLogLabId] = useState("")
   const [logMinutes, setLogMinutes] = useState(120)
   const [logNote, setLogNote] = useState("")
+  // Phase 0.5.6: lab credit prompt state
+  const [creditPrompt, setCreditPrompt] = useState<{ session: LabSession; lab: import("@/lib/lab-sessions").LabDefinition } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -186,6 +191,7 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
     if (!logLabId) return
     // A53: Call localToday() at write time, not render time, to prevent
     // sessions logged after midnight from getting yesterday's date
+    const lab = data.labs.find((l) => l.id === logLabId)
     const session: LabSession = {
       labId: logLabId,
       date: localToday(),
@@ -196,32 +202,18 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
     const next = { ...data, sessions: [...data.sessions, session] }
     save(next)
     setShowLogDialog(false)
-  }
 
-  const dayLabel = (date: string) => {
-    const d = new Date(date + "T00:00:00")
-    return d.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 2)
-  }
-
-  const dayNumber = (date: string) => {
-    const d = new Date(date + "T00:00:00")
-    return d.getDate()
-  }
-
-  const formatRelative = (days: number | null) => {
-    if (days === null) return "Never used"
-    if (days === 0) return "Today"
-    if (days === 1) return "Yesterday"
-    return `${days} days ago`
-  }
-
-  const formatDateRelative = (dateStr: string) => {
-    const days = getDaysSince(dateStr)
-    if (days === null) return dateStr
-    if (days === 0) return "Today"
-    if (days === 1) return "Yesterday"
-    if (days < 7) return `${days} days ago`
-    return dateStr
+    // Phase 0.5.6: After logging, offer to credit minutes to a
+    // matching exam domain. Off by default — the user must opt in.
+    if (lab) {
+      // Defer to next tick so the dialog closes first.
+      setTimeout(() => {
+        const matches = findDomainMatches(lab, [])
+        if (matches.length > 0) {
+          setCreditPrompt({ session, lab })
+        }
+      }, 50)
+    }
   }
 
   return (
@@ -777,6 +769,39 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Phase 0.5.6: Lab credit prompt */}
+      {creditPrompt && (
+        <LabCreditPrompt
+          session={creditPrompt.session}
+          lab={creditPrompt.lab}
+          onAccept={(creditKey) => {
+            const session = creditPrompt.session
+            const updated = { ...session, creditedTo: creditKey, creditPrompted: true }
+            const next = {
+              ...data,
+              sessions: data.sessions.map((s) =>
+                s.labId === session.labId && s.createdAt === session.createdAt ? updated : s
+              ),
+            }
+            save(next)
+            setCreditPrompt(null)
+            showToast(formatStr(label("labCreditSuccess"), { minutes: String(session.minutes), domain: creditKey.split(":")[1] ?? "" }), "complete")
+          }}
+          onDismiss={() => {
+            const session = creditPrompt.session
+            const updated = { ...session, creditPrompted: true }
+            const next = {
+              ...data,
+              sessions: data.sessions.map((s) =>
+                s.labId === session.labId && s.createdAt === session.createdAt ? updated : s
+              ),
+            }
+            save(next)
+            setCreditPrompt(null)
+          }}
+        />
       )}
     </div>
   )

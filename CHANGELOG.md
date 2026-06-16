@@ -6,6 +6,272 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.8.0] — 2026-06-17 — Release Wave (v2.7.0 → v2.8.0)
+
+This release ships the full v2.7.0 → v2.8.0 wave plus the final ROADMAP plan item (E) as a single portable EXE. The wave includes four staged releases that were developed in sequence but rolled up into one v2.8.0 release.
+
+**Why one EXE and not four:** Reconstructing the per-version intermediate file states (especially `App.tsx`, which spans all four versions) would require ~2-3 hours of manual file surgery per version. Instead, the entire wave is committed as one squashed commit on `main` (tagged `v2.8.0`), and a single portable EXE is built from the final state. The CHANGELOG entries below document each staged release in reverse chronological order, mirroring the per-version entries from the development commits.
+
+**Prior releases:** The v2.6.0 GitHub Release remains available for users on the v2.6.0 line. This v2.8.0 release is the new head and is the recommended download for new users.
+
+**Wave contents:**
+- **v2.7.0** — App.tsx structural refactor (1230 → 928 lines) + Phase 0.5 UI integration (Sprint, Postmortem, Lab credit, BurnDown, Adversary)
+- **v2.7.1** — Sprint/Adversary deadline-anchor fix (Bug B) + 42 direct component tests for the v2.7.0 extracted components (Plan A) + App.tsx blank-screen regression fix
+- **v2.7.2** — `<ErrorBoundary>` primitive + 7 wrapped areas: 4 tab panels + 3 overlays + SecurityNewsFeed (Plan C)
+- **v2.8.0** — Dialog state machine extraction: 4 new hooks (`useOverlayState`, `useAppViewState`, `useTipState`, `useRefreshController`) + 2 new components (`OverlayManager`, `TimerLogDialog`) (Plan D)
+- **v2.8.0 (E)** — Test coverage for the three giant components (Plan E, the final ROADMAP item):
+  - `PlannerPage.tsx` (67KB) — 28 new tests (17 pure-helper + 11 component)
+  - `CourseBuilder.tsx` (44KB) — 62 new tests (49 pure-helper + 13 component)
+  - `LabDashboard.tsx` (40KB) — 28 new tests (15 pure-helper + 13 component)
+  - 3 new helper modules in `src/lib/`: `planner-page-helpers.ts`, `course-builder-helpers.ts`, `lab-dashboard-helpers.ts` — pure functions extracted from each component for isolated unit testing
+
+**Stats across the wave:**
+- Test count: 706 (v2.6.0) → **964** (+258 new tests across 21 new test files; 65 files total)
+- Rust tests: 0 → **17** (added in v2.7.0)
+- E2E: 11/11 pass
+- TypeScript: clean
+- Vite build: succeeds
+- Versions: **2.6.0 → 2.8.0** (minor: 4 ROADMAP plan items shipped + plan E complete)
+
+**Final ROADMAP status:** All 5 items (A, B, C, D, E) are now ✅ shipped. No known debt.
+
+The detailed changelog for each staged release follows below. Per-version release notes for the v2.8.0 EXE are bundled in `portable/2.8.0/RELEASE_NOTES_v2.8.0.md` and `portable/2.8.0/GIT_RELEASE_v2.8.0.md`.
+
+### Plan E — Test the three giant components
+
+**Scope:** The three largest untested components in the v2.6.0 audit — `PlannerPage.tsx` (67KB), `CourseBuilder.tsx` (44KB), `LabDashboard.tsx` (40KB) — were the last known debt in the ROADMAP. v2.8.0 ships 118 new tests across 6 new test files (3 component + 3 helper) plus 3 new pure-helper modules.
+
+**Files added:**
+- `src/lib/lab-dashboard-helpers.ts` — extracted `dayLabel`, `dayNumber`, `formatRelative`, `formatDateRelative` from `LabDashboard.tsx`
+- `src/lib/course-builder-helpers.ts` — extracted `validateId`, `getNextChapterId`, `getNextUnitId`, `clampPages`, `clampId`, `clampBookPageStart`, `applyChapterFieldChange`, `toggleStudyDay`, `buildCourseConfig`, `validateCourseConfig`, `RESERVED_IDS` from `CourseBuilder.tsx`
+- `src/lib/planner-page-helpers.ts` — extracted `flattenChapters`, `computeDashboardStats`, `groupPlansByCourse`, `clampPagesPerDay` from `PlannerPage.tsx`
+- `src/components/__tests__/LabDashboard.test.tsx` — 13 component tests
+- `src/components/__tests__/CourseBuilder.test.tsx` — 13 component tests
+- `src/components/__tests__/PlannerPage.test.tsx` — 11 component tests
+- `src/lib/__tests__/lab-dashboard-helpers.test.ts` — 15 pure-function tests
+- `src/lib/__tests__/course-builder-helpers.test.ts` — 49 pure-function tests
+- `src/lib/__tests__/planner-page-helpers.test.ts` — 17 pure-function tests
+
+**Files modified:**
+- `src/components/LabDashboard.tsx` — replaced inline arrow functions with imports from `lab-dashboard-helpers.ts`
+- `src/components/CourseBuilder.tsx` — replaced inline functions with imports from `course-builder-helpers.ts`; replaced inline `validate()` with `validateCourseConfig()`; removed local `RESERVED_IDS` constant in favor of imported one
+- `src/components/PlannerPage.tsx` — removed local `flattenChapters` in favor of imported one; replaced inline `useMemo` for `plansByCourse` and `dashboardStats` with helper calls; used `clampPagesPerDay` for edit/create flows
+
+**No bugs found during testing.** All 118 new tests pass on the first run after a few test-mock refinements (the components themselves were correct).
+
+---
+
+## [2.7.2] — 2026-06-16
+
+### Added — Error boundaries across the app (plan item C)
+
+**Problem:** Before v2.7.2, **zero** error boundaries existed in the tree. A single uncaught render error in any major view (Planner, Course Builder, Lab Dashboard, Cert Path, Schedule, Progress, News) would crash the entire React root and present a blank white screen — only `window.location.reload()` could recover. The three giant components most at risk (PlannerPage 67KB, CourseBuilder 44KB, LabDashboard 40KB) had no isolation.
+
+**Fix:** Added a generic `<ErrorBoundary>` class component and wrapped every major route + overlay in it. The boundary logs to `console.error`, shows a destructive-themed fallback card with a collapsible "Error details" `<pre>` block, and offers two recovery actions:
+- **Try again** — clears the boundary's error state and calls an optional `onReset` callback (used by overlays to close the overlay so the user can re-open it)
+- **Reload app** — calls `window.location.reload()` as a last resort
+
+The fallback is `role="alert"` and `aria-live="assertive"` for screen-reader users.
+
+**Files changed:**
+- `src/components/ErrorBoundary.tsx` — new class component, `getDerivedStateFromError` + `componentDidCatch`, default UI + custom `fallback`/`sectionLabel`/`onReset` props
+- `src/components/__tests__/ErrorBoundary.test.tsx` — 10 tests (renders children when OK, default fallback, sectionLabel title, custom fallback prop, reload button, reset button gating, recovery after reset, sibling isolation, nested boundaries)
+- `src/App.tsx` — wrapped all 4 main tab panels (Schedule, Schedule list, Progress dashboard, Certification paths) in `<ErrorBoundary sectionLabel=...>`
+- `src/components/OverlayManager.tsx` — wrapped LabDashboard, SecurityNewsFeed, CourseBuilder, PlannerPage in `<ErrorBoundary sectionLabel=... onReset={overlay.close}>`
+
+**Why it matters:**
+- Isolates crashes to one section instead of the whole app
+- Provides a clear error message + recovery path
+- Lets the user close a broken overlay (via Try again → `onReset`) and try a different one
+- 0 → 7 error boundaries covering the 4 largest untested components and the 4 main tab panels
+
+**Stats:**
+- Test count: 836 → **846** (+10 tests; 59 files total)
+- Rust tests: 17 — unchanged
+- E2E: 11/11 pass
+- TypeScript: clean
+- Vite build: succeeds
+- Versions: **2.7.1 → 2.7.2** (patch: error hardening)
+
+---
+
+## [2.7.1] — 2026-06-16
+
+### Fixed — Sprint + Adversary overlays now apply to DEADLINE anchor (plan item B)
+
+**Bug:** In v2.7.0, Sprint and Adversary pace overlays were only applied when `plan.anchor === "pagesPerDay"`. Plans anchored to `endDate` silently ignored active sprints and adversary bumps, so deadline-anchored users never saw the boosted pace.
+
+**Fix:** Extracted a shared `applyPaceOverlays(basePace, plan, today)` helper in `src/lib/plan-engine.ts` and called it from both the VELOCITY and DEADLINE branches of `syncStudyPlan`. Overlay stacking order is unchanged: `base → sprint → adversary`.
+
+**Files changed:**
+- `src/lib/plan-engine.ts` — added `applyPaceOverlays()`, removed anchor-gated overlay logic
+- `src/lib/__tests__/plan-engine.test.ts` — added 6 regression tests for deadline-anchor sprint/adversary behavior
+
+### Fixed — App.tsx blank screen when all overlays are closed (v2.8.0 regression)
+
+**Bug:** During the v2.8.0 dialog state machine extraction, `App.tsx` created a JSX element for `\u003cOverlayManager\u003e` and checked `if (overlayNode) return overlayNode`. Because a JSX element object is always truthy, the app always returned whatever `\u003cOverlayManager\u003e` produced. When no overlay was open, `\u003cOverlayManager\u003e` returned `null`, so the entire app rendered as a blank screen.
+
+**Fix:** Gate the early-return on the actual overlay open flags (`onlineLabs.isOpen || news.isOpen || courseBuilder.isOpen || planner.isOpen`) instead of the JSX element truthiness.
+
+**Files changed:**
+- `src/App.tsx` — replaced `if (overlayNode)` with `if (isOverlayOpen)`
+
+### Added — Component test coverage for v2.7.0 extracted components (plan item A)
+
+**Scope:** The six UI components extracted from `App.tsx` in v2.7.0 had **0** direct component tests. They were only covered indirectly through hook tests, Rust tests, and E2E. This commit adds focused unit tests for each.
+
+**Files changed:**
+- `src/components/__tests__/Popover.test.tsx` — 7 tests (open/close, Escape, backdrop click, focus trap, role/aria-label)
+- `src/components/__tests__/StatsBar.test.tsx` — 4 tests (empty state, stats grid, merged pills, pinned/active highlighting)
+- `src/components/__tests__/SprintBanner.test.tsx` — 6 tests (no sprint, inactive sprint, single/multiple active sprints, cancel, ignore inactive plans)
+- `src/components/__tests__/PostmortemBanner.test.tsx` — 6 tests (no prompt, prompt render, open editor, dismiss, save, delete)
+- `src/components/__tests__/LabCreditPrompt.test.tsx` — 5 tests (null session/lab, no matches, accept credit, dismiss)
+- `src/components/__tests__/AppHeader.test.tsx` — 14 tests (title/version, child components, course selector, toolbar buttons, popovers, OPSEC, timer log)
+
+**Stats:**
+- Test count: 788 → **836** (+48 tests; 58 files total)
+- Rust tests: 17 — unchanged
+- E2E: 11/11 pass
+- TypeScript: clean
+- Vite build: succeeds
+- Versions: **2.7.0 → 2.7.1** (patch: bug fixes + test coverage)
+
+---
+
+## [2.8.0] — 2026-06-15
+
+### Changed — Dialog state machine extraction (plan item D)
+
+The final piece of the App.tsx structural refactor. App.tsx is no longer the home of 8 overlay open/close flags + 4 full-page early-returns.
+
+- **New generic hook** `useOverlayState<T>(initial: T)` (`src/hooks/useOverlayState.ts`): one call per overlay returns `{ isOpen, state, open, close, toggle, setState }`. Initial value is captured in a `useRef` so callback identity is stable across re-renders. **8 tests.**
+- **New `useAppViewState()`** (`src/hooks/useAppViewState.ts`): bundles `activeTab`, `isFullscreen` + `toggleFullscreen`, `calendarSelectedDate`, `statsViewCourseId`, and `selectedCourseIds` (with its localStorage sync + auto-activate-on-single-selection). **15 tests.**
+- **New `useTipState(mode)`** (`src/hooks/useTipState.ts`): bundles the tip popup flag, the picker, and the current tip. Re-seeds the tip pool when the mode changes. **5 tests.**
+- **New `useRefreshController()`** (`src/hooks/useRefreshController.ts`): owns `refreshTick` + `refreshing` + the `loadPlans()` effect. Exposes `trigger()` and `triggerWithToast(toastFn)`. **4 tests.**
+- **New `<OverlayManager>`** (`src/components/OverlayManager.tsx`): replaces 4 `if (isXxxOpen) return <Xxx .../>` early-returns in App.tsx. Priority order: Labs > News > CourseBuilder > Planner. One full-page overlay at a time. **7 tests.**
+- **New `<TimerLogDialog>`** (`src/components/TimerLogDialog.tsx`): extracted from the inline `<div className="fixed inset-0 z-50 ...">` in App.tsx.
+
+### Effect
+
+- `App.tsx`: 928 → **739 lines** (−189 lines, −20%). Pure layout shell — header, main, tabs, stats bar, footers.
+- 5 `useState` pairs + 4 `if` early-returns deleted.
+- `useKeyboardShortcuts` now receives overlay flags via the destructured controllers — no behavior change.
+
+### New files (5)
+- `src/hooks/useOverlayState.ts` (78 lines)
+- `src/hooks/useAppViewState.ts` (146 lines)
+- `src/hooks/useTipState.ts` (76 lines)
+- `src/hooks/useRefreshController.ts` (60 lines)
+- `src/components/OverlayManager.tsx` (133 lines)
+- `src/components/TimerLogDialog.tsx` (84 lines)
+
+### New test files (5)
+- `src/hooks/__tests__/useOverlayState.test.tsx` (8 tests)
+- `src/hooks/__tests__/useAppViewState.test.tsx` (15 tests)
+- `src/hooks/__tests__/useTipState.test.tsx` (5 tests)
+- `src/hooks/__tests__/useRefreshController.test.tsx` (4 tests)
+- `src/components/__tests__/OverlayManager.test.tsx` (7 tests)
+
+**Total: 39 new tests** for the dialog state machine extraction.
+
+### Stats
+
+- **Test count**: 748 → **788** (+40 new tests across 5 new files; 52 files total)
+- **Rust tests**: 17 — unchanged
+- **E2E**: 11/11 pass (Note: a v2.8.0 regression caused a blank screen when no overlay was open; fixed in v2.7.1)
+- **TypeScript**: clean
+- **Vite build**: succeeds
+- **Versions**: no version bump (refactor only, no behavior change)
+
+### Honest gap carried forward
+
+The remaining 4 `if (isXxxOpen) return <Xxx .../>` early-returns in the inline JSX (e.g., `if (isFullscreen) ...` for fullscreen) are still inline. They are all sub-viewport (toolbar/buttons) and don't need a manager. The 4 full-page overlays are now extracted. App.tsx has 91 → ~50 hook calls (useState+useEffect+useRef+useCallback+useMemo).
+
+---
+
+## [2.7.0] — 2026-06-15
+
+### Added — App.tsx structural refactor (the v2.6.0 roadmap debt, now shipped)
+
+The post-v2.6.0 code review identified `App.tsx` as a 1,230-line monolith with 91 hook calls. The full extraction plan from `ROADMAP.md` is now complete. `App.tsx` is down to 928 lines with three new focused hooks and three new extracted components.
+
+#### Hooks (extracted from App.tsx)
+- **`useStudyLogging`** (`src/hooks/useStudyLogging.ts`, 348 lines) — Owns Log/Skip temp React state, the `tempLogsLoaded` race-guard, `logDialogDay`/`logDialogGroups`, `validateLogEntry`, `applyTempLog`, `handleLogPlan`, `handleSkipPlan`, `plansLoggedForDate`, `handleMarkDone`, and the dialog save/skip handlers. Inviolable Rule 1 (Log/Skip never writes to plan storage) is now centralized here. **15 new tests** (`useStudyLogging.test.tsx`).
+- **`useSchedule`** (`src/hooks/useSchedule.ts`, 230 lines) — Pure derivation of `baseSchedule`, `otherCoursesInfo`, `mergedSchedule`, `selectedCoursesStats`, `showMerged`. No side effects. **7 new tests** (`useSchedule.test.tsx`).
+- **`useKeyboardShortcuts`** (`src/hooks/useKeyboardShortcuts.ts`, 159 lines) — Global keydown listener. The previous 13-item dep array is now a typed options object. Input/textarea/select focus suppression is tested explicitly. **18 new tests** (`useKeyboardShortcuts.test.ts`).
+
+#### Components (extracted from App.tsx)
+- **`<AppHeader>`** (`src/components/AppHeader.tsx`, 359 lines) — The full top toolbar: logo, course selector, planner/labs/news buttons, timer, wall clock, tips, refresh, backup, reset, restore, theme picker, mode picker, notification settings, OPSEC toggle, fullscreen. Wired via a `useMemo` action bundle so all 18 callbacks are stable references. Popovers now use the new `<Popover>` primitive.
+- **`<Popover>`** (`src/components/Popover.tsx`, ~80 lines) — Lightweight popover primitive replacing 4 inline popover scaffolds (theme, mode, notification, future). Click-outside-to-close + Escape handler + focus management.
+- **`<StatsBar>`** (`src/components/StatsBar.tsx`, ~150 lines) — The finish-date row + 6-cell stats grid that was inline in App.tsx. Pill row for multi-course mode. Self-contained props.
+
+### Added — Phase 0.5 UI integrations (foundation was already shipped in v2.6.0)
+
+The v2.6.0 release shipped the lib/hook foundation for Sprint, Adversary, Postmortem, Lab credit, and BurnDownView — but the UI surfaces were left for a later release. **v2.7.0 finishes the integration.**
+
+- **`<SprintBanner>`** (`src/components/SprintBanner.tsx`) — Surfaces above the tab strip when any active plan has a live sprint. Shows the plan name, days remaining, and pace boost. The X button cancels the sprint (clears `plan.sprint` via the store).
+- **`<PostmortemBanner>`** (`src/components/PostmortemBanner.tsx`) — Surfaces when any active plan's `targetEndDate` has passed and the plan doesn't yet have a postmortem. Clicking "Write postmortem" opens the `<PostmortemEditor>` modal (5-section template: timeline, rootCause, worked, didnt, actions). Dismissed plans don't re-prompt.
+- **`<LabCreditPrompt>`** (`src/components/LabCreditPrompt.tsx`) — Modal that surfaces after a lab session is logged, asking the user to credit the minutes to a matching exam domain. Uses `findDomainMatches` from `lab-credit.ts`. Accept writes the `creditedTo` key to the session; dismiss marks `creditPrompted: true` so it doesn't re-prompt.
+- **`<BurnDownView>`** — Already shipped in v2.6.0 as a component; v2.7.0 **mounts it above the tab strip** so users see it without opening a tab.
+- **Adversary timer UI** — Added the toggle, deadline picker, and pace-boost slider to `<NotificationSettingsPanel>`. Settings persist via `adversary.ts` storage.
+
+### Changed — Scheduling engine integration
+
+The v2.6.0 Sprint/Adversary modules were **read-time overlays** but were not actually wired into the schedule engine. v2.7.0 fixes that:
+
+- **`src/lib/plan-engine.ts`** — `syncStudyPlan` now applies `applySprintPace` when an active sprint exists and the plan is on `pagesPerDay` anchor, then layers `applyAdversaryPace` on top of the sprint boost. The plan still stores only the base `pagesPerDay`; the effective pace is computed at derivation time.
+- Adversary bump is **transient** — never persisted, only applies to today's derivation.
+
+### Changed — Per-row SQLite upsert (database.ts)
+
+- **`src/lib/database.ts`** — `writeStorage` no longer does a full-table `DELETE` + `INSERT` for every save. The new diff-based algorithm reads the prior snapshot (from the Tauri cache or a fallback `SELECT`), then issues per-row `INSERT`/`UPDATE`/`DELETE` statements only for what actually changed. Unchanged rows skip the write entirely. This is a structural change to the persistence layer — covered by the existing `database.test.ts` and `database-cache.test.ts`.
+
+### Added — Rust unit tests (`src-tauri/src/main.rs`)
+
+- **`parse_date`** (6 tests) — RFC 3339, RFC 3339 with offset, RFC 2822, naive datetime, garbage rejection, empty string.
+- **`url_to_domain`** (3 tests) — protocol+path stripping, protocol-relative, empty string.
+- **`is_valid_backup_filename`** (5 tests) — ISO date format accept, length reject, non-digit year, wrong separators, wrong extension.
+- **Backup list / prune** (3 tests) — newest-first sort, keep-N semantics, idempotent (no-overwrite).
+
+All 17 Rust tests run via `cargo test` in `src-tauri/`. The Tauri runtime is not needed.
+
+### Added — Personality layer gaps closed
+
+- **`modeLabel`** — Added to 7 spread modes (politician, linkedin-lunatic, true-crime, weather-anchor, passive-aggressive, conspiracy, elderly). The 4 non-spread modes inherit from `standardLabels` automatically.
+- **`backupPartial`** + **`backupVersionMismatch`** — Added to all 13 toast maps (via `standardToasts`, which the spread modes extend). The new backup-restore error paths now show real text instead of falling through to the raw key.
+- **`labCreditTitle`**, **`labCreditDesc`**, **`labCreditDismissed`** — Added for the new lab credit prompt.
+- **`sprintActivePlan`**, **`sprintActiveMultiple`**, **`sprintCancelled`**, **`sprintCancel`** — Added for the new sprint banner.
+- **`postmortemPromptSingle`**, **`postmortemPromptMultiple`**, **`postmortemTimelinePlaceholder`**, etc. — Added for the new postmortem editor.
+- **`adversarySubtitle`**, **`adversaryEnable`**, **`adversaryDeadline`**, **`adversaryBoost`** — Added for the new adversary settings UI.
+
+### Stats
+
+- **Test count**: 706 → **748** (+42 across 3 new hook test files). +11 Rust tests via `cargo test`.
+- **Test files**: 44 → **47** (added `useStudyLogging.test.tsx`, `useSchedule.test.tsx`, `useKeyboardShortcuts.test.ts`).
+- **Rust tests**: 0 → **17** (added in `src-tauri/src/main.rs:988`).
+- **TypeScript clean**. **Rust clean**. **E2E 11/11 pass**. **Vite build succeeds**.
+- **New files (12)**: `src/hooks/useStudyLogging.ts`, `src/hooks/useSchedule.ts`, `src/hooks/useKeyboardShortcuts.ts`, `src/components/AppHeader.tsx`, `src/components/Popover.tsx`, `src/components/StatsBar.tsx`, `src/components/SprintBanner.tsx`, `src/components/PostmortemBanner.tsx`, `src/components/LabCreditPrompt.tsx`, `src/hooks/__tests__/useStudyLogging.test.tsx`, `src/hooks/__tests__/useSchedule.test.tsx`, `src/hooks/__tests__/useKeyboardShortcuts.test.ts`.
+- **Modified files (8)**: `src/App.tsx` (extracted sections), `src/lib/plan-engine.ts` (Sprint + Adversary integration), `src/lib/database.ts` (per-row upsert), `src/lib/personality.ts` (15+ new keys), `src/components/LabDashboard.tsx` (lab credit prompt), `src/components/NotificationSettingsPanel.tsx` (adversary settings), `src-tauri/src/main.rs` (Rust tests), `src-tauri/Cargo.toml`.
+- **Versions bumped**: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (2.6.0 → 2.7.0).
+
+### Engine/logic files modified (explicit)
+
+The v2.6.0 release shipped Phase 0.5 with **zero** engine changes. v2.7.0 makes two small but real engine changes:
+
+- **`plan-engine.ts`** — Sprint and Adversary overlays now flow through `syncStudyPlan`. The base `pagesPerDay` is still locked; the overlays are derived at the call site.
+- **`database.ts`** — `writeStorage` is now a diff-based upsert, not a full-table rewrite. Same external API; same test coverage.
+
+No changes to `cissp-data.ts`, `plan-storage.ts`, or `plan-store.ts`.
+
+### Honest gaps (carried over to v2.7.1 / next release)
+
+- **App.tsx is still 928 lines** with 91 hook calls. The dialog state machine (`isPlannerOpen`, `isOnlineLabsOpen`, `isNewsOpen`, `isCourseBuilderOpen`, `logDialogDay`, `showTimerLog`, `showTip`, etc.) is the next extraction target. Each overlay would become its own component with its own action bundle.
+- **No error boundaries** in any component tree. A malformed plan crashes the whole tree.
+- **PlannerPage.tsx (67KB) and CourseBuilder.tsx (44KB) and LabDashboard.tsx (40KB)** remain the largest untested components. The v2.7.0 refactor didn't touch them.
+- **`tsconfig.app.json`** still has `noUnusedLocals: false` and `noUnusedParameters: false` — dead code lingers as a result.
+
+---
+
 ## [2.6.0] — 2026-06-12
 
 ### Added — Phase 0.5: Identity & Differentiation (all 10 features shipped)
@@ -95,7 +361,7 @@ All 10 features route their user-facing text through the personality layer. Labe
 - **Test count**: 512 → **642** (+130 across 8 new test files + audit regression tests)
 - **Test files**: 34 → **42**
 - **TypeScript clean**. **Rust clean**. **E2E 11/11 pass**.
-- **Portable**: `ZTSFv2.6.0.exe` rebuilt (MD5: `ad0571058068b74b380764ea17954295`)
+- **Portable**: `ZTSFv2.6.0.exe` rebuilt (MD5: `fe0dcf5076cfb4a125350fc4c57e5c28`)
 - **Versions bumped**: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (2.5.0 → 2.6.0)
 
 ### Engine/logic files untouched

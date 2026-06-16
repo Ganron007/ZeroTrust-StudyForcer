@@ -146,19 +146,37 @@ function computeCertStatus(
   }
 }
 
-function statusBadge(
-  status: CertStatus,
-): { text: string; className: string } {
+function certStatusLabelKey(status: CertStatus): string {
   switch (status) {
     case "completed":
-      return { text: "Certified", className: "bg-green-500/20 text-green-400 border-green-500/30" }
+      return "certStatusCompleted"
     case "in-progress":
-      return { text: "In Progress", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" }
+      return "certStatusInProgress"
     case "planned":
-      return { text: "Planned", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" }
+      return "certStatusPlanned"
     default:
-      return { text: "Not Started", className: "bg-muted text-muted-foreground border-border" }
+      return "certStatusNotStarted"
   }
+}
+
+function statusBadgeClasses(status: CertStatus): string {
+  switch (status) {
+    case "completed":
+      return "bg-green-500/20 text-green-400 border-green-500/30"
+    case "in-progress":
+      return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+    case "planned":
+      return "bg-blue-500/20 text-blue-400 border-blue-500/30"
+    default:
+      return "bg-muted text-muted-foreground border-border"
+  }
+}
+
+function statusBadge(
+  status: CertStatus,
+  label: (key: string) => string,
+): { text: string; className: string } {
+  return { text: label(certStatusLabelKey(status)), className: statusBadgeClasses(status) }
 }
 
 export default function CertPathView() {
@@ -249,9 +267,9 @@ export default function CertPathView() {
       <div className="flex items-center gap-3 mb-4">
         <Award className="w-7 h-7 text-primary" />
         <div>
-          <h2 className="text-xl font-bold">Certification Roadmap</h2>
+          <h2 className="text-xl font-bold">{label("certPathTitle")}</h2>
           <p className="text-sm text-muted-foreground">
-            {totalCertified} of {totalCerts} certifications attained
+            {formatStr(label("certPathProgress"), { totalCertified: String(totalCertified), totalCerts: String(totalCerts) })}
           </p>
         </div>
       </div>
@@ -303,7 +321,7 @@ export default function CertPathView() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {level.certs.map((cert) => {
-                        const badge = statusBadge(cert.result.status)
+                        const badge = statusBadge(cert.result.status, label)
                         const isManuallyCertified = certified.has(cert.id)
 
                         return (
@@ -344,7 +362,7 @@ export default function CertPathView() {
                               <div className="space-y-1 mb-2">
                                 <div className="flex justify-between text-xs text-muted-foreground">
                                   <span>
-                                    {cert.result.pagesRead} / {cert.result.totalPages} pages
+                                    {formatStr(label("certPathPagesRead"), { pagesRead: String(cert.result.pagesRead), totalPages: String(cert.result.totalPages) })}
                                   </span>
                                   <span>{Math.round(cert.result.progress * 100)}%</span>
                                 </div>
@@ -362,7 +380,7 @@ export default function CertPathView() {
 
                             {cert.result.status === "planned" && (
                               <p className="text-xs text-muted-foreground mb-2">
-                                Study plan created — start logging to track progress
+                                {label("certPathPlannedMessage")}
                               </p>
                             )}
 
@@ -373,7 +391,7 @@ export default function CertPathView() {
                                 rel="noopener noreferrer"
                                 className="text-xs text-primary hover:underline inline-block mb-2"
                               >
-                                Learn more
+                                {label("certLearnMore")}
                               </a>
                             )}
 
@@ -383,7 +401,7 @@ export default function CertPathView() {
                                 className="text-xs text-green-400 hover:text-green-300 transition-colors mt-1 inline-flex items-center gap-1"
                               >
                                 <CheckCircle className="w-3 h-3" />
-                                Mark as Certified
+                                {label("certMarkAsCertified")}
                               </button>
                             )}
 
@@ -391,20 +409,20 @@ export default function CertPathView() {
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Award className="w-3 h-3 text-green-400" />
-                                  Manually certified
+                                  {label("certManuallyCertified")}
                                 </span>
                                 <button
                                   onClick={() => toggleCertified(cert.id)}
                                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                  Undo
+                                  {label("certUndo")}
                                 </button>
                               </div>
                             )}
 
                             {(cert.result.status === "not-started" && cert.courseIdPrefixes.length > 0) && (
                               <p className="text-xs text-muted-foreground mt-1">
-                                No matching study plan. Create a course with id starting with "{cert.courseIdPrefixes[0]}-..."
+                                {formatStr(label("certNoMatchingPlan"), { prefix: cert.courseIdPrefixes[0] })}
                               </p>
                             )}
                           </div>

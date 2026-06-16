@@ -8,6 +8,12 @@ import { usePlanStore } from "@/lib/plan-store"
 import { generateSchedule, getTotalPages, getOrderedChapters, DEFAULT_STUDY_DAYS } from "@/lib/cissp-data"
 import { syncStudyPlan } from "@/lib/plan-engine"
 import {
+  flattenChapters,
+  computeDashboardStats,
+  groupPlansByCourse,
+  clampPagesPerDay,
+} from "@/lib/planner-page-helpers"
+import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, Pencil, Trash2, Play, Check, CalendarDays,
   BookOpen, Save, X, GraduationCap, Download, Upload, Target,
   Layers, TrendingUp, Sparkles, Wrench,
@@ -32,18 +38,9 @@ interface PlannerPageProps {
   onOpenCourseBuilder?: () => void
 }
 
-function flattenChapters(cfg: CourseConfig): Chapter[] {
-  return cfg.units.flatMap((u) =>
-    u.chapters.map((ch) => ({
-      id: ch.id,
-      title: ch.title,
-      pages: ch.pages,
-      unitId: u.id,
-      unitName: u.title,
-      color: u.color,
-    }))
-  )
-}
+// Note: flattenChapters is now imported from @/lib/planner-page-helpers
+// so it can be unit-tested in isolation. The local function has been
+// removed; all callers use the imported version.
 
 const DAY_LABELS = [
   { dow: 0, short: "Su", label: "Sunday" },
@@ -126,32 +123,16 @@ export default function PlannerPage({
     })
   }
 
-  const plansByCourse = useMemo(() => {
-    const map: Record<string, StudyPlan[]> = {}
-    for (const course of courses) {
-      map[course.id] = allPlans.filter((p) => p.courseId === course.id)
-    }
-    return map
-  }, [courses, allPlans])
+  const plansByCourse = useMemo(
+    () => groupPlansByCourse(courses, allPlans),
+    [courses, allPlans],
+  )
 
   // Dashboard stats
-  const dashboardStats = useMemo(() => {
-    const totalPlans = allPlans.length
-    const activeCount = activePlanIds.length
-    const avgPct =
-      totalPlans === 0
-        ? 0
-        : Math.round(
-            allPlans.reduce((sum, plan) => {
-              const cfg = courses.find((c) => c.id === plan.courseId)
-              const chapters = cfg ? getOrderedChapters(cfg, plan.unitOrder) : []
-              const totalPages = getTotalPages(plan.chapterStartOverrides, plan.startingChapterId, chapters)
-              const donePages = Object.values(plan.dailyLog).reduce((s, l) => s + Math.max(0, l.pagesRead), 0)
-              return sum + (totalPages > 0 ? (donePages / totalPages) * 100 : 0)
-            }, 0) / totalPlans
-          )
-    return { totalPlans, activeCount, courseCount: courses.length, avgPct }
-  }, [allPlans, activePlanIds, courses])
+  const dashboardStats = useMemo(
+    () => computeDashboardStats(allPlans, activePlanIds, courses),
+    [allPlans, activePlanIds, courses],
+  )
 
   async function handleDeletePlan(id: string) {
     if (!confirm(label("confirmDeletePlan"))) return
@@ -187,7 +168,7 @@ export default function PlannerPage({
       ...existing,
       name: editName.trim() || existing.name,
       startDate: editStartDate,
-      pagesPerDay: Math.max(1, editPagesPerDay),
+      pagesPerDay: clampPagesPerDay(editPagesPerDay),
       studyDays: editStudyDays,
       startingChapterId: editStartingChapterId,
       targetEndDate: editTargetEndDate,
@@ -250,7 +231,7 @@ export default function PlannerPage({
       ...defaults,
       name,
       startDate: editStartDate,
-      pagesPerDay: Math.max(1, editPagesPerDay),
+      pagesPerDay: clampPagesPerDay(editPagesPerDay),
       studyDays: editStudyDays,
       startingChapterId: editStartingChapterId,
       targetEndDate: editTargetEndDate,

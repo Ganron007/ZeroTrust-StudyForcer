@@ -129,10 +129,64 @@ consumption math via `dailyLog.pagesRead` is always correct).
 ## Testing
 
 ```sh
-npx vitest run          # Run all tests (642 tests, 42 files)
+npx vitest run          # Run all tests (964 tests, 65 files)
 npx tsc -b --noEmit     # TypeScript type checking
-npm run e2e             # Playwright E2E tests (11 tests)
+npx playwright test     # Playwright E2E tests (11 tests)
+cd src-tauri && cargo test   # Rust unit tests (17 tests)
 ```
+
+---
+
+## Hooks (v2.7.0 + v2.8.0)
+
+The App.tsx refactor extracted seven hooks from `App.tsx`. Each has a focused responsibility
+and its own test file.
+
+| Hook | File | Tests | Responsibility | Since |
+|---|---|---|---|---|
+| `useStudyLogging` | `src/hooks/useStudyLogging.ts` | 15 | Owns Log/Skip temp React state, the `tempLogsLoaded` race-guard, Mark Done commit flow, LogDialog open/save/skip | v2.7.0 |
+| `useSchedule` | `src/hooks/useSchedule.ts` | 7 | Pure derivation of `baseSchedule`, `mergedSchedule`, `selectedCoursesStats`, `showMerged`. No side effects. | v2.7.0 |
+| `useKeyboardShortcuts` | `src/hooks/useKeyboardShortcuts.ts` | 18 | Global keydown listener. Suppresses shortcuts when focus is in form fields or any modal is open. | v2.7.0 |
+| `useOverlayState<T>` | `src/hooks/useOverlayState.ts` | 8 | Generic hook: one call per overlay returns `{ isOpen, state, open, close, toggle, setState }`. Used by 5 overlays. | v2.8.0 |
+| `useAppViewState` | `src/hooks/useAppViewState.ts` | 15 | Bundles `activeTab`, `isFullscreen`/`toggleFullscreen`, `calendarSelectedDate`, `statsViewCourseId`, `selectedCourseIds` (with localStorage sync + auto-activate) | v2.8.0 |
+| `useTipState` | `src/hooks/useTipState.ts` | 5 | Tip popup flag + picker + current tip. Re-seeds when mode changes. | v2.8.0 |
+| `useRefreshController` | `src/hooks/useRefreshController.ts` | 4 | `refreshTick` + `refreshing` + `loadPlans()` effect. `trigger()` / `triggerWithToast(toastFn)`. | v2.8.0 |
+
+## Extracted components (v2.7.0 + v2.8.0)
+
+| Component | File | Replaces | Since |
+|---|---|---|---|
+| `<AppHeader>` | `src/components/AppHeader.tsx` | The ~400-line inline header section of `App.tsx` (logo, course selector, planner/labs/news, timer, tips, refresh, backup, reset, restore, theme/mode/notification popovers, OPSEC, fullscreen) | v2.7.0 |
+| `<Popover>` | `src/components/Popover.tsx` | 4 inline popover scaffolds (theme, mode, notification) — click-outside + Escape + focus management | v2.7.0 |
+| `<StatsBar>` | `src/components/StatsBar.tsx` | The finish-date + 6-cell grid (study days, total, read/total, pages/day, frequency, % done) with multi-course pill row | v2.7.0 |
+| `<OverlayManager>` | `src/components/OverlayManager.tsx` | 4 `if (isXxxOpen) return <Xxx .../>` early-returns (Labs, News, CourseBuilder, Planner). One full-page overlay at a time. | v2.8.0 |
+| `<TimerLogDialog>` | `src/components/TimerLogDialog.tsx` | Inline `<div className="fixed inset-0 z-50 ...">` timer-elapsed confirmation | v2.8.0 |
+
+## Phase 0.5 UI integration (v2.7.0)
+
+The v2.6.0 release shipped the lib/hook foundation for Sprint, Adversary, Postmortem,
+Lab credit, and BurnDownView. **v2.7.0 wires them into the UI:**
+
+- `<SprintBanner>` (`src/components/SprintBanner.tsx`) — surfaces above tabs when any active plan
+  has a live sprint
+- `<PostmortemBanner>` + `<PostmortemEditor>` (`src/components/PostmortemBanner.tsx`) — prompts
+  for past exam dates, opens 5-section editor
+- `<LabCreditPrompt>` (`src/components/LabCreditPrompt.tsx`) — surfaces after a lab session is
+  logged, asks to credit minutes to a matching exam domain
+- `<BurnDownView>` — already shipped in v2.6.0; v2.7.0 **mounts it above the tab strip**
+- Adversary settings — added to `<NotificationSettingsPanel>`
+
+## Engine changes (v2.7.0)
+
+Two real engine changes, both additive:
+
+1. **`plan-engine.ts:syncStudyPlan`** now layers `applySprintPace` (when active sprint exists
+   and `anchor === "pagesPerDay"`) and `applyAdversaryPace` (on top of the sprint boost) when
+   deriving the effective pace. The base `plan.pagesPerDay` is still stored; overlays are
+   computed at the call site.
+2. **`database.ts:writeStorage`** is now a diff-based per-row upsert. Reads the prior snapshot
+   (from the Tauri cache or a fallback `SELECT`), then issues `INSERT`/`UPDATE`/`DELETE` per
+   row. Unchanged rows skip the write entirely.
 
 ---
 

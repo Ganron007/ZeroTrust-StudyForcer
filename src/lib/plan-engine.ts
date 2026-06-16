@@ -2,6 +2,8 @@ import type { Chapter } from "@/types/course"
 import type { StudyPlan, Anchor } from "@/lib/plan-storage"
 import { getTotalPages, countStudyDays, nthStudyDay, generateSchedule, type GeneratedSchedule } from "./cissp-data"
 import { today as todayNow } from "./clock"
+import { applySprintPace } from "./sprint"
+import { applyAdversaryPace, loadAdversarySettings } from "./adversary"
 
 export interface ComputedPlanParams {
   /** The actual pagesPerDay to use for schedule generation. */
@@ -43,6 +45,18 @@ function pagesConsumedBeforeToday(plan: StudyPlan, today: string, totalPages?: n
   }
   // Safety clamp — a corrupted log with 9999 pages should not claim more than the course
   return totalPages !== undefined ? Math.min(consumed, totalPages) : consumed
+}
+
+/**
+ * Apply transient pace overlays (sprint + adversary) to a base pace.
+ * These overlays are read-time only and never persisted to plan storage.
+ * v2.8.1: applies to both VELOCITY and DEADLINE anchors.
+ */
+function applyPaceOverlays(basePace: number, plan: StudyPlan, today: string): number {
+  const safeBase = Math.max(1, basePace)
+  const sprinted = applySprintPace(safeBase, plan.sprint, today)
+  const advSettings = loadAdversarySettings()
+  return applyAdversaryPace(sprinted, advSettings, today)
 }
 
 /**
@@ -108,13 +122,14 @@ export function syncStudyPlan(
     }
 
     const derivedPace = Math.max(1, Math.ceil(remaining / available))
+    const pace = applyPaceOverlays(derivedPace, plan, today)
 
     return {
-      pagesPerDay: derivedPace,
+      pagesPerDay: pace,
       endDate: effectiveEndDate,
       isFeasible: true,
       warnings,
-      derivedValue: derivedPace,
+      derivedValue: pace,
       anchor: "endDate",
       consumed,
       remaining,
@@ -126,7 +141,9 @@ export function syncStudyPlan(
   const safePagesPerDay = Number.isFinite(plan.pagesPerDay) && plan.pagesPerDay > 0
     ? plan.pagesPerDay
     : 1
-  const pace = Math.max(1, safePagesPerDay)
+  // v2.8.1: Sprint + Adversary overlays apply to the effective pace
+  // regardless of anchor. These are read-time only and never persisted.
+  const pace = applyPaceOverlays(safePagesPerDay, plan, today)
   const safeRemaining = Number.isFinite(remaining) && remaining > 0 ? remaining : 0
   const neededDays = safeRemaining > 0 ? Math.ceil(safeRemaining / pace) : 0
   const derivedEndDate = neededDays > 0

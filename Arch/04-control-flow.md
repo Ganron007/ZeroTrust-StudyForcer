@@ -60,7 +60,11 @@ Trigger: plans[] or activePlanIds changes (after Mark Done or plan edit)
   │  │   │   → pagesPerDay = max(1, ceil(remaining / available))
   │  │   │   → endDate = targetEndDate (locked)
   │  │   └─ If anchor === "pagesPerDay":
-  │  │       → pagesPerDay = plan.pagesPerDay (locked)
+  │  │       → basePPD = max(1, plan.pagesPerDay)
+  │  │       → if plan.sprint and isSprintActive(sprint, today) (v2.7.0):
+  │  │           pagesPerDay = applySprintPace(basePPD, sprint, today)
+  │  │       → if adversary enabled (v2.7.0):
+  │  │           pagesPerDay = applyAdversaryPace(prev, settings, today)
   │  │       → neededDays = ceil(remaining / pagesPerDay)
   │  │       → endDate = nthStudyDay(today, neededDays)
   │  │

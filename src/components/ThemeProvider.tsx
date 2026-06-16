@@ -23,6 +23,13 @@ export function useTheme() {
 }
 
 const ALL_THEMES: Theme[] = ["light", "light-grey", "dark-grey", "dark", "system"]
+
+export const THEME_OPTIONS: { id: Theme; label: string; swatch: string }[] = [
+  { id: "light", label: "Light", swatch: "#fafafa" },
+  { id: "light-grey", label: "Light Grey", swatch: "#cccccc" },
+  { id: "dark-grey", label: "Dark Grey", swatch: "#484848" },
+  { id: "dark", label: "Dark", swatch: "#0a0a0a" },
+]
 // Migrated from "cissp-theme" to "ztsf:theme" for consistent branding.
 // Old key is read on first boot and migrated to the new key.
 const STORAGE_KEY = "ztsf:theme"

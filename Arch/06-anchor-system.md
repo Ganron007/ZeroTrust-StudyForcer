@@ -169,9 +169,9 @@ No phantom consumption for unlogged days.
 | Page value > scheduleEnd | Allowed (ahead of schedule), schedule recalculates |
 | All pages sequenced exhausted | Schedule stops generating new days |
 
-## 8. Sprint Mode Overlay (Phase 0.5.4)
+## 8. Sprint Mode Overlay (Phase 0.5.4, integrated v2.7.0, deadline-anchor fix v2.7.1)
 
-Sprint is a **read-time overlay** on `pagesPerDay`. It does NOT modify the stored `pagesPerDay` value.
+Sprint is a **read-time overlay** on the effective daily pace. It does NOT modify the stored `pagesPerDay` value.
 
 ```typescript
 // sprint.ts
@@ -181,12 +181,49 @@ function applySprintPace(pagesPerDay, sprint, today): number
   // Returns pagesPerDay * (1 + sprint.paceBoost / 100) when active
 ```
 
+**v2.7.0 integration:** `plan-engine.ts:syncStudyPlan` calls `applySprintPace` when a sprint is active.
+**v2.7.1 fix:** Overlay now applies to both `pagesPerDay` and `endDate` anchors. Previously the DEADLINE branch skipped it.
+
+**v2.7.0 UI:** `<SprintBanner>` (above tabs) shows active sprints. X button cancels (clears
+`plan.sprint` via `usePlanStore.updatePlan`).
+
 **Key properties:**
 - Sprint field on `StudyPlan` is optional
 - Auto-expires when `today >= startDate + days`
 - `Date.setDate()` for DST-safe calendar arithmetic (not ms math)
 - `Math.round` for stable days-remaining count
-- Engine unchanged — sprint is applied at the read-site
+- Engine semantics unchanged — sprint is a pure overlay
+
+---
+
+## 9. Adversary Timer Overlay (Phase 0.5.9, integrated v2.7.0, deadline-anchor fix v2.7.1)
+
+Adversary is a **transient, read-time overlay** layered on top of Sprint (or applied
+directly to the effective daily pace if no sprint is active).
+
+```typescript
+// adversary.ts
+function loadAdversarySettings(): AdversarySettings  // from localStorage
+function saveAdversarySettings(settings): void
+function computeAdversaryBump(settings, today, nowIso, nowLocalDate?): number
+  // Returns settings.paceBoostPct if past today's deadline, else 0
+function applyAdversaryPace(pagesPerDay, settings, today, nowIso, nowLocalDate?): number
+  // Returns pagesPerDay * (1 + bump / 100) if bump > 0
+```
+
+**v2.7.0 integration:** `plan-engine.ts:syncStudyPlan` layers `applyAdversaryPace` on top of
+the Sprint boost (or directly on the base pace if no sprint is active). Layer order:
+`basePPD → applySprintPace → applyAdversaryPace → final pagesPerDay`.
+**v2.7.1 fix:** Overlay now applies to both `pagesPerDay` and `endDate` anchors. Previously the DEADLINE branch skipped it.
+
+**v2.7.0 UI:** Toggle, deadline picker, and pace-boost slider added to
+`<NotificationSettingsPanel>`. Settings persist via `ztsf:adversary-settings` localStorage.
+
+**Key properties:**
+- Off by default
+- Auto-resets on next user log (no manual cleanup)
+- TZ-aware: uses `nowLocalDate` to avoid late-evening UTC/local mismatch
+- `paceBoostPct` clamped to [0, 200]
 
 ---
 

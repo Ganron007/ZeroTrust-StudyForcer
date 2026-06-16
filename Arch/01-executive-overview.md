@@ -4,7 +4,7 @@
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State Management:** Zustand 5 (single source of truth) + SQLite (Tauri) / localStorage (Web)  
 **Personality Layer:** 13 text themes via `PersonalityProvider` React context — pure string overlay  
-**Version:** 2.6.0 (Phase 0.5 complete, 642 tests)
+**Version:** 2.7.0 (App.tsx refactor + Phase 0.5 UI integration: 748 vitest + 11 e2e + 17 Rust tests)
 
 ---
 
@@ -34,10 +34,11 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 │  └────────────────────┬──────────────────────────────┘      │
 │                       │                                      │
 │  ┌────────────────────▼──────────────────────────────────────┐│
-│  │              App.tsx (Handlers)                           ││
-│  │  handleLogPlan / handleSkipPlan / handleMarkDone          ││
-│  │  handleOpenLogDialog / handleLogDialogSave                ││
-│  │  handleTimerLog / handleSaveEdit / handleDeletePlan       ││
+│  │              App.tsx (Dialog state + layout)                ││
+│  │  isPlannerOpen / isOnlineLabsOpen / isNewsOpen             ││
+│  │  isCourseBuilderOpen / logDialogDay / showTimerLog         ││
+│  │  v2.7.0: handlers moved to useStudyLogging + AppHeader    ││
+│  │       useSchedule + useKeyboardShortcuts hooks              ││
 │  └────────────────────┬──────────────────────────────────────┘│
 └───────────────────────┼──────────────────────────────────────┘
                         │
@@ -98,15 +99,18 @@ Users log pages read per plan per day (temporary state), then commit with "Mark 
 | **Security News** | RSS/Atom feed reader (Rust backend, 13 feeds + HN Algolia) + CVE-of-the-day chip |
 | **Lab Tracker** | Session logging with streaks, at-risk alerts, smart scoring |
 | **OPSEC mode** | Masks sensitive info for screen-sharing — persisted to localStorage |
-| **Sprint mode** | Temporary pace boost overlay on `pagesPerDay` — auto-expires |
-| **Lab credit** | Lab → exam-domain fuzzy matching — optional credit prompt |
-| **Postmortem** | 5-section exam-passed reflection template — persisted per-plan |
-| **Adversary timer** | Opt-in pace auto-bump when deadline missed — settings layer |
+| **Sprint mode** | Temporary pace boost overlay on `pagesPerDay` — auto-expires. **v2.7.0: integrated into `plan-engine.ts:syncStudyPlan`** |
+| **Lab credit** | Lab → exam-domain fuzzy matching — optional credit prompt. **v2.7.0: `<LabCreditPrompt>` modal after `LabDashboard.submitLog`** |
+| **Postmortem** | 5-section exam-passed reflection template — persisted per-plan. **v2.7.0: `<PostmortemBanner>` + `<PostmortemEditor>` UI** |
+| **Adversary timer** | Opt-in pace auto-bump when deadline missed — settings layer. **v2.7.0: UI in `<NotificationSettingsPanel>`, integrated into `plan-engine.ts`** |
 | **Temp log persistence** | Log/Skip state survives refresh via `temp-log-storage.ts` |
 | **Single clock source** | `src/lib/clock.ts` — all time calls centralized, mockable |
 | **Branded domain types** | `PlanId`, `CourseId`, `ISODate`, `ISOTimestamp` — compile-time type safety |
 | **Inviolable rules tests** | 15 regression tests mapping 1:1 to `ARCHITECTURE.md` rules |
 | **Test determinism (TZ=UTC)** | `vitest.config.ts` sets `env.TZ = 'UTC'` — tests run in a fixed timezone so local-time-dependent tests are caught on every host, not just non-IST |
+| **App.tsx structural refactor (v2.7.0)** | 3 hooks (`useStudyLogging`, `useSchedule`, `useKeyboardShortcuts`) + 3 components (`AppHeader`, `Popover`, `StatsBar`) extracted. 1,230 → 928 lines |
+| **Per-row SQLite upsert (v2.7.0)** | `database.ts:writeStorage` now diffs the prior snapshot and issues per-row `INSERT`/`UPDATE`/`DELETE` instead of full-table rewrite |
+| **Rust unit tests (v2.7.0)** | 17 tests in `src-tauri/src/main.rs` — `parse_date`, `url_to_domain`, `is_valid_backup_filename`, backup list/prune |
 
 ---
 

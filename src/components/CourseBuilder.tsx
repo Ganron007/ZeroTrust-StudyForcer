@@ -7,6 +7,19 @@ import { showToast } from "@/components/NotificationToast"
 import { usePersonality } from "./PersonalityProvider"
 import { formatStr } from "@/lib/personality"
 import type { CourseConfig, CourseUnit, CourseChapter } from "@/types/course"
+import {
+  validateId,
+  getNextChapterId,
+  getNextUnitId,
+  applyChapterFieldChange,
+  toggleStudyDay as toggleStudyDayPure,
+  buildCourseConfig as buildCourseConfigPure,
+  validateCourseConfig,
+  RESERVED_IDS,
+  type BuilderInput,
+  type BuilderUnit,
+  type BuilderChapter,
+} from "@/lib/course-builder-helpers"
 
 interface CourseBuilderProps {
   onBack: () => void
@@ -83,18 +96,12 @@ export default function CourseBuilder({ onBack, onCourseSaved, existingCourses =
   const [showPreview, setShowPreview] = useState(true)
 
   // ── Validation ────────────────────────────────────────────────────────
-  function validateId(input: string) {
-    return input.toLowerCase().replace(/[^a-z0-9-]/g, "")
-  }
-
-  function getNextChapterId(): number {
-    const allIds = units.flatMap(u => u.chapters.map(c => c.id))
-    return allIds.length > 0 ? Math.max(...allIds) + 1 : 1
-  }
+  // Note: validateId, getNextChapterId, etc. are imported from
+  // @/lib/course-builder-helpers so they can be unit-tested in isolation.
 
   // ── Unit CRUD ──────────────────────────────────────────────────────────
   function addUnit() {
-    const nextId = units.length > 0 ? Math.max(...units.map(u => u.id)) + 1 : 1
+    const nextId = getNextUnitId(units)
     setUnits([...units, {
       id: nextId,
       title: "",
@@ -125,7 +132,7 @@ export default function CourseBuilder({ onBack, onCourseSaved, existingCourses =
 
   // ── Chapter CRUD ───────────────────────────────────────────────────────
   function addChapter(unitIndex: number) {
-    const nextId = getNextChapterId()
+    const nextId = getNextChapterId(units)
     setUnits(units.map((u, i): UnitState =>
       i === unitIndex
         ? { ...u, chapters: [...u.chapters, { id: nextId, title: "", pages: 1, bookPageStart: undefined }] }
@@ -159,14 +166,7 @@ export default function CourseBuilder({ onBack, onCourseSaved, existingCourses =
         ...u,
         chapters: u.chapters.map((c, ci): ChapterState => {
           if (ci !== chapterIndex) return c
-          if (field === "pages") return { ...c, pages: Math.max(1, Number(value) || 1) }
-          if (field === "id") return { ...c, id: Math.max(1, Number(value) || 1) }
-          if (field === "bookPageStart") {
-            const n = parseInt(value, 10)
-            return { ...c, bookPageStart: (value === "" || isNaN(n) || n < 1) ? undefined : n }
-          }
-          if (field === "title") return { ...c, title: value }
-          return { ...c, [field]: value }
+          return applyChapterFieldChange(c, field, value)
         }),
       }
     }))
@@ -174,88 +174,38 @@ export default function CourseBuilder({ onBack, onCourseSaved, existingCourses =
 
   // ── Study days ──────────────────────────────────────────────────────────
   function toggleStudyDay(dow: number) {
-    setStudyDays(prev => {
-      if (prev.includes(dow)) {
-        if (prev.length <= 1) return prev
-        return prev.filter(d => d !== dow)
-      }
-      return [...prev, dow].sort((a, b) => a - b)
-    })
+    setStudyDays(prev => toggleStudyDayPure(prev, dow))
   }
 
   // ── Build CourseConfig ──────────────────────────────────────────────────
+  // Delegates to the pure helper for the actual construction so it can
+  // be unit-tested in isolation. The wrapper exists only to assemble
+  // the BuilderInput from component state.
   function buildCourseConfig(): CourseConfig {
-    let totalPages = 0
-    const configUnits: CourseUnit[] = units.map(unit => {
-      const chapters: CourseChapter[] = unit.chapters.map(ch => {
-        totalPages += ch.pages
-        const chapter: CourseChapter = {
-          id: ch.id,
-          title: ch.title || `Chapter ${ch.id}`,
-          pages: ch.pages,
-        }
-        if (ch.bookPageStart) chapter.bookPageStart = ch.bookPageStart
-        return chapter
-      })
-      return {
-        id: unit.id,
-        title: unit.title || `Unit ${unit.id}`,
-        color: unit.color,
-        chapters,
-      }
-    })
-
-    const hasExamInfo = examFormat || examDuration || examPassing || examDomains || examExperience
-
-    return {
-      id: validateId(courseId),
-      name: courseName || "Untitled Course",
-      ...(subtitle && { subtitle }),
-      ...(edition && { edition }),
-      ...(publisher && { publisher }),
-      totalPages,
-      studyPages: totalPages,
-      ...(hasExamInfo && {
-        examInfo: {
-          ...(examFormat && { format: examFormat }),
-          ...(examDuration && { duration: examDuration }),
-          ...(examPassing && { passingScore: examPassing }),
-          ...(examDomains && { domainsLabel: examDomains }),
-          ...(examExperience && { experienceReq: examExperience }),
-        },
-      }),
-      ...((estMin !== 3 || estMax !== 5) && {
-        studyEstimate: { minutesPerPage: [estMin, estMax] as [number, number] },
-      }),
-      units: configUnits,
-      defaultSettings: {
-        pagesPerDay: defaultPagesPerDay,
-        studyDays: [...studyDays],
-        startingChapterId: defaultStartingChapter,
-      },
-      trackingMode: "pages",
+    const input: BuilderInput = {
+      courseId,
+      courseName,
+      subtitle,
+      edition,
+      publisher,
+      units,
+      studyDays,
+      defaultPagesPerDay,
+      defaultStartingChapter,
+      exam: { examFormat, examDuration, examPassing, examDomains, examExperience },
+      estimate: { estMin, estMax },
     }
+    return buildCourseConfigPure(input)
   }
 
   // ── Validation ──────────────────────────────────────────────────────────
+  // Delegates to the pure helper for the actual validation rules.
   function validate(config: CourseConfig): string[] {
-    const errors: string[] = []
-    if (!config.id) errors.push("Course ID is required")
-    if (!config.name) errors.push("Course name is required")
-    if (config.units.length === 0) errors.push("At least one unit is required")
-    config.units.forEach((u, i) => {
-      if (!u.title) errors.push(`Unit ${i + 1} needs a name`)
-      if (u.chapters.length === 0) errors.push(`Unit ${i + 1} needs at least one chapter`)
-      u.chapters.forEach((c, j) => {
-        if (!c.title) errors.push(`Unit ${i + 1}, Chapter ${j + 1} needs a title`)
-      })
-    })
-    return errors
+    return validateCourseConfig(config)
   }
 
   // ── Save ────────────────────────────────────────────────────────────────
-  // Reserved seed course IDs that cannot be overwritten
-  const RESERVED_IDS = ["cissp-10th-ed"]
+  // RESERVED_IDS is imported from @/lib/course-builder-helpers.
 
   async function handleSave() {
     const config = buildCourseConfig()

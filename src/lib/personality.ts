@@ -27,6 +27,7 @@ type LabelMap = Record<string, string>
 
 const standardLabels: LabelMap = {
   appTitle: "ZeroTrust.StudyForcer",
+  modeLabel: "Personality Mode",
   planner: "Planner",
   onlineLabs: "Online Labs",
   news: "News",
@@ -66,6 +67,12 @@ const standardLabels: LabelMap = {
   notificationEnable: "Enable daily reminder",
   notificationTime: "Time",
   notificationLabsAlert: "Alert me about at-risk labs",
+  // Phase 0.5.9: Adversary
+  adversaryTitle: "Adversary timer",
+  adversarySubtitle: "If you miss your daily deadline, tomorrow's pace auto-bumps.",
+  adversaryEnable: "Enable adversary mode",
+  adversaryDeadline: "Daily deadline",
+  adversaryBoost: "Pace boost",
   notificationBrowserModeHint: "Notifications only work in the desktop app — not in browser mode",
   notificationPermissionDenied: "Notification permission denied",
   notificationEnabled: "Daily reminder enabled",
@@ -203,6 +210,22 @@ const standardLabels: LabelMap = {
   complianceGaps: "Gaps identified",
   complianceGenerated: "Report generated",
   complianceExportSuccess: "Compliance report exported",
+  certPath: "Cert Path",
+  certPathTitle: "Certification Roadmap",
+  certPathProgress: "{totalCertified} of {totalCerts} certifications attained",
+  certStatusCompleted: "Certified",
+  certStatusInProgress: "In Progress",
+  certStatusPlanned: "Planned",
+  certStatusNotStarted: "Not Started",
+  certPathPagesRead: "{pagesRead} / {totalPages} pages",
+  certPathPlannedMessage: "Study plan created — start logging to track progress",
+  certLearnMore: "Learn more",
+  certMarkAsCertified: "Mark as Certified",
+  certManuallyCertified: "Manually certified",
+  certUndo: "Undo",
+  certNoMatchingPlan: "No matching study plan. Create a course with id starting with \"{prefix}-...\"",
+  certMarked: "Marked {id} as certified!",
+  certRemoved: "Removed {id} from certified certs.",
   examOverview: "Exam Overview",
   format: "Format",
   duration: "Duration",
@@ -382,12 +405,19 @@ const standardLabels: LabelMap = {
   sprintEnd: "End sprint",
   sprintDays: "{n} day sprint",
   sprintActive: "Sprint active — pace boost +{pct}%",
+  sprintActivePlan: "Sprint active on \"{planName}\" — {days} day(s) left, pace boost +{pct}%.",
+  sprintActiveMultiple: "{count} sprints active.",
   sprintExpired: "Sprint ended",
+  sprintCancelled: "Sprint cancelled.",
+  sprintCancel: "Cancel sprint",
   sprintConfirmStart: "Start a {n}-day pace boost? Pages per day will increase by {pct}%.",
   // Phase 0.5.6: Lab credit
+  labCreditTitle: "Credit lab time?",
+  labCreditDesc: "You just logged {minutes}m on \"{lab}\". Credit this time to a matching exam domain?",
   labCreditPrompt: "This lab covers {domain}. Credit time to that domain?",
   labCreditYes: "Yes, credit",
   labCreditNo: "No, just log",
+  labCreditDismissed: "OK, not credited.",
   labCreditSuccess: "Credited {minutes}m to {domain}.",
   // Phase 0.5.7: Burn-down view
   burndownTitle: "Burn-Down",
@@ -399,20 +429,28 @@ const standardLabels: LabelMap = {
   postmortemTitle: "Postmortem",
   postmortemExamPassed: "Your exam date has passed.",
   postmortemPrompt: "Take 5 minutes to log a postmortem: what worked, what didn't, what's next.",
+  postmortemPromptSingle: "Your exam date for \"{planName}\" has passed. Take 5 minutes for a postmortem?",
+  postmortemPromptMultiple: "{count} plans have passed their exam date. Postmortem time.",
   postmortemTimeline: "Timeline",
+  postmortemTimelinePlaceholder: "What happened? Major events and decisions.",
   postmortemRootCause: "Root cause analysis",
+  postmortemRootCausePlaceholder: "What were the underlying causes?",
   postmortemWorked: "What worked",
+  postmortemWorkedPlaceholder: "Strategies, tools, and habits that helped.",
   postmortemDidnt: "What didn't",
+  postmortemDidntPlaceholder: "What held you back?",
   postmortemActions: "Action items",
+  postmortemActionsPlaceholder: "Concrete next steps.",
   postmortemSave: "Save postmortem",
-  postmortemSkip: "Skip for now",
   postmortemSaved: "Postmortem saved.",
-  // Phase 0.5.9: Adversary timer
-  adversaryTitle: "Adversary mode",
-  adversaryDesc: "If today isn't logged by your deadline, tomorrow's pace auto-bumps.",
-  adversaryEnabled: "Adversary mode on",
-  adversaryDisabled: "Adversary mode off",
-  adversaryBump: "Missed deadline — pace auto-bumped by {pct}% for tomorrow.",
+  postmortemSaveFailed: "Failed to save postmortem.",
+  postmortemCancel: "Cancel",
+  postmortemDelete: "Delete",
+  postmortemDeleteConfirm: "Delete this postmortem? This cannot be undone.",
+  postmortemDeleted: "Postmortem deleted.",
+  postmortemDismiss: "Dismiss for now",
+  postmortemWrite: "Write postmortem",
+  postmortemSkip: "Skip for now",
 }
 
 const drillSergeantLabels: LabelMap = {
@@ -1930,6 +1968,7 @@ const politicianLabels: LabelMap = { ...standardLabels,
   confirmResetAll: "RESET EVERYTHING? This is big. Confirm?",
   shortcutToast: "SHORTCUTS: 1/2/3=tabs, P=planner, L=labs, N=news, F=full, R=refresh, T=theme, Esc=back. The best.",
   unitOrderFrozenCreateNew: "FROZEN. New plan to change. Very simple.",
+  modeLabel: "Vibe",
 }
 
 // ─── NEW MODE: LINKEDIN LUNATIC ─────────────────────────────────────────
@@ -2069,6 +2108,7 @@ const linkedInLabels: LabelMap = { ...standardLabels,
   confirmResetAll: "RESET ALL? Clears initiatives, logs, selections. Configs preserved.",
   shortcutToast: "SHORTCUTS: 1=Cal, 2=Sched, 3=Prog, P=Plan, L=Labs, N=News, F=Full, R=Refresh, T=Theme, Esc=Back",
   unitOrderFrozenCreateNew: "Pathway frozen. Create new initiative. #ContinuousImprovement",
+  modeLabel: "Personal Brand",
 }
 
 // ─── NEW MODE: TRUE CRIME ───────────────────────────────────────────────
@@ -2210,6 +2250,7 @@ const trueCrimeLabels: LabelMap = { ...standardLabels,
   confirmResetAll: "PURGE ALL FILES? Clears cases, logs, selections. Config preserved.",
   shortcutToast: "SHORTCUTS: 1=Calendar, 2=Schedule, 3=Progress, P=Planner, L=Labs, N=News, F=Full, R=Refresh, T=Theme, Esc=Back",
   unitOrderFrozenCreateNew: "Evidence chain FROZEN. Open a new case to modify chain.",
+  modeLabel: "Narrator",
 }
 
 // ─── NEW MODE: WEATHER ANCHOR ───────────────────────────────────────────
@@ -2350,6 +2391,7 @@ const weatherAnchorLabels: LabelMap = { ...standardLabels,
   confirmResetAll: "RESET ALL DATA? This is a Category 5 reset. Confirm?",
   shortcutToast: "SHORTCUTS: 1=Radar, 2=Outlook, 3=Progress, P=Desk, L=Monitors, N=News, F=Full, R=Refresh, T=Theme, Esc=Back",
   unitOrderFrozenCreateNew: "Grid FROZEN. Issue new storm warning to reconfigure.",
+  modeLabel: "Anchor Desk",
 }
 
 // ─── NEW MODE: PASSIVE-AGGRESSIVE MOM ───────────────────────────────────
@@ -2532,6 +2574,7 @@ const passiveAggressiveLabels: LabelMap = { ...standardLabels,
   confirmResetAll: "DELETE EVERYTHING? Plans, logs, selections GONE. Config stays. Last chance.",
   shortcutToast: "KEYS: 1/2/3=tabs, P=planner, L=labs, N=news, F=fullscreen, R=refresh, T=theme, ?=help, Esc=back (you'll never remember these)",
   unitOrderFrozenCreateNew: "Order LOCKED. Create a new plan to change. (or don't, whatever)",
+  modeLabel: "Mood (not that it matters)",
 }
 
 // ─── NEW MODE: CONSPIRACY THEORIST ──────────────────────────────────────
@@ -2681,6 +2724,7 @@ const conspiracyLabels: LabelMap = { ...standardLabels,
   confirmResetAll: "BURN EVERYTHING? All ops, logs, selections GONE. Config survives. Proceed?",
   shortcutToast: "SHORTCUTS: 1=Calendar, 2=Schedule, 3=Progress, P=Planner, L=Labs, N=News, F=Full, R=Refresh, T=Theme, Esc=Disconnect",
   unitOrderFrozenCreateNew: "Phase order SECURED. Create new operation to change. Don't let them see.",
+  modeLabel: "Truth Layer",
 }
 
 // ─── NEW MODE: ELDERLY RELUCTANT ────────────────────────────────────────
@@ -2843,6 +2887,7 @@ const elderlyLabels: LabelMap = { ...standardLabels,
   confirmResetAll: "START FROM SCRATCH? All plans, logs, and selections gone. Books stay on the shelf. Are you certain?",
   shortcutToast: "KEYBOARD: 1=Calendar, 2=Schedule, 3=Progress, P=Planner, L=Labs, N=News, F=Full Screen, R=Refresh, T=Theme, ?=Help, Esc=Go Back",
   unitOrderFrozenCreateNew: "Chapter order cannot be changed now. Make a new plan if you need a different order.",
+  modeLabel: "Display Setting",
 }
 
 // ─── TOAST TEMPLATES ────────────────────────────────────────────────────
@@ -2891,6 +2936,8 @@ const standardToasts: ToastMap = {
   newsFailed: "Failed to fetch news. Showing cached data.",
   certMarked: "Marked {id} as certified!",
   certRemoved: "Removed {id} from certified certs.",
+  backupPartial: "Backup restored with warnings: {sections} could not be imported.",
+  backupVersionMismatch: "Backup version {version} is not supported. Restore skipped.",
 }
 
 const drillSergeantToasts: ToastMap = {

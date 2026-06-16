@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, beforeEach, vi } from "vitest"
 import { syncStudyPlan } from "../plan-engine"
 import { generateSchedule, getTotalPages, countStudyDays, nthStudyDay } from "../cissp-data"
 import type { StudyPlan } from "../plan-storage"
@@ -36,6 +36,11 @@ function makePlan(overrides: Partial<StudyPlan> = {}): StudyPlan {
     ...overrides,
   }
 }
+
+beforeEach(() => {
+  localStorage.clear()
+  vi.useRealTimers()
+})
 
 // ── syncStudyPlan: VELOCITY ANCHOR ───────────────────────────────────────────
 
@@ -237,6 +242,116 @@ describe("syncStudyPlan - Fixed Duration Anchor", () => {
     const params = syncStudyPlan(plan, TEST_CHAPTERS, "2026-04-01")
     // 400 pages / 20 days = 20 ppd
     expect(params.pagesPerDay).toBe(20)
+  })
+})
+
+// ── syncStudyPlan: PACE OVERLAYS ──────────────────────────────────────────────
+// v2.8.1 regression tests: Sprint + Adversary must apply to both anchors.
+
+describe("syncStudyPlan - Pace Overlays", () => {
+  it("velocity anchor: active sprint boosts pace", () => {
+    const plan = makePlan({
+      anchor: "pagesPerDay",
+      pagesPerDay: 20,
+      sprint: { startDate: "2026-04-14", days: 5, paceBoost: 50 },
+    })
+    const params = syncStudyPlan(plan, TEST_CHAPTERS, "2026-04-15")
+    expect(params.pagesPerDay).toBe(30) // 20 * 1.5
+    expect(params.anchor).toBe("pagesPerDay")
+  })
+
+  it("deadline anchor: active sprint boosts derived pace", () => {
+    const plan = makePlan({
+      anchor: "endDate",
+      targetEndDate: "2026-04-30",
+      startDate: "2026-04-01",
+      sprint: { startDate: "2026-04-14", days: 5, paceBoost: 50 },
+    })
+    const base = syncStudyPlan({ ...plan, sprint: undefined }, TEST_CHAPTERS, "2026-04-15")
+    const params = syncStudyPlan(plan, TEST_CHAPTERS, "2026-04-15")
+    expect(params.anchor).toBe("endDate")
+    expect(params.endDate).toBe("2026-04-30")
+    expect(params.pagesPerDay).toBe(Math.round(base.pagesPerDay * 1.5))
+  })
+
+  it("deadline anchor: inactive sprint keeps derived pace", () => {
+    const plan = makePlan({
+      anchor: "endDate",
+      targetEndDate: "2026-04-30",
+      startDate: "2026-04-01",
+      sprint: { startDate: "2026-04-01", days: 5, paceBoost: 50 }, // ended Apr 6
+    })
+    const base = syncStudyPlan({ ...plan, sprint: undefined }, TEST_CHAPTERS, "2026-04-15")
+    const params = syncStudyPlan(plan, TEST_CHAPTERS, "2026-04-15")
+    expect(params.pagesPerDay).toBe(base.pagesPerDay)
+  })
+
+  it("deadline anchor: adversary bump applies past deadline", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-04-15T22:30:00.000Z"))
+    localStorage.setItem("ztsf:adversary-settings", JSON.stringify({
+      enabled: true, paceBoostPct: 50, deadline: "21:00",
+    }))
+
+    const plan = makePlan({
+      anchor: "endDate",
+      targetEndDate: "2026-04-30",
+      startDate: "2026-04-01",
+    })
+    const base = syncStudyPlan(plan, TEST_CHAPTERS, "2026-04-15")
+
+    localStorage.setItem("ztsf:adversary-settings", JSON.stringify({
+      enabled: false, paceBoostPct: 50, deadline: "21:00",
+    }))
+    const noBump = syncStudyPlan(plan, TEST_CHAPTERS, "2026-04-15")
+
+    expect(base.pagesPerDay).toBe(Math.round(noBump.pagesPerDay * 1.5))
+    expect(base.anchor).toBe("endDate")
+    vi.useRealTimers()
+  })
+
+  it("velocity anchor: adversary bump applies past deadline", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-04-15T22:30:00.000Z"))
+    localStorage.setItem("ztsf:adversary-settings", JSON.stringify({
+      enabled: true, paceBoostPct: 50, deadline: "21:00",
+    }))
+
+    const plan = makePlan({
+      anchor: "pagesPerDay",
+      pagesPerDay: 20,
+    })
+    const params = syncStudyPlan(plan, TEST_CHAPTERS, "2026-04-15")
+    expect(params.pagesPerDay).toBe(30) // 20 * 1.5
+    vi.useRealTimers()
+  })
+
+  it("combined sprint + adversary on deadline anchor stacks multiplicatively", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-04-15T22:30:00.000Z"))
+
+    const plan = makePlan({
+      anchor: "endDate",
+      targetEndDate: "2026-04-30",
+      startDate: "2026-04-01",
+      sprint: { startDate: "2026-04-14", days: 5, paceBoost: 50 },
+    })
+
+    // Raw derived pace with no overlays
+    localStorage.setItem("ztsf:adversary-settings", JSON.stringify({ enabled: false }))
+    const raw = syncStudyPlan({ ...plan, sprint: undefined }, TEST_CHAPTERS, "2026-04-15")
+
+    // Both overlays active: sprint +50%, adversary +100%
+    localStorage.setItem("ztsf:adversary-settings", JSON.stringify({
+      enabled: true, paceBoostPct: 100, deadline: "21:00",
+    }))
+    const params = syncStudyPlan(plan, TEST_CHAPTERS, "2026-04-15")
+
+    const sprinted = Math.round(raw.pagesPerDay * 1.5)
+    const expected = Math.round(sprinted * 2)
+    expect(params.pagesPerDay).toBe(expected)
+    expect(params.anchor).toBe("endDate")
+    vi.useRealTimers()
   })
 })
 

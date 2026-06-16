@@ -1,8 +1,8 @@
 # Testing Architecture
 
-**Current:** 706 unit tests (44 files) + 11 E2E tests (1 file) = 717 total, all passing  
-**Runner:** Vitest v4.1.5 + Playwright 1.60.0  
-**Environment:** jsdom (unit), Chromium (E2E)  
+**Current:** 964 unit tests (65 files) + 11 E2E tests (1 file) + **17 Rust unit tests** = 992 total, all passing
+**Runner:** Vitest v4.1.5 + Playwright 1.60.0 + cargo test  
+**Environment:** jsdom (unit), Chromium (E2E), Rust unit (`#[cfg(test)]` modules)  
 **Framework:** @testing-library/react + jest-dom + user-event
 
 ---
@@ -51,6 +51,13 @@ src/lib/__tests__/
 src/hooks/__tests__/
 ├── useFocusTrap.test.tsx        # 6  — focus management hook (Phase 2.5)
 ├── useOpsec.test.ts             # 18 — OPSEC mode hook (Phase 0.5.5)
+├── useStudyLogging.test.tsx     # 15 — Log/Skip + Mark Done flow (v2.7.0)
+├── useSchedule.test.tsx         # 7  — schedule + stats derivation (v2.7.0)
+├── useKeyboardShortcuts.test.ts # 18 — global keydown listener (v2.7.0)
+├── useOverlayState.test.tsx     # 8  — generic overlay state hook (v2.8.0)
+├── useAppViewState.test.tsx     # 15 — tab + fullscreen + selectedCourseIds (v2.8.0)
+├── useTipState.test.tsx         # 5  — tip popup state (v2.8.0)
+├── useRefreshController.test.tsx# 4  — refresh tick + spin (v2.8.0)
 
 src/components/__tests__/
 ├── StreakChip.test.tsx          # 9  — header streak chip (Phase 2.3)
@@ -58,12 +65,33 @@ src/components/__tests__/
 ├── ReportGenerator.test.tsx     # 6  — CSV/JSON/PDF report export (Phase 2.1)
 ├── NotificationSettingsPanel.test.tsx # 5  — notification settings UI (Phase 2.2)
 ├── KeyboardShortcutsCheatsheet.test.tsx # 8  — cheatsheet modal (Phase 2.5)
+├── OverlayManager.test.tsx      # 7  — priority order + close-reveals-next (v2.8.0)
+├── AppHeader.test.tsx           # 14 — toolbar + popovers + OPSEC (v2.7.1)
+├── Popover.test.tsx             # 7  — open/close, Escape, backdrop (v2.7.1)
+├── StatsBar.test.tsx            # 4  — stats grid, merged pills (v2.7.1)
+├── SprintBanner.test.tsx        # 6  — sprint status banner (v2.7.1)
+├── PostmortemBanner.test.tsx    # 6  — postmortem prompt (v2.7.1)
+├── LabCreditPrompt.test.tsx     # 5  — lab credit modal (v2.7.1)
+├── ErrorBoundary.test.tsx       # 10 — fallback UI, reset, reload (v2.7.2)
+├── LabDashboard.test.tsx        # 13 — lab session tracker (Plan E)
+├── CourseBuilder.test.tsx       # 13 — course config builder (Plan E)
+├── PlannerPage.test.tsx         # 11 — plan CRUD + settings (Plan E)
 ├── axe-audit.test.tsx           # 1  — automated WCAG audit (Phase 2.5)
+
+src/lib/__tests__/
+├── ... (existing lib tests)
+├── lab-dashboard-helpers.test.ts    # 15 — dayLabel, formatRelative, etc. (Plan E)
+├── course-builder-helpers.test.ts   # 49 — validateId, buildCourseConfig, etc. (Plan E)
+├── planner-page-helpers.test.ts     # 17 — flattenChapters, computeDashboardStats (Plan E)
 
 e2e/
 └── app.spec.ts                  # 11 — Playwright E2E (skip-link, keyboard, tabs, personality)
+
+src-tauri/src/main.rs            # 17 Rust unit tests (v2.7.0): parse_date, url_to_domain,
+                                  #   is_valid_backup_filename, backup list/prune
 ```
-Total: **706 unit tests / 44 files** + **11 E2E tests / 1 file** = **717 total**, all passing at v2.6.0. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files) and integration bugs (e.g., App.tsx wiring). E2E tests catch layout/visibility bugs that jsdom cannot detect. Phase 3 inviolable rules tests map 1:1 to ARCHITECTURE.md rules. v2.5.0 audit regression tests in `app-temp-log-wiring.test.ts` cover the P-2 (temp log persistence) integration. v2.6.0 added 8 new test files for Phase 0.5 features (useOpsec, cve-of-the-day, exam-alert-banner, sprint, lab-credit, postmortem, adversary, audit-report). Post-v2.6.0 code review added 2 more test files (news-storage, lab-session-storage) covering previously untested storage modules.
+
+Total: **964 unit tests / 65 files** + **11 E2E tests / 1 file** + **17 Rust tests** = **992 automated checks**, all passing at v2.8.0. Personality layer has automated fallback-chain coverage. WCAG-AA audited via axe-core in CI. Source-code tests catch "wrong file" bugs (e.g., CSS in dead files) and integration bugs (e.g., App.tsx wiring). E2E tests catch layout/visibility bugs that jsdom cannot detect. Phase 3 inviolable rules tests map 1:1 to ARCHITECTURE.md rules. v2.5.0 audit regression tests in `app-temp-log-wiring.test.ts` cover the P-2 (temp log persistence) integration. v2.6.0 added 8 new test files for Phase 0.5 features (useOpsec, cve-of-the-day, exam-alert-banner, sprint, lab-credit, postmortem, adversary, audit-report). Post-v2.6.0 code review added 2 more test files (news-storage, lab-session-storage) covering previously untested storage modules. **v2.7.0** added 3 new hook test files (`useStudyLogging`, `useSchedule`, `useKeyboardShortcuts`) for 40 new tests covering the App.tsx refactor. Also added 17 Rust unit tests in `src-tauri/src/main.rs:988` covering `parse_date`, `url_to_domain`, `is_valid_backup_filename`, and backup list/prune logic. **v2.7.1** added 6 component test files for the v2.7.0 extracted components (AppHeader, Popover, StatsBar, SprintBanner, PostmortemBanner, LabCreditPrompt) + 6 plan-engine regression tests. **v2.7.2** added ErrorBoundary test (10 tests). **v2.8.0** added 5 test files for dialog state machine extraction (useOverlayState, useAppViewState, useTipState, useRefreshController, OverlayManager). **Plan E** added 6 test files for the three giant components (LabDashboard, CourseBuilder, PlannerPage + 3 pure-helper modules).
 
 ---
 
@@ -192,6 +220,17 @@ npx tsc -b --noEmit
 - **Adversary timer**: Timezone-aware `nowLocalDate`, `paceBoostPct` clamp [0,200], malformed deadline handling
 - **Audit report**: `buildAuditReport` + `reportToMarkdown` — coverage, readiness score, empty plans, gaps
 - **App wiring**: `app-temp-log-wiring.test.ts` — import aliases, mount load, mutation gating, persistence, await pattern
+
+### v2.7.0 Hook Tests
+- **`useStudyLogging`** (15 tests): `tempLogsLoaded` gate, Log validation (negative, non-integer, NaN), Skip writes `pagesRead: 0`, `plansLoggedForDate` validation (empty, partial, all), `handleMarkDone` with rollback on failure, `onAfterMarkDone` callback, mount-load hydration
+- **`useSchedule`** (7 tests): `showMerged` flag, empty schedule, per-course stats with `pctDone`/`pagesPerDay`, course tagging after schedule generation
+- **`useKeyboardShortcuts`** (18 tests): tab switching (1/2/3/4), open/close shortcuts (P/L/N/R/T/F/?), Escape behavior, input/textarea focus suppression, meta+key suppression, log dialog / timer modal blocks, uppercase key handling
+
+### v2.7.0 Rust Tests (17 in `src-tauri/src/main.rs:988`)
+- **`parse_date`** (6 tests): RFC 3339, RFC 3339 with offset, RFC 2822, naive datetime, garbage rejection, empty string
+- **`url_to_domain`** (3 tests): protocol+path stripping, protocol-relative, empty string
+- **`is_valid_backup_filename`** (5 tests): ISO format accept, length reject, non-digit year, wrong separators, wrong extension
+- **Backup list / prune** (3 tests): newest-first sort, keep-N semantics, idempotent (no-overwrite on existing)
 
 ### Inviolable Rules Tests (Phase 3.6)
 Each rule in `ARCHITECTURE.md` maps 1:1 to a regression test in `inviolable-rules.test.ts`:
