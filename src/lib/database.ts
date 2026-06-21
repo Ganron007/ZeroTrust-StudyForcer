@@ -282,9 +282,12 @@ export async function writeStorage(data: StorageData): Promise<void> {
             }
 
             // ── active_plan_ids: insert/delete per row ────────────────────
+            // Defensive dedupe: callers may pass duplicate ids; SQLite primary-key
+            // constraint would otherwise roll back the whole transaction.
+            const incomingActiveIds = [...new Set(data.activePlanIds)]
             const priorActiveSet = new Set(prior.activePlanIds)
-            const incomingActiveSet = new Set(data.activePlanIds)
-            for (const id of data.activePlanIds) {
+            const incomingActiveSet = new Set(incomingActiveIds)
+            for (const id of incomingActiveIds) {
               if (!priorActiveSet.has(id)) {
                 await db.execute(
                   "INSERT INTO active_plan_ids (plan_id) VALUES ($1)",

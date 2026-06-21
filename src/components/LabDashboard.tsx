@@ -19,6 +19,7 @@ import {
 import { downloadJson, downloadCsv, readJsonFile } from "@/lib/export-utils"
 import { showToast } from "@/components/NotificationToast"
 import { usePersonality } from "./PersonalityProvider"
+import { useCourse } from "./CourseProvider"
 import { formatStr } from "@/lib/personality"
 import { now, nowDate } from "@/lib/clock"
 import { findDomainMatches } from "@/lib/lab-credit"
@@ -32,6 +33,7 @@ interface LabDashboardProps {
 
 export default function LabDashboard({ onBack }: LabDashboardProps) {
   const { label } = usePersonality()
+  const { courses } = useCourse()
   const [data, setData] = useState<LabsStorage>({ labs: DEFAULT_EXTERNAL_LABS, sessions: [], categories: {} })
   const [filter, setFilter] = useState<FilterMode>("all")
   const [showLogDialog, setShowLogDialog] = useState(false)
@@ -205,15 +207,15 @@ export default function LabDashboard({ onBack }: LabDashboardProps) {
 
     // Phase 0.5.6: After logging, offer to credit minutes to a
     // matching exam domain. Off by default — the user must opt in.
-    if (lab) {
-      // Defer to next tick so the dialog closes first.
-      setTimeout(() => {
-        const matches = findDomainMatches(lab, [])
-        if (matches.length > 0) {
-          setCreditPrompt({ session, lab })
-        }
-      }, 50)
-    }
+      if (lab) {
+        // Defer to next tick so the dialog closes first.
+        setTimeout(() => {
+          const matches = findDomainMatches(lab, courses)
+          if (matches.length > 0) {
+            setCreditPrompt({ session, lab })
+          }
+        }, 50)
+      }
   }
 
   return (

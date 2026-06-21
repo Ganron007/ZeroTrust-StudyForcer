@@ -50,10 +50,9 @@ export function OverlayManager({
   planner,
 }: OverlayManagerProps) {
   const { toast } = usePersonality()
-  const { courses, refreshCourses } = useCourse()
+  const { courses, activeCourseId, refreshCourses } = useCourse()
   const allPlans = usePlanStore((s) => s.allPlans)
   const activePlanIds = usePlanStore((s) => s.activePlanIds)
-  const activeCourseId = usePlanStore((s) => s.primaryActivePlanId)
   const loadPlans = usePlanStore((s) => s.loadPlans)
   const storeSetActivePlanIds = usePlanStore((s) => s.setActivePlanIds)
   const storeSetPrimaryActivePlanId = usePlanStore((s) => s.setPrimaryActivePlanId)

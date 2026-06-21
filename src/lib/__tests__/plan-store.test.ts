@@ -69,6 +69,14 @@ describe("plan-store", () => {
     expect(state.allPlans[0].id).toBe(plan.id)
   })
 
+  it("updatePlan activates a newly created plan", async () => {
+    const plan = makePlan({ courseId: "cissp-10th-ed" })
+    await usePlanStore.getState().updatePlan(plan)
+    const state = usePlanStore.getState()
+    expect(state.activePlanIds).toContain(plan.id)
+    expect(state.primaryActivePlanId).toBe(plan.id)
+  })
+
   it("updatePlan overwrites an existing plan with the same id", async () => {
     const plan = makePlan({ courseId: "cissp-10th-ed", name: "Original" })
     await usePlanStore.getState().updatePlan(plan)

@@ -100,6 +100,17 @@ describe("computeAdversaryBump", () => {
     )).toBe(0)
   })
 
+  it("returns 0 when today has already been logged", () => {
+    const lateIso = localIsoString("2026-06-10", "23:30")
+    expect(computeAdversaryBump(
+      { enabled: true, paceBoostPct: 25, deadline: "21:00" },
+      "2026-06-10",
+      lateIso,
+      "2026-06-10",
+      true,
+    )).toBe(0)
+  })
+
   it("handles malformed deadline gracefully", () => {
     expect(computeAdversaryBump(
       { enabled: true, paceBoostPct: 25, deadline: "not-a-time" },

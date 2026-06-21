@@ -6,6 +6,54 @@ All notable changes to this project are documented here.
 
 ---
 
+## [2.8.1] — 2026-06-21 — Post-release Bug Fixes + TimerLogDialog UX
+
+Six real bugs found during a post-v2.8.0 code review were hidden behind passing tests. All fixed. The TimerLogDialog button/toast was also relabeled to stop implying persistence that doesn't happen (per the A12 architecture decision: the timer intentionally does not write to `dailyLog`).
+
+### Fixed
+
+| # | File | Bug | Fix |
+|---|------|-----|-----|
+| C1 | `src/components/OverlayManager.tsx:56` | `activeCourseId` was read from `primaryActivePlanId` (a **plan ID**), not a course ID. Plan activation never promoted to primary, and `PlannerPage` received a plan ID where it expected a course ID. | Read `activeCourseId` from `useCourse()` instead of the store. |
+| C2 | `src/components/LabDashboard.tsx:211` | `findDomainMatches(lab, [])` passed an empty `courses` array, so the lab-credit prompt could never match a domain in production. Tests mocked the helper so the bug was hidden. | Imported `useCourse()` in `LabDashboard` and passed `courses` to `findDomainMatches`. |
+| C4 | `src/lib/adversary.ts:110-134` | `computeAdversaryBump` only checked the deadline time; it never checked whether today was already logged. After the deadline, every active plan got a pace boost even if the user was caught up. | Added `todayLogged: boolean` parameter; `plan-engine.ts:applyPaceOverlays` passes `plan.dailyLog[today] !== undefined`. |
+| C5 | `src/lib/cissp-data.ts:196-204` | End-date wall was checked inside the study-day block. If `startDate` was past `resolvedEndDate` and was a study day, one day was still emitted before the loop broke. | Moved the `resolvedEndDate` guard to the top of the loop body, before any study-day is emitted. |
+| C6 | `src/lib/plan-store.ts:96-104` | `updatePlan` only updated `allPlans`; it did not update `activePlanIds` or `primaryActivePlanId`. Newly created plans were not reflected as active in the UI until the next `loadPlans()`. | Mirrored `planStorage.save`'s auto-activation logic in the store action. |
+| C7 | `src/lib/database.ts:287-294` | `writeStorage` inserted each id from `data.activePlanIds` without deduping. Duplicate IDs hit the primary-key constraint and rolled back the whole transaction. | Deduplicated incoming `activePlanIds` with `new Set()` before diffing and inserting. |
+
+### Changed — TimerLogDialog UX (C3, by design)
+
+The TimerLogDialog was flagged as a bug because the "Log Session" button and "session logged" toast implied persistence that never happened. A12 (v2.3.1) deliberately stopped the timer from writing to `dailyLog` because the engine trusts `pagesRead` as real progress — a 2-hour session should not advance the queue. The button is purely acknowledgment.
+
+**Fix:** relabeled the 4 string keys (`logStudySession`, `logSessionAction`, `logThisToEntry`, `sessionLogged`) across all 13 personality modes to reflect acknowledgment semantics:
+- Button: "Log Session" → "Done" (mode-specific flavor: "Jack out", "Case Filed", "Acknowledged", etc.)
+- Title: "Log Study Session" → "Session Complete" (mode-specific)
+- Body: "Log this to today's daily entry?" → "Great work keeping up the pace."
+- Toast: "Study session logged: {label}" → "Session complete: {label}"
+
+The dialog name `TimerLogDialog` and button key `logSessionAction` are retained for backward compatibility but now serve as acknowledgment, not logging.
+
+**Future work (F.1 in ROADMAP.md):** persist timer sessions as a separate time log (`timer-sessions.json`, mirroring `lab-session-storage.ts`) and surface "time studied this week" in `StatsBar`. Scope: ~1-2 days. Not committed; deferred for post-user-testing.
+
+### Stats
+
+- **Test count**: 964 → **966** (+2 new regression tests: `adversary.test.ts` today-logged check, `plan-store.test.ts` auto-activate check)
+- **Rust tests**: 17 — unchanged
+- **E2E**: 11/11 pass
+- **TypeScript**: clean
+- **Vite build**: succeeds
+- **Versions**: **2.8.0 → 2.8.1** (patch: bug fixes + UX relabel)
+
+### Verification
+
+- `npx tsc -b --noEmit` — clean
+- `npx vitest run` — 966/966 pass
+- `npx playwright test` — 11/11 pass
+- `cd src-tauri && cargo test` — 17/17 pass
+- `npm run build` — succeeds
+
+---
+
 ## [2.8.0] — 2026-06-17 — Release Wave (v2.7.0 → v2.8.0)
 
 This release ships the full v2.7.0 → v2.8.0 wave plus the final ROADMAP plan item (E) as a single portable EXE. The wave includes four staged releases that were developed in sequence but rolled up into one v2.8.0 release.

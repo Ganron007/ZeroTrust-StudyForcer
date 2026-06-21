@@ -16,7 +16,10 @@ import { now } from "./clock"
  *      - Was today logged in any active plan?
  *      - If not, is "now" past today's deadline?
  *   3. If both true, add a transient `adversaryBump` to the plan's
- *      pagesPerDay for tomorrow's plan computation.
+ *     pagesPerDay for tomorrow's plan computation.
+ *
+ * The `todayLogged` parameter lets callers pass whether today already has a
+ * log entry (including a skip). When true, no bump is applied.
  *
  * Adversary bumps are transient (NOT persisted to planStorage).
  * They only apply for the next day's schedule generation, and
@@ -112,8 +115,11 @@ export function computeAdversaryBump(
   today: string,
   nowIso: string = now(),
   nowLocalDate?: string,
+  todayLogged: boolean = false,
 ): number {
   if (!settings.enabled) return 0
+  // If the user already logged today (or explicitly skipped), no bump is warranted.
+  if (todayLogged) return 0
   const [hh, mm] = settings.deadline.split(":").map(Number)
   if (hh === undefined || mm === undefined) return 0
   if (!Number.isFinite(hh) || !Number.isFinite(mm)) return 0
@@ -143,8 +149,9 @@ export function applyAdversaryPace(
   today: string,
   nowIso: string = now(),
   nowLocalDate?: string,
+  todayLogged: boolean = false,
 ): number {
-  const bump = computeAdversaryBump(settings, today, nowIso, nowLocalDate)
+  const bump = computeAdversaryBump(settings, today, nowIso, nowLocalDate, todayLogged)
   if (bump === 0) return pagesPerDay
   return Math.round(pagesPerDay * (1 + bump / 100))
 }

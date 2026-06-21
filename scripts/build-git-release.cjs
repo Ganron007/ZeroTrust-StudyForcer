@@ -91,7 +91,7 @@ out += '```\n\n'
 
   out += `### Verification\n\n`
   out += `- TypeScript: \`npx tsc -b --noEmit\` clean\n`
-  out += `- Tests: 964 vitest + 11 E2E + 17 Rust = 992 automated checks, all passing\n`
+  out += `- Tests: 966 vitest + 11 E2E + 17 Rust = 994 automated checks, all passing\n`
   out += `- No new dependencies\n`
 
 if (version === '2.8.0') {

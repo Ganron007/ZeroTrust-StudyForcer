@@ -111,6 +111,11 @@ vi.mock("@/components/PersonalityProvider", () => ({
   PersonalityProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
 
+vi.mock("@/components/CourseProvider", () => ({
+  useCourse: () => ({ courses: [], activeCourseId: null, refreshCourses: vi.fn() }),
+  CourseProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+}))
+
 vi.mock("@/components/LabCreditPrompt", () => ({
   LabCreditPrompt: ({ onDismiss }: { onDismiss: () => void }) => (
     <div data-testid="lab-credit-prompt">

@@ -56,7 +56,8 @@ function applyPaceOverlays(basePace: number, plan: StudyPlan, today: string): nu
   const safeBase = Math.max(1, basePace)
   const sprinted = applySprintPace(safeBase, plan.sprint, today)
   const advSettings = loadAdversarySettings()
-  return applyAdversaryPace(sprinted, advSettings, today)
+  const todayLogged = plan.dailyLog[today] !== undefined
+  return applyAdversaryPace(sprinted, advSettings, today, undefined, undefined, todayLogged)
 }
 
 /**

@@ -3,7 +3,7 @@
 A short tour of every `.md` file in this repo so you (or future-you, or anyone who stumbles
 in) can jump straight to the right place instead of opening files at random.
 
-**Last updated:** 2026-06-17 — for app version **2.8.0** (release wave v2.7.0–v2.8.0 + Plan E: 964 vitest + 11 e2e + 17 Rust = 992 tests, all passing). All 5 ROADMAP items shipped.
+**Last updated:** 2026-06-21 — for app version **2.8.1** (post-release patch: 6 bug fixes + TimerLogDialog UX relabel; 966 vitest + 11 e2e + 17 Rust = 994 tests, all passing). v2.8.0 release wave (v2.7.0–v2.8.0 + Plan E) shipped 2026-06-17. All 5 ROADMAP items shipped.
 
 ---
 
@@ -37,9 +37,9 @@ These are the human-facing project docs. Read these first.
 
 | File | Purpose | Last refresh |
 |---|---|---|
-| `README.md` | What the app does, project layout, dev commands. | Updated for v2.8.0 |
-| `ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.8.0 |
-| `CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through v2.8.0 — 2026-06-17 |
+| `README.md` | What the app does, project layout, dev commands. | Updated for v2.8.1 |
+| `ARCHITECTURE.md` | Canonical design decisions + Q&A history + **inviolable rules** (read before changing logging/scheduling logic). | Updated for v2.8.1 |
+| `CHANGELOG.md` | Version-by-version what-changed log. Newest entries on top. | Current through v2.8.1 — 2026-06-21 |
 
 Internal docs (kept in `Docs/Internal/`, not committed): `BUGS.md`, `ROADMAP.md`, `VISION.md`, `TESTING-REPORT.md`, `ZTSF_PERSONALITY_LAYER.md`, `SUGGESTIONS.md`.
 

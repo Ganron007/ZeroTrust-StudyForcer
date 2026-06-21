@@ -100,7 +100,15 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     const allPlans = exists
       ? state.allPlans.map((p) => (p.id === saved.id ? saved : p))
       : [...state.allPlans, saved]
-    set({ allPlans })
+    // S17: Mirror planStorage.save's auto-activation for newly created plans.
+    const activePlanIds = exists
+      ? state.activePlanIds
+      : state.activePlanIds.includes(saved.id)
+        ? state.activePlanIds
+        : [...state.activePlanIds, saved.id]
+    const primaryActivePlanId =
+      state.primaryActivePlanId ?? (activePlanIds.length > 0 ? activePlanIds[0] : null)
+    set({ allPlans, activePlanIds, primaryActivePlanId })
   },
 
   deletePlan: async (id) => {

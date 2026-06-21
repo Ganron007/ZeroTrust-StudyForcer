@@ -169,6 +169,19 @@ export function generateSchedule(
     const dateStr = localDateString(cursor)
     const dow = cursor.getDay()
 
+    // Enforce end-date wall before emitting any study day.
+    // This prevents emitting a day when the start date itself is already
+    // past the deadline.
+    if (resolvedEndDate && dateStr > resolvedEndDate) {
+      const remaining = pageSequence.length - pageIdx
+      if (remaining > 0) {
+        warnings.push(
+          `Deadline reached with ${remaining} pages unfinished. Extend deadline or increase pace.`
+        )
+      }
+      break
+    }
+
     if (activeDays.includes(dow) && !plan.skippedDays.includes(dateStr)) {
       // QUEUE RULE:
       //   - Logged days: use actual pagesRead — pointer advances by exactly that many.
@@ -190,17 +203,6 @@ export function generateSchedule(
         // but pointer stays put — nothing was actually consumed.
         effectiveSliceSize = 0
         plannedSliceSize = Math.max(1, resolvedPagesPerDay)
-      }
-
-      // Enforce end-date wall
-      if (resolvedEndDate && dateStr > resolvedEndDate) {
-        const remaining = pageSequence.length - pageIdx
-        if (remaining > 0) {
-          warnings.push(
-            `Deadline reached with ${remaining} pages unfinished. Extend deadline or increase pace.`
-          )
-        }
-        break
       }
 
       const dayPages = pageSequence.slice(pageIdx, pageIdx + plannedSliceSize)
