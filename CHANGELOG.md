@@ -3,6 +3,8 @@
 All notable changes to this project are documented here.
 
 > **Versioning**: Follows [SemVer](https://semver.org). See `ARCHITECTURE.md` → Versioning Policy for bump rules.
+>
+> **Note on counts**: Test/file/line counts recorded for each release are snapshots at the time of that release. They are not expected to stay current as the codebase evolves.
 
 ---
 

@@ -1,6 +1,6 @@
 # Testing Architecture
 
-**Current:** 964 unit tests (65 files) + 11 E2E tests (1 file) + **17 Rust unit tests** = 992 total, all passing
+**Current:** 966 unit tests (65 files) + 11 E2E tests (1 file) + **17 Rust unit tests** = 994 total, all passing at v2.8.1
 **Runner:** Vitest v4.1.5 + Playwright 1.60.0 + cargo test  
 **Environment:** jsdom (unit), Chromium (E2E), Rust unit (`#[cfg(test)]` modules)  
 **Framework:** @testing-library/react + jest-dom + user-event

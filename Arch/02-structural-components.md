@@ -1,6 +1,6 @@
 # Structural Components
 
-> **Last updated:** v2.7.2 (2026-06-16) — added `<ErrorBoundary>` primitive and wrapped 7 areas.
+> **Last updated:** v2.8.1 (2026-06-21) — refreshed component line counts and v2.8.0 dialog-state extraction details.
 
 ## 1. Root Application Layer
 
@@ -243,7 +243,7 @@ cache (tauriCache) invalidated on every write.
 ## 5. Component Dependency Graph (v2.7.0)
 
 ```
-App.tsx (928 lines, dialog state + layout)
+App.tsx (739 lines, layout shell)
 ├── PersonalityProvider (context → label/toast/empty/greeting/loading/tips)
 ├── ThemeProvider (context → theme)
 ├── CourseProvider (context → course JSON)

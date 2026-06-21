@@ -4,7 +4,7 @@
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State Management:** Zustand 5 (single source of truth) + SQLite (Tauri) / localStorage (Web)  
 **Personality Layer:** 13 text themes via `PersonalityProvider` React context — pure string overlay  
-**Version:** 2.7.0 (App.tsx refactor + Phase 0.5 UI integration: 748 vitest + 11 e2e + 17 Rust tests)
+**Version:** 2.8.1 (post-release bug-fix patch: 966 vitest + 11 e2e + 17 Rust = 994 tests, all passing)
 
 ---
 

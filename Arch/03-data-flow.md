@@ -102,14 +102,16 @@ For each active plan for the course:
   2. syncStudyPlan(plan, chapters, today)
      → consumed = sum(dailyLog.pagesRead for past days)
      → remaining = totalPages - consumed
-     → If anchor === "endDate":
-         → available = countStudyDays(today, targetEndDate)
-         → pagesPerDay = max(1, ceil(remaining / available))  ← no overlay
-     → If anchor === "pagesPerDay":
-         → basePPD = max(1, plan.pagesPerDay)
-         → if sprint active (v2.7.0): pagesPerDay = applySprintPace(basePPD, plan.sprint, today)
-         → if adversary enabled (v2.7.0): pagesPerDay = applyAdversaryPace(prev, settings, today)
-         → endDate = nthStudyDay(today, ceil(remaining / pagesPerDay))
+      → If anchor === "endDate":
+          → available = countStudyDays(today, targetEndDate)
+          → pagesPerDay = max(1, ceil(remaining / available))
+          → if sprint active (v2.7.0, deadline-anchor fix v2.7.1): pagesPerDay = applySprintPace(pagesPerDay, plan.sprint, today)
+          → if adversary enabled (v2.7.0, deadline-anchor fix v2.7.1): pagesPerDay = applyAdversaryPace(pagesPerDay, settings, today)
+      → If anchor === "pagesPerDay":
+          → basePPD = max(1, plan.pagesPerDay)
+          → if sprint active (v2.7.0): pagesPerDay = applySprintPace(basePPD, plan.sprint, today)
+          → if adversary enabled (v2.7.0): pagesPerDay = applyAdversaryPace(pagesPerDay, settings, today)
+          → endDate = nthStudyDay(today, ceil(remaining / pagesPerDay))
   3. generateSchedule(plan, chapters, today, params)
      → buildPageSequence() from startingChapterId
      → Walk calendar from startDate

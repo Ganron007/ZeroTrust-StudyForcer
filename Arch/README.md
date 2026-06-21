@@ -1,10 +1,10 @@
 # ZeroTrust.StudyForcer — Architecture Documentation
 
-**Updated:** 2026-06-15  
+**Updated:** 2026-06-21  
 **System:** ZeroTrust.StudyForcer Desktop Application  
 **Stack:** Tauri 2 (Rust) + React 19 (TypeScript) + Tailwind CSS 3  
 **State:** Zustand 5 + SQLite / localStorage  
-**Version:** 2.7.0 (App.tsx refactor + Phase 0.5 UI integration: 748 vitest + 11 e2e + 17 Rust tests, all passing)
+**Version:** 2.8.1 (post-release bug-fix patch: 966 vitest + 11 e2e + 17 Rust = 994 tests, all passing)
 
 ---
 
