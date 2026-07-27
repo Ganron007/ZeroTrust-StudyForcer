@@ -196,7 +196,7 @@ Two real engine changes, both additive:
 |---|---|---|
 | `README.md` | What the app does + how to run it |
 | `CHANGELOG.md` | Version history with dates and summaries |
-| `Arch/` | Deep architecture series (01 overview → 07 testing) |
+| `Docs/Arch/` | Deep architecture series (01 overview → 07 testing) |
 | `How_to_read.md` | Doc index — start here if you're new |
 | — | Internal docs (`Docs/Internal/`): BUGS.md, ROADMAP.md, VISION.md, TESTING-REPORT.md, etc. |
 

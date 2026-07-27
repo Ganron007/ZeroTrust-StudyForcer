@@ -5,6 +5,10 @@ A cybersecurity certification study tracker — one plan at a time, no fluff. Ru
 
 Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
 
+<p align="center">
+  <img src="Docs/img/Screenshot.png" alt="ZeroTrust.StudyForcer" width="800">
+</p>
+
 ## Features
 
 - **Schedule engine** — Set pages/day, study days, start date; generates a day-by-day plan
@@ -83,7 +87,7 @@ src/                  React + TypeScript frontend
 src-tauri/            Rust backend (Tauri commands for FS I/O, news RSS, window state, tray)
   src/main.rs         1106 lines + 17 unit tests (v2.7.0)
 public/default-course.json  Seeded on first launch if no course exists
-Arch/                 Deep architecture series
+Docs/Arch/           Deep architecture series
 ```
 
 Plans live in SQLite (`plans` and `active_plan_ids` tables, see `src/lib/database.ts`). Labs, timer state, news, and window position are JSON files under `<appData>/studyplanner.app/data/`. Schema/data migrations live inline in `database.ts` (legacy JSON → SQLite, `planMode`→`anchor`, numeric→date dailyLog keys, `activePlanId`→`activePlanIds`, `completedDays` removal).

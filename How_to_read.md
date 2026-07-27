@@ -11,12 +11,12 @@ in) can jump straight to the right place instead of opening files at random.
 
 | You are… | Read in this order |
 |---|---|
-| **Brand-new to the project** | `README.md` → `Arch/01-executive-overview.md` → `ARCHITECTURE.md` |
+| **Brand-new to the project** | `README.md` → `Docs/Arch/01-executive-overview.md` → `ARCHITECTURE.md` |
 | **Returning reviewer / future-you** | `CHANGELOG.md` |
-| **About to change code** | `ARCHITECTURE.md` (rules) → the relevant `Arch/0X-*.md` |
-| **Debugging a data-flow issue** | `Arch/03-data-flow.md` + `Arch/05-state-management.md` |
-| **Touching the anchor / schedule math** | `Arch/06-anchor-system.md` + `Arch/04-control-flow.md` |
-| **Adding or fixing tests** | `Arch/07-testing-architecture.md` (philosophy) |
+| **About to change code** | `ARCHITECTURE.md` (rules) → the relevant `Docs/Arch/0X-*.md` |
+| **Debugging a data-flow issue** | `Docs/Arch/03-data-flow.md` + `Docs/Arch/05-state-management.md` |
+| **Touching the anchor / schedule math** | `Docs/Arch/06-anchor-system.md` + `Docs/Arch/04-control-flow.md` |
+| **Adding or fixing tests** | `Docs/Arch/07-testing-architecture.md` (philosophy) |
 | **Understanding personality / mode switching** | Switch modes from the app header (13 themes available) |
 | **Exploring certification career paths** | Access the `cert-path` tab via keyboard shortcut `4` — shows 68 certs across 5 tracks (Blue Team, Red Team, Pentest, Management, AI Security) |
 
@@ -45,30 +45,30 @@ Internal docs (kept in `Docs/Internal/`, not committed): `BUGS.md`, `ROADMAP.md`
 
 ---
 
-## `Arch/` — deep architecture series
+## `Docs/Arch/` — deep architecture series
 
 Seven numbered docs + an index. Cross-linked from `ARCHITECTURE.md`. Open these only
 when you need depth beyond the top-level docs.
 
 | File | Topic |
 |---|---|
-| `Arch/README.md` | Index + quick-reference table mapping goals → starting doc |
-| `Arch/01-executive-overview.md` | High-level stack, layers, key architectural decisions |
-| `Arch/02-structural-components.md` | Every component's role + dependency graph |
-| `Arch/03-data-flow.md` | User-action lifecycle (Log → Mark Done → schedule recalc) |
-| `Arch/04-control-flow.md` | Decision trees: logging, mark-done, schedule generation, slice sizing |
-| `Arch/05-state-management.md` | Zustand store + temp React state + SQLite/localStorage schema |
-| `Arch/06-anchor-system.md` | Velocity vs Deadline anchors; queue + pointer math |
-| `Arch/07-testing-architecture.md` | Test pyramid, mocking strategy, coverage philosophy |
+| `Docs/Arch/README.md` | Index + quick-reference table mapping goals → starting doc |
+| `Docs/Arch/01-executive-overview.md` | High-level stack, layers, key architectural decisions |
+| `Docs/Arch/02-structural-components.md` | Every component's role + dependency graph |
+| `Docs/Arch/03-data-flow.md` | User-action lifecycle (Log → Mark Done → schedule recalc) |
+| `Docs/Arch/04-control-flow.md` | Decision trees: logging, mark-done, schedule generation, slice sizing |
+| `Docs/Arch/05-state-management.md` | Zustand store + temp React state + SQLite/localStorage schema |
+| `Docs/Arch/06-anchor-system.md` | Velocity vs Deadline anchors; queue + pointer math |
+| `Docs/Arch/07-testing-architecture.md` | Test pyramid, mocking strategy, coverage philosophy |
 
-**Note on duplication:** `ARCHITECTURE.md` and `Arch/*` overlap on purpose. `ARCHITECTURE.md` is
-the **short, authoritative** version (rules + Q&A); `Arch/` is the **long, illustrated**
-version (diagrams + decision trees). Read `ARCHITECTURE.md` first; dive into `Arch/`
+**Note on duplication:** `ARCHITECTURE.md` and `Docs/Arch/*` overlap on purpose. `ARCHITECTURE.md` is
+the **short, authoritative** version (rules + Q&A); `Docs/Arch/` is the **long, illustrated**
+version (diagrams + decision trees). Read `ARCHITECTURE.md` first; dive into `Docs/Arch/`
 when something needs more context.
 
 ---
 
-For the current testing picture, see `Arch/07-testing-architecture.md`.
+For the current testing picture, see `Docs/Arch/07-testing-architecture.md`.
 
 ---
 
