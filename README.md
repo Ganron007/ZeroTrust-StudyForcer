@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src-tauri/icons/icon.png" alt="ZeroTrust.StudyForcer logo" width="128">
+</p>
+
 # ZeroTrust.StudyForcer
 
 **Zero Trust in your ability to pass. Prove us wrong.**
