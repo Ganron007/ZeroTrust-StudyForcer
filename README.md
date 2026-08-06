@@ -2,124 +2,138 @@
   <img src="src-tauri/icons/icon.png" alt="ZeroTrust.StudyForcer logo" width="128">
 </p>
 
-# ZeroTrust.StudyForcer
-
-**Zero Trust in your ability to pass. Prove us wrong.**
-A cybersecurity certification study tracker — one plan at a time, no fluff. Runs as a desktop app *(recommended)* or locally in your browser.
-
-Built with [Tauri](https://v2.tauri.app) + React + TypeScript.
+<h1 align="center">ZeroTrust.StudyForcer</h1>
 
 <p align="center">
-  <img src="Docs/img/Screenshot.png" alt="ZeroTrust.StudyForcer" width="800">
+  <b>Zero Trust in your ability to pass. Prove us wrong.</b><br>
+  A cybersecurity certification study tracker — one plan at a time, no fluff.
 </p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/version-2.8.1-blue" alt="version 2.8.1">
+  <img src="https://img.shields.io/badge/platform-Windows-green" alt="platform Windows">
+  <img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license MIT">
+</p>
+
+<p align="center">
+  <img src="Docs/img/Screenshot.png" alt="ZeroTrust.StudyForcer screenshot" width="800">
+</p>
+
+Runs as a portable desktop app (recommended) or locally in your browser. Built with [Tauri 2](https://v2.tauri.app) + React + TypeScript + Rust.
+
+---
+
+## Highlights
+
+- **Plans that adapt to reality** — log what you actually read; the schedule recomputes around your real pace
+- **Holds you accountable** — streaks, sprint boosts, an adversary mode that punishes missed deadlines
+- **Knows the cert landscape** — 68 certifications across 5 career tracks, with gap analysis and exam countdowns
+- **Security-flavoured extras** — built-in news feed, CVE-of-the-day, lab session tracking, OPSEC mode for screen sharing
 
 ## Features
 
-- **Schedule engine** — Set pages/day, study days, start date; generates a day-by-day plan
-- **Multi-course** — Track CISSP, SecAI+, OSCP side by side; view a merged calendar
-- **Per-plan logging** — Log actual pages read or skip a day; each plan tracked independently
-- **Mark Done** — One-click commit point; schedule recomputes around your real pace
-- **Progress dashboard** — % done, pages consumed vs planned, per-unit breakdown, domain weakness analysis
-- **Study timer** — Pomodoro / stopwatch / countdown with auto-log
-- **Streak counter** — Header chip showing consecutive-day study streak (derived from `dailyLog`)
-- **Auto-backup** — One snapshot of all plans per day to `<appData>/backups/YYYY-MM-DD.json` (keeps last 10)
-- **Native notifications** *(desktop only)* — Daily reminder at your chosen time, even when the app is in the background. Toggle via the Bell icon in the header.
-- **Report Generator** — Export your study progress as CSV, JSON, or PDF (print-to-PDF) from the Cert Path tab
-- **Accessibility (WCAG-AA)** — Skip link, focus traps on every modal, `?` opens a keyboard shortcuts cheatsheet, screen-reader landmarks, axe-core CI test
-- **Online Labs** *(optional)* — Track lab sessions, streaks, at-risk alerts
-- **Security News** *(optional)* — Built-in RSS/Atom feed reader
-- **Course Builder** — Built-in tool to create custom course configs (find it in Planner → Build Course → Export JSON)
-- **Personality modes** — Switch between 13 text themes (Standard, Drill Sergeant, Cyberpunk, Script Kiddie, Zero Trust Audit, Influencer, Politician, LinkedIn Lunatic, True Crime, Weather Anchor, Passive-Aggressive Mom, Conspiracy Theorist, Elderly Reluctant) from the app header
-- **Certification Roadmap** — Explore 68 certifications across 5 career tracks (Blue Team, Red Team, Pentest, Management, AI Security). Auto-detects progress from your study plans. Includes Gap Analysis, Career Mode sequencer, Compliance Report export, and Exam Countdown banner. Keyboard shortcut `4` to open.
-- **OPSEC mode** — Mask course names, plan names, and page counts for screen-sharing. Toggle via the eye-off icon in the header. Persisted across sessions.
-- **Sprint mode** — Temporary pace boost overlay. Set a start date, duration, and boost percentage. Auto-expires when the sprint ends. Now wired into the schedule engine (v2.7.0) — the effective pace is applied at derivation time. Sprint banner surfaces above the tabs while active.
-- **Adversary timer** — Opt-in feature. If you miss your daily deadline, tomorrow's pace auto-bumps by your chosen percentage. Toggle and deadline configurable from the notification settings panel.
-- **Postmortem mode** — When your exam date passes, get prompted to write a 5-section postmortem (timeline, root cause, what worked, what didn't, action items). Persisted per plan.
-- **Lab credit** — After logging a lab session, you can credit the time to a matching exam domain (when one exists). Off by default.
-- **CVE-of-the-day** — Pin the freshest security vulnerability (CVE) from your news feed at the top of the sidebar. Highlighted with a red badge.
-- **Exam-day alert** — Surfaces imminent exam deadlines (T-3 or less) above the tab strip. Color-coded by urgency.
-- **Morning standup** — 4-line incident report: today's queue, yesterday's progress, week pace, top news headline.
-- **Temp log persistence** — Log/Skip state survives page refreshes. Your in-progress logs are saved to localStorage and restored on next visit.
-- **No install required** — Download the portable EXE from [Releases](https://github.com/Ganron007/Study-Planner-app/releases) and run
+### Planning & Tracking
+
+| Feature | What it does |
+|---------|--------------|
+| Schedule engine | Set pages/day, study days, start date → day-by-day plan |
+| Multi-course | Track CISSP, SecAI+, OSCP side by side on a merged calendar |
+| Per-plan logging | Log pages read or skip a day; each plan tracked independently |
+| Mark Done | One-click commit point; schedule recomputes around your real pace |
+| Progress dashboard | % done, pages consumed vs planned, per-unit breakdown, domain weakness analysis |
+| Study timer | Pomodoro / stopwatch / countdown with auto-log |
+| Streak counter | Consecutive-day study streak in the header |
+| Auto-backup | Daily snapshot of all plans (keeps last 10) |
+| Report generator | Export progress as CSV, JSON, or PDF |
+| Temp log persistence | In-progress Log/Skip state survives restarts |
+
+### Accountability
+
+| Feature | What it does |
+|---------|--------------|
+| Sprint mode | Temporary pace boost overlay; auto-expires when the sprint ends |
+| Adversary timer | Miss your daily deadline → tomorrow's pace auto-bumps (opt-in) |
+| Postmortem mode | Exam date passed? Write a 5-section postmortem |
+| Exam-day alert | Color-coded urgency banner when your exam is T-3 or less |
+| Morning standup | 4-line incident report: today's queue, yesterday's progress, week pace, top headline |
+
+### Career Intelligence
+
+| Feature | What it does |
+|---------|--------------|
+| Certification roadmap | 68 certs across 5 tracks (Blue Team, Red Team, Pentest, Management, AI Security) |
+| Gap analysis | Auto-detects progress from your study plans |
+| Career mode | Sequencer that orders your next certs |
+| Compliance report | Exportable coverage report |
+| CVE-of-the-day | Freshest vulnerability from your news feed, pinned with a red badge |
+
+### Extras
+
+| Feature | What it does |
+|---------|--------------|
+| Personality modes | 13 text themes — Drill Sergeant, Cyberpunk, Passive-Aggressive Mom, and 10 more |
+| OPSEC mode | Mask course names, plan names, and page counts for screen sharing |
+| Online labs | Track lab sessions, streaks, at-risk alerts; optionally credit time to exam domains |
+| Security news | Built-in RSS/Atom feed reader |
+| Course builder | Create custom course configs with live JSON preview and validation |
+| Native notifications | Daily reminder at your chosen time, even in the background (desktop only) |
+| Accessibility | WCAG-AA: skip link, focus traps, keyboard shortcuts (`?` for cheatsheet), screen-reader landmarks |
 
 ## Quick Start
 
 | Platform | How to run |
 |----------|-----------|
-| **Desktop** | Download `ZTSFvX.X.X.exe` from [Releases](https://github.com/Ganron007/Study-Planner-app/releases) and double-click |
-| **Browser** | `npm install && npm run dev` — opens at `http://localhost:5173` |
+| **Desktop** | Download `ZTSFvX.X.X.exe` from [Releases](https://github.com/Ganron007/ZeroTrust-StudyForcer/releases) and double-click — no install required |
+| **Browser** | `npm install && npm run dev` → opens at `http://localhost:5173` |
 
-> Note: In browser mode, News RSS is unavailable (requires the Tauri backend). Everything else works using localStorage.
+> **Note:** In browser mode the news feed is unavailable (needs the Tauri backend). Everything else works via localStorage.
 
 ## Creating Your Own Course
 
-Use the built-in **Course Builder** to create custom study material.
+1. Open **Planner** → **Build Course**
+2. Add units, chapters, and page counts (drag to reorder)
+3. Click **Save Course to Library** — it appears in the course selector immediately
+4. Use **Export JSON** to share or back up a course
 
-1. Open **Planner** → click **Build Course**
-2. Fill out the form — add units, chapters, and page counts
-3. Click **Save Course to Library**
-4. The course appears in the course selector immediately — create a plan for it
-
-The Course Builder has a live JSON preview, drag-to-reorder chapters, and built-in validation. Custom courses are stored alongside the built-in ones in your app data folder. Use the **Export JSON** button to download the current builder state as a `.json` file (useful for sharing or backing up a draft).
-
-## Project layout
-
-```
-src/                  React + TypeScript frontend
-  App.tsx             Top-level state, persistence, layout (739 lines post-v2.8.0 refactor)
-  components/         UI (calendar, schedule list, progress, planner config, PersonalityProvider, ...)
-    AppHeader.tsx     Top toolbar (extracted v2.7.0)
-    Popover.tsx       Popover primitive (extracted v2.7.0)
-    StatsBar.tsx      Finish-date + 6-cell grid (extracted v2.7.0)
-    SprintBanner.tsx  Sprint status banner (v2.7.0)
-    PostmortemBanner  Exam-passed reflection prompt (v2.7.0)
-    LabCreditPrompt  Exam-domain credit offer (v2.7.0)
-  hooks/              React hooks (extracted v2.7.0)
-    useStudyLogging   Log/Skip + Mark Done flow
-    useSchedule       Pure schedule/stats derivation
-    useKeyboardShortcuts  Global keydown listener
-  lib/                Schedule engine, plan/lab/timer/course storage, SVG sanitizer, personality.ts
-    plan-store.ts     Zustand store — single source of truth
-    plan-engine.ts    syncStudyPlan() — Sprint + Adversary overlays integrated (v2.7.0)
-    cissp-data.ts     generateSchedule, buildPageSequence, getOrderedChapters
-    database.ts       SQLite + localStorage adapter, per-row upsert (v2.7.0)
-    sprint.ts         Sprint mode — pace boost overlay
-    adversary.ts      Adversary timer — opt-in pace auto-bump
-    postmortem.ts     Postmortem mode — exam-passed reflection
-    lab-credit.ts     Lab → exam-domain fuzzy matching
-  types/course.ts     Course config schema + flattening helpers
-src-tauri/            Rust backend (Tauri commands for FS I/O, news RSS, window state, tray)
-  src/main.rs         1106 lines + 17 unit tests (v2.7.0)
-public/default-course.json  Seeded on first launch if no course exists
-Docs/Arch/           Deep architecture series
-```
-
-Plans live in SQLite (`plans` and `active_plan_ids` tables, see `src/lib/database.ts`). Labs, timer state, news, and window position are JSON files under `<appData>/studyplanner.app/data/`. Schema/data migrations live inline in `database.ts` (legacy JSON → SQLite, `planMode`→`anchor`, numeric→date dailyLog keys, `activePlanId`→`activePlanIds`, `completedDays` removal).
-
-## Build from source
+## Build from Source
 
 ```sh
 npm install
 npm run tauri:dev        # Dev shell (hot-reload)
-npm run tauri:build:all  # Production EXE (clean portable build)
+npm run tauri:build:all  # Production EXE (portable build)
 npm run build            # Type-check + Vite build only (no Tauri)
 ```
 
-The frontend is plain Vite; you can also run `npm run dev` to iterate on the UI in a browser, but anything that touches the file-backed Tauri commands will fail outside the desktop shell.
+The frontend is plain Vite — `npm run dev` works in a browser, but anything touching file-backed Tauri commands requires the desktop shell.
+
+## Project Layout
+
+```
+src/                        React + TypeScript frontend
+  components/               UI (calendar, schedule, planner, dashboards, banners)
+  hooks/                    useStudyLogging, useSchedule, useKeyboardShortcuts, ...
+  lib/                      Schedule engine, storage (SQLite + localStorage), personality
+src-tauri/                  Rust backend (FS I/O, RSS fetcher, tray, window state)
+public/default-course.json  Seeded on first launch
+Docs/Arch/                  Deep architecture series (01 overview → 07 testing)
+```
+
+Plans live in SQLite; labs, timer state, news, and window position are JSON files under `<appData>/studyplanner.app/data/`.
 
 ## Documentation
 
 | File | What it covers |
 |------|---------------|
-| `ARCHITECTURE.md` | Design decisions and inviolable rules |
-| `CHANGELOG.md` | Version history |
-| `How_to_read.md` | Doc index with reading paths |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Design decisions and inviolable rules |
+| [`Docs/Arch/`](Docs/Arch/) | Deep architecture series with diagrams |
+| [`CHANGELOG.md`](CHANGELOG.md) | Version history |
+| [`How_to_read.md`](How_to_read.md) | Doc index with reading paths |
 
-## Notes
+## Security Notes
 
-- Course logos are user-supplied SVG files. They are sanitized via an allow-list parser (`src/lib/sanitize-svg.ts`) before being rendered with `dangerouslySetInnerHTML`.
-- A strict CSP is configured in `src-tauri/tauri.conf.json`. Loosening it is generally not what you want — adjust the sanitizer or the asset host instead.
-- Window resize/move events throttle their writes to disk to avoid hammering the filesystem during drags.
+- Course logos are user-supplied SVGs, sanitized via an allow-list parser before rendering
+- Strict CSP configured in `src-tauri/tauri.conf.json`
+- Window resize/move writes to disk are throttled
 
 ## License
 
